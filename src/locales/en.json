@@ -1,0 +1,77 @@
+{
+  "common": {
+    "appName": "ApiForge",
+    "loading": "Loading…",
+    "streaming": "Streaming…"
+  },
+  "meta": {
+    "workspaceTitle": "ApiForge Workspace"
+  },
+  "nav": {
+    "aria": "Primary navigation",
+    "workspace": "Workspace",
+    "history": "History",
+    "deployments": "Deployments"
+  },
+  "header": {
+    "searchPlaceholder": "Search resources..."
+  },
+  "sidebar": {
+    "apiExplorer": "API Explorer",
+    "version": "v1.2.4-STABLE",
+    "collections": "Collections",
+    "auth": "Auth",
+    "users": "Users",
+    "payments": "Payments",
+    "documentation": "Documentation",
+    "support": "Support",
+    "emptyEndpoints": "Parse a spec to list endpoints here."
+  },
+  "hero": {
+    "title": "Forge your API Workspace.",
+    "subtitle": "Instantly transform OpenAPI specifications into high-performance documentation, client SDKs, and TypeScript models.",
+    "inputPlaceholder": "OpenAPI JSON/YAML URL (not the Swagger UI /index.html page)",
+    "forgeCta": "Forge Code",
+    "dropzone": "or drop file here to upload"
+  },
+  "workspace": {
+    "endpointsHeading": "Endpoints",
+    "sensorsBadge": "{count} SENSORS",
+    "previewAria": "Output format",
+    "selectEndpoint": "Select an endpoint from the list to generate output.",
+    "emptyOutput": "—",
+    "regenerate": "Regenerate",
+    "tabs": {
+      "markdown": "Markdown Preview",
+      "typescript": "TypeScript Types",
+      "aiPrompt": "AI Prompt",
+      "codeSnippet": "Code Snippet"
+    },
+    "meta": {
+      "markdown": "Markdown / UTF-8",
+      "typescript": "TypeScript / UTF-8",
+      "prompt": "Prompt / UTF-8",
+      "snippet": "Snippet / UTF-8"
+    },
+    "export": "Export",
+    "copy": "Copy",
+    "fileLabelIdle": "output.ts",
+    "stats": "Lines: {lines} | Chars: {chars}"
+  },
+  "footer": {
+    "status": "System Status: Operational",
+    "parsed": "Parsed: {endpoints} Endpoints",
+    "errors": "Errors: {errors}",
+    "nodes": "Nodes: {nodes}",
+    "generationTime": "Generation Time: {ms}ms",
+    "generationIdle": "Generation Time: —",
+    "latency": "Latency: {ms}ms"
+  },
+  "a11y": {
+    "notifications": "Notifications",
+    "settings": "Settings",
+    "userProfile": "User profile",
+    "wifi": "Connection status",
+    "terminal": "Open terminal"
+  }
+}

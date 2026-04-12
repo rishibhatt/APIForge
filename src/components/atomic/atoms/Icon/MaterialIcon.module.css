@@ -1,0 +1,16 @@
+.icon {
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.sm {
+  font-size: 0.875rem;
+}
+
+.xs {
+  font-size: 0.75rem;
+}
+
+.scale75 {
+  transform: scale(0.75);
+}

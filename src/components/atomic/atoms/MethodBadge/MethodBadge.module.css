@@ -1,0 +1,39 @@
+.badge {
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.get {
+  background: rgba(52, 211, 153, 0.2);
+  color: #6ee7b7;
+}
+
+.post {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fcd34d;
+}
+
+.put {
+  background: rgba(56, 189, 248, 0.2);
+  color: #7dd3fc;
+}
+
+.patch {
+  background: rgba(167, 139, 250, 0.2);
+  color: #c4b5fd;
+}
+
+.delete {
+  background: rgba(251, 113, 133, 0.2);
+  color: #fda4af;
+}
+
+.default {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-on-surface-muted);
+}
