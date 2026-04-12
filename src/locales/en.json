@@ -4,9 +4,6 @@
     "loading": "Loading…",
     "streaming": "Streaming…"
   },
-  "meta": {
-    "workspaceTitle": "ApiForge Workspace"
-  },
   "nav": {
     "aria": "Primary navigation",
     "workspace": "Workspace",

@@ -27,6 +27,15 @@ export function specUrlCandidates(initial: string): string[] {
     if (path.includes("/swagger/ui") || path.endsWith("/swagger")) {
       push(`${u.origin}/swagger/v1/swagger.json`);
     }
+
+    const noTrail = path.replace(/\/$/, "");
+    if (noTrail.endsWith("/docs")) {
+      push(`${u.origin}/swagger/v1/swagger.json`);
+      push(`${u.origin}/swagger/v1/swagger.yaml`);
+      push(`${u.origin}/openapi.json`);
+      push(`${u.origin}/swagger.json`);
+      push(`${u.origin}/v3/api-docs`);
+    }
   } catch {
     /* invalid URL — only initial is tried */
   }

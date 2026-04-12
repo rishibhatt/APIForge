@@ -1,8 +1,4 @@
-import Image from "next/image";
 import type { TranslateFn } from "@/context/LanguageContext";
-import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
-import SearchField from "@/components/atomic/molecules/SearchField/SearchField";
-import { PROFILE_IMAGE_URL } from "@/constants/assets";
 import styles from "./WorkspaceHeader.module.css";
 
 interface WorkspaceHeaderProps {

@@ -9,12 +9,10 @@ export function useSwaggerParser() {
   const [error, setError] = useState<string | null>(null);
   const setEndpoints = useWorkspaceStore((s) => s.setEndpoints);
   const setParseError = useWorkspaceStore((s) => s.setParseError);
-  const setParsing = useWorkspaceStore((s) => s.setParsing);
 
   const parseUrl = useCallback(
     async (url: string) => {
       setIsLoading(true);
-      setParsing(true);
       setError(null);
       setParseError(null);
       try {
@@ -27,28 +25,25 @@ export function useSwaggerParser() {
           success?: boolean;
           error?: string;
           endpoints?: Endpoint[];
-          title?: string;
         };
         if (!res.ok || !data.success || !data.endpoints) {
           throw new Error(data.error || "Parse failed");
         }
-        setEndpoints(data.endpoints, { title: data.title });
+        setEndpoints(data.endpoints);
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Parse failed";
         setError(msg);
         setParseError(msg);
       } finally {
         setIsLoading(false);
-        setParsing(false);
       }
     },
-    [setEndpoints, setParseError, setParsing],
+    [setEndpoints, setParseError],
   );
 
   const parseFile = useCallback(
     async (file: File) => {
       setIsLoading(true);
-      setParsing(true);
       setError(null);
       setParseError(null);
       try {
@@ -62,22 +57,20 @@ export function useSwaggerParser() {
           success?: boolean;
           error?: string;
           endpoints?: Endpoint[];
-          title?: string;
         };
         if (!res.ok || !data.success || !data.endpoints) {
           throw new Error(data.error || "Parse failed");
         }
-        setEndpoints(data.endpoints, { title: data.title });
+        setEndpoints(data.endpoints);
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Parse failed";
         setError(msg);
         setParseError(msg);
       } finally {
         setIsLoading(false);
-        setParsing(false);
       }
     },
-    [setEndpoints, setParseError, setParsing],
+    [setEndpoints, setParseError],
   );
 
   return { parseUrl, parseFile, isLoading, error };

@@ -2,7 +2,7 @@ import type { OutputTab } from "@/types/api";
 
 const store = new Map<string, string>();
 
-export function generationCacheKey(endpointId: string, tab: OutputTab): string {
+function cacheKey(endpointId: string, tab: OutputTab): string {
   return `${endpointId}:${tab}`;
 }
 
@@ -10,7 +10,7 @@ export function getGenerationCache(
   endpointId: string,
   tab: OutputTab,
 ): string | undefined {
-  return store.get(generationCacheKey(endpointId, tab));
+  return store.get(cacheKey(endpointId, tab));
 }
 
 export function setGenerationCache(
@@ -18,7 +18,7 @@ export function setGenerationCache(
   tab: OutputTab,
   text: string,
 ): void {
-  store.set(generationCacheKey(endpointId, tab), text);
+  store.set(cacheKey(endpointId, tab), text);
 }
 
 export function clearGenerationCache(
@@ -31,5 +31,5 @@ export function clearGenerationCache(
     }
     return;
   }
-  store.delete(generationCacheKey(endpointId, tab));
+  store.delete(cacheKey(endpointId, tab));
 }

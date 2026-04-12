@@ -94,16 +94,11 @@ export function useGroqStream() {
     [setLastGlobal],
   );
 
-  const cancel = useCallback(() => {
-    abortRef.current?.abort();
-  }, []);
-
   return {
     result,
     loading,
     error,
     lastLatencyMs,
     generate,
-    cancel,
   };
 }
