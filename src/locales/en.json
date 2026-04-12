@@ -1,6 +1,7 @@
 {
   "common": {
     "appName": "ApiForge",
+    "appNameShort": "AF",
     "loading": "Loading…",
     "streaming": "Streaming…"
   },
@@ -11,38 +12,55 @@
     "deployments": "Deployments"
   },
   "header": {
-    "searchPlaceholder": "Search resources..."
+    "searchPlaceholder": "Search resources…",
+    "clearWorkspace": "Clear",
+    "inputPlaceholderShort": "OpenAPI / Swagger URL"
   },
   "sidebar": {
     "apiExplorer": "API Explorer",
-    "version": "v1.2.4-STABLE",
-    "collections": "Collections",
-    "auth": "Auth",
-    "users": "Users",
-    "payments": "Payments",
-    "documentation": "Documentation",
-    "support": "Support",
-    "emptyEndpoints": "Parse a spec to list endpoints here."
+    "noSpecTitle": "ApiForge",
+    "specVersion": "v{version} • Active",
+    "specIdle": "No spec loaded",
+    "statusParsed": "Status: Parsed",
+    "statusIdle": "Status: Idle",
+    "endpointCount": "{count} Endpoints",
+    "searchEndpoints": "Search endpoints…",
+    "methodFilters": "Filter by HTTP method",
+    "noMatchingEndpoints": "No endpoints match your search or filters.",
+    "adjustFilters": "Try clearing filters or a different search.",
+    "emptyEndpoints": "Paste a spec URL in the header to list operations here.",
+    "recentActivity": "Recent activity",
+    "recentLoaded": "{count} operations loaded",
+    "recentNone": "No API loaded",
+    "clearWorkspace": "Clear workspace"
   },
   "hero": {
-    "title": "Forge your API Workspace.",
-    "subtitle": "Instantly transform OpenAPI specifications into high-performance documentation, client SDKs, and TypeScript models.",
-    "inputPlaceholder": "OpenAPI JSON/YAML URL (not the Swagger UI /index.html page)",
+    "titleLine1": "Forge your",
+    "titleLine2": "API Workspace.",
+    "subtitle": "Paste an OpenAPI or Swagger URL. Browse operations, then generate TypeScript types, Markdown docs, prompts, and client snippets with Groq.",
+    "inputPlaceholder": "https://api.example.com/v1/openapi.json or Swagger UI link",
     "forgeCta": "Forge Code",
-    "dropzone": "or drop file here to upload"
+    "forgeCtaShort": "Run",
+    "supportedFormats": "Supported formats",
+    "card1Title": "Fast parse",
+    "card1Body": "Resolves many Swagger UI pages and embedded specs, plus raw JSON and YAML.",
+    "card2Title": "Structured output",
+    "card2Body": "LLM-generated docs and types from each operation’s parameters and schemas.",
+    "card3Title": "Export ready",
+    "card3Body": "Copy or download Markdown, TypeScript, prompts, and fetch-style snippets."
   },
   "workspace": {
     "endpointsHeading": "Endpoints",
-    "sensorsBadge": "{count} SENSORS",
+    "sensorsBadge": "{count} operations",
     "previewAria": "Output format",
     "selectEndpoint": "Select an endpoint from the list to generate output.",
     "emptyOutput": "—",
     "regenerate": "Regenerate",
     "tabs": {
-      "markdown": "Markdown Preview",
-      "typescript": "TypeScript Types",
-      "aiPrompt": "AI Prompt",
-      "codeSnippet": "Code Snippet"
+      "markdown": "Markdown",
+      "typescript": "TypeScript",
+      "aiPrompt": "AI prompt",
+      "codeSnippet": "Snippet"
     },
     "meta": {
       "markdown": "Markdown / UTF-8",
@@ -56,12 +74,12 @@
     "stats": "Lines: {lines} | Chars: {chars}"
   },
   "footer": {
-    "status": "System Status: Operational",
-    "parsed": "Parsed: {endpoints} Endpoints",
-    "errors": "Errors: {errors}",
+    "status": "Ready",
+    "parsed": "Endpoints: {endpoints}",
+    "errors": "Issues: {errors}",
     "nodes": "Nodes: {nodes}",
-    "generationTime": "Generation Time: {ms}ms",
-    "generationIdle": "Generation Time: —",
+    "generationTime": "Generation: {ms}ms",
+    "generationIdle": "Generation: —",
     "latency": "Latency: {ms}ms"
   },
   "a11y": {
@@ -69,6 +87,24 @@
     "settings": "Settings",
     "userProfile": "User profile",
     "wifi": "Connection status",
-    "terminal": "Open terminal"
+    "terminal": "Open terminal",
+    "openExplorer": "Open endpoint explorer",
+    "closeExplorer": "Close explorer",
+    "clearUrlInput": "Clear URL field"
+  },
+  "mobileNav": {
+    "aria": "Mobile workspace",
+    "explorer": "Explorer",
+    "code": "Code"
+  },
+  "endpointStrip": {
+    "params": "params",
+    "responses": "responses"
+  },
+  "schemaInsight": {
+    "aria": "Request schema summary",
+    "parameters": "Parameters",
+    "requestBody": "Request body",
+    "noBody": "No JSON body schema on this operation."
   }
 }

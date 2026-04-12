@@ -1,22 +1,42 @@
 .footer {
+  display: none;
+  height: var(--footer-h);
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--color-surface-container);
+  padding: 0 var(--space-4);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+ font-family: var(--font-mono);
+}
+
+.footerWorkspace {
   position: fixed;
   bottom: 0;
   left: 0;
   z-index: var(--z-footer);
   display: flex;
-  height: var(--footer-h);
-  width: 100%;
-  align-items: center;
-  justify-content: space-between;
-  background: #020617;
-  padding: 0 var(--space-4);
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+@media (min-width: 768px) {
+  .footerWorkspace {
+    left: var(--sidebar-w);
+    width: calc(100% - var(--sidebar-w));
+    padding-bottom: 0;
+  }
 }
 
 .left {
   display: flex;
   align-items: center;
-  gap: var(--space-6);
+  gap: var(--space-4);
+}
+
+@media (min-width: 640px) {
+  .left {
+    gap: var(--space-6);
+  }
 }
 
 .statusRow {
@@ -44,7 +64,6 @@
 }
 
 .statusText {
-  font-family: var(--font-mono);
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -52,15 +71,20 @@
 }
 
 .statsGroup {
-  display: flex;
+  display: none;
   align-items: center;
   gap: var(--space-4);
   padding-left: var(--space-4);
   box-shadow: inset 1px 0 0 0 rgba(255, 255, 255, 0.1);
 }
 
+@media (min-width: 480px) {
+  .statsGroup {
+    display: flex;
+  }
+}
+
 .stat {
-  font-family: var(--font-mono);
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -74,30 +98,8 @@
 }
 
 .genTime {
-  font-family: var(--font-mono);
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--color-cyan-accent);
-}
-
-.iconBtn {
-  border: none;
-  background: none;
-  padding: 0;
-  cursor: pointer;
-  color: rgba(148, 163, 184, 0.65);
-  transition: color 0.2s ease;
-}
-
-.iconBtn:hover {
-  color: color-mix(in srgb, var(--color-cyan-accent) 85%, transparent);
-}
-
-.iconGroup {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding-left: var(--space-4);
-  box-shadow: inset 1px 0 0 0 rgba(255, 255, 255, 0.1);
 }

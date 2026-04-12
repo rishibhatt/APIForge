@@ -1,105 +1,111 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
 import type { TranslateFn } from "@/context/LanguageContext";
 import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
-import { useSwaggerParser } from "@/hooks/useSwaggerParser";
+import { useWorkspaceStore } from "@/store/workspaceStore";
 import styles from "./HeroSection.module.css";
 
-interface HeroSectionProps {
+export interface HeroSectionProps {
   t: TranslateFn;
+  isLoading: boolean;
+  error: string | null;
+  onForge: () => void;
 }
 
-export default function HeroSection({ t }: HeroSectionProps) {
-  const [url, setUrl] = useState("");
-  const { parseUrl, parseFile, isLoading, error } = useSwaggerParser();
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  const onForge = useCallback(() => {
-    const target = url.trim();
-    if (!target) return;
-    void parseUrl(target);
-  }, [url, parseUrl]);
-
-  const onPickFile = useCallback(() => {
-    fileRef.current?.click();
-  }, []);
-
-  const onFileChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const f = e.target.files?.[0];
-      if (f) void parseFile(f);
-      e.target.value = "";
-    },
-    [parseFile],
-  );
-
-  const onDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      const f = e.dataTransfer.files?.[0];
-      if (f) void parseFile(f);
-    },
-    [parseFile],
-  );
+export default function HeroSection({
+  t,
+  isLoading,
+  error,
+  onForge,
+}: HeroSectionProps) {
+  const specUrlInput = useWorkspaceStore((s) => s.specUrlInput);
+  const setSpecUrlInput = useWorkspaceStore((s) => s.setSpecUrlInput);
 
   return (
     <section className={styles.section}>
-      <div className={styles.panel}>
-        <div className={styles.glow} aria-hidden />
-        <div className={styles.inner}>
-          <h1 className={styles.title}>{t("hero.title")}</h1>
-          <p className={styles.subtitle}>{t("hero.subtitle")}</p>
-          <div className={styles.rowWrap}>
-            <div className={styles.inputRow}>
-              <MaterialIcon name="link" className={styles.linkIcon} size="md" />
-              <label htmlFor="forge-url" className="srOnly">
-                {t("hero.inputPlaceholder")}
-              </label>
-              <input
-                id="forge-url"
-                type="url"
-                name="url"
-                autoComplete="url"
-                placeholder={t("hero.inputPlaceholder")}
-                className={`${styles.input} focusRing`}
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") onForge();
-                }}
-              />
-              <button
-                type="button"
-                className={`${styles.forgeBtn} focusRing`}
-                onClick={onForge}
-                disabled={isLoading}
-              >
-                {isLoading ? t("common.loading") : t("hero.forgeCta")}
-              </button>
-            </div>
+      <div className={styles.bgGlow} aria-hidden />
+      <div className={styles.inner}>
+        <h1 className={styles.title}>
+          {t("hero.titleLine1")}
+          <br />
+          <span className={styles.titleGradient}>{t("hero.titleLine2")}</span>
+        </h1>
+        <p className={styles.subtitle}>{t("hero.subtitle")}</p>
+
+        <div className={styles.inputShell}>
+          <div className={styles.inputGlow} aria-hidden />
+          <div className={styles.inputRow}>
+            <MaterialIcon name="link" className={styles.linkIcon} size="md" />
+            <label htmlFor="forge-url" className="srOnly">
+              {t("hero.inputPlaceholder")}
+            </label>
             <input
-              ref={fileRef}
-              className={styles.hiddenInput}
-              type="file"
-              accept=".json,.yaml,.yml,application/json,text/yaml"
-              onChange={onFileChange}
-              aria-hidden
+              id="forge-url"
+              type="url"
+              name="url"
+              autoComplete="url"
+              placeholder={t("hero.inputPlaceholder")}
+              className={`${styles.input} focusRing`}
+              value={specUrlInput}
+              onChange={(e) => setSpecUrlInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") onForge();
+              }}
             />
             <button
               type="button"
-              className={`${styles.dropzone} focusRing`}
-              onClick={onPickFile}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={onDrop}
+              className={`${styles.forgeBtn} focusRing`}
+              onClick={onForge}
+              disabled={isLoading}
             >
-              <MaterialIcon name="upload_file" className={styles.linkIcon} />
-              <span className={styles.dropLabel}>{t("hero.dropzone")}</span>
+              {isLoading ? (
+                t("common.loading")
+              ) : (
+                <>
+                  <span className={styles.forgeLabelFull}>{t("hero.forgeCta")}</span>
+                  <span className={styles.forgeLabelShort}>{t("hero.forgeCtaShort")}</span>
+                </>
+              )}
             </button>
-            {error ? <p className={styles.error}>{error}</p> : null}
+          </div>
+        </div>
+
+        {error ? <p className={styles.error}>{error}</p> : null}
+
+        <div className={styles.formats}>
+          <span className={styles.formatsLabel}>{t("hero.supportedFormats")}</span>
+          <div className={styles.formatTags}>
+            <span>OpenAPI 3.x</span>
+            <span>Swagger2</span>
+            <span>JSON / YAML</span>
+          </div>
+        </div>
+
+        <div className={styles.cards}>
+          <div className={styles.card}>
+            <div className={styles.cardIcon}>
+              <MaterialIcon name="speed" size="sm" />
+            </div>
+            <h3 className={styles.cardTitle}>{t("hero.card1Title")}</h3>
+            <p className={styles.cardText}>{t("hero.card1Body")}</p>
+          </div>
+          <div className={styles.card}>
+            <div className={styles.cardIcon}>
+              <MaterialIcon name="auto_graph" size="sm" />
+            </div>
+            <h3 className={styles.cardTitle}>{t("hero.card2Title")}</h3>
+            <p className={styles.cardText}>{t("hero.card2Body")}</p>
+          </div>
+          <div className={styles.card}>
+            <div className={styles.cardIcon}>
+              <MaterialIcon name="integration_instructions" size="sm" />
+            </div>
+            <h3 className={styles.cardTitle}>{t("hero.card3Title")}</h3>
+            <p className={styles.cardText}>{t("hero.card3Body")}</p>
           </div>
         </div>
       </div>
+      <div className={styles.footerRule} aria-hidden />
     </section>
   );
 }

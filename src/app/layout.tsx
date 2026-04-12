@@ -17,9 +17,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "ApiForge Workspace",
+  title: "ApiForge | Forge your API workspace",
   description:
-    "Transform OpenAPI specifications into documentation, SDKs, and TypeScript models.",
+    "Parse OpenAPI and Swagger specs, explore endpoints, and generate docs, TypeScript, and snippets with AI.",
 };
 
 export default function RootLayout({

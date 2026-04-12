@@ -1,59 +1,104 @@
+"use client";
+
 import type { TranslateFn } from "@/context/LanguageContext";
+import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
+import { useWorkspaceStore } from "@/store/workspaceStore";
 import styles from "./WorkspaceHeader.module.css";
 
-interface WorkspaceHeaderProps {
+export interface WorkspaceHeaderProps {
   t: TranslateFn;
+  hasWorkspace: boolean;
+  isLoading: boolean;
+  onForge: () => void;
 }
 
-export default function WorkspaceHeader({ t }: WorkspaceHeaderProps) {
+export default function WorkspaceHeader({
+  t,
+  hasWorkspace,
+  isLoading,
+  onForge,
+}: WorkspaceHeaderProps) {
+  const specUrlInput = useWorkspaceStore((s) => s.specUrlInput);
+  const setSpecUrlInput = useWorkspaceStore((s) => s.setSpecUrlInput);
+  const clearWorkspace = useWorkspaceStore((s) => s.clearWorkspace);
+  const setMobileSidebarOpen = useWorkspaceStore((s) => s.setMobileSidebarOpen);
+
   return (
     <header className={styles.header}>
       <div className={styles.left}>
-        <span className={styles.brand}>{t("common.appName")}</span>
-        <nav className={styles.nav} aria-label={t("nav.aria")}>
-          <a className={styles.navLinkActive} href="#">
-            {t("nav.workspace")}
-          </a>
-          {/* <a className={styles.navLink} href="#">
-            {t("nav.history")}
-          </a>
-          <a className={styles.navLink} href="#">
-            {t("nav.deployments")}
-          </a> */}
-        </nav>
+        <button
+          type="button"
+          className={`${styles.menuBtn} focusRing`}
+          aria-label={t("a11y.openExplorer")}
+          onClick={() => setMobileSidebarOpen(true)}
+        >
+          <MaterialIcon name="menu" size="md" />
+        </button>
+        <span className={styles.brand} aria-label={t("common.appName")}>
+          <span className={styles.brandFull} aria-hidden>
+            {t("common.appName")}
+          </span>
+          <span className={styles.brandShort} aria-hidden>
+            {t("common.appNameShort")}
+          </span>
+        </span>
       </div>
-      {/* <div className={styles.right}>
-        <div className={styles.searchWrap}>
-          <SearchField
-            id="header-search"
-            label={t("header.searchPlaceholder")}
-            placeholder={t("header.searchPlaceholder")}
+      {hasWorkspace ? (
+        <div className={styles.urlBar}>
+          <MaterialIcon name="link" className={styles.urlIcon} size="sm" />
+          <label htmlFor="header-spec-url" className="srOnly">
+            {t("hero.inputPlaceholder")}
+          </label>
+          <input
+            id="header-spec-url"
+            type="url"
+            name="specUrl"
+            autoComplete="url"
+            placeholder={t("header.inputPlaceholderShort")}
+            title={t("hero.inputPlaceholder")}
+            className={styles.input}
+            value={specUrlInput}
+            onChange={(e) => setSpecUrlInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") onForge();
+            }}
           />
+          {specUrlInput.trim().length > 0 ? (
+            <button
+              type="button"
+              className={`${styles.clearInputBtn} focusRing`}
+              onClick={() => setSpecUrlInput("")}
+              aria-label={t("a11y.clearUrlInput")}
+            >
+              <MaterialIcon name="close" size="sm" />
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className={`${styles.forgeBtn} focusRing`}
+            onClick={onForge}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              t("common.loading")
+            ) : (
+              <>
+                <span className={styles.forgeLabelFull}>{t("hero.forgeCta")}</span>
+                <span className={styles.forgeLabelShort}>{t("hero.forgeCtaShort")}</span>
+              </>
+            )}
+          </button>
         </div>
+      ) : null}
+      {hasWorkspace ? (
         <button
           type="button"
-          className={`${styles.iconBtn} focusRing`}
-          aria-label={t("a11y.notifications")}
+          className={`${styles.clearBtn} focusRing`}
+          onClick={() => clearWorkspace()}
         >
-          <MaterialIcon name="notifications" />
+          {t("header.clearWorkspace")}
         </button>
-        <button
-          type="button"
-          className={`${styles.iconBtn} focusRing`}
-          aria-label={t("a11y.settings")}
-        >
-          <MaterialIcon name="settings" />
-        </button>
-        <div className={styles.avatar}>
-          <Image
-            src={PROFILE_IMAGE_URL}
-            alt={t("a11y.userProfile")}
-            width={32}
-            height={32}
-            priority
-          />
-        </div>
-      </div> */}
+      ) : null}
     </header>
   );
 }

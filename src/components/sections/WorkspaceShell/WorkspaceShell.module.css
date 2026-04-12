@@ -1,48 +1,57 @@
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
 .main {
   display: flex;
-  min-height: 100vh;
+  flex: 1;
   flex-direction: column;
+  min-height: 0;
   padding-top: var(--header-h);
-  padding-bottom: calc(var(--footer-h) + var(--space-8));
-  padding-left: 0;
+  padding-bottom: var(--space-8);
+}
+
+.mainLanding {
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  max-width: 100vw;
+  box-sizing: border-box;
+}
+
+.main.withWorkspaceMobile {
+  padding-bottom: calc(
+    72px + var(--footer-h) + env(safe-area-inset-bottom, 0)
+  );
 }
 
 @media (min-width: 768px) {
-  .main {
-    padding-left: var(--sidebar-w);
+  .main.withWorkspaceMobile {
+    padding-bottom: calc(var(--footer-h) + var(--space-6));
   }
 }
 
-.grid {
+.workspaceMain {
   flex: 1;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-8);
-  padding: 0 var(--space-8) var(--space-12);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0 var(--space-4) var(--space-8);
 }
 
-@media (min-width: 1024px) {
-  .grid {
-    grid-template-columns: repeat(12, minmax(0, 1fr));
+@media (min-width: 768px) {
+  .workspaceMain {
+    margin-left: var(--sidebar-w);
+    padding: 0 var(--space-6) var(--space-10);
   }
 }
 
-.colEndpoints {
-  grid-column: 1 / -1;
-}
-
-@media (min-width: 1024px) {
-  .colEndpoints {
-    grid-column: span 3 / span 3;
-  }
-}
-
-.colCode {
-  grid-column: 1 / -1;
-}
-
-@media (min-width: 1024px) {
-  .colCode {
-    grid-column: span 9 / span 9;
-  }
+.workspaceBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  min-height: 0;
 }

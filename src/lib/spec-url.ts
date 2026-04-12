@@ -18,10 +18,16 @@ export function specUrlCandidates(initial: string): string[] {
   try {
     const u = new URL(initial.trim());
     const path = u.pathname.toLowerCase();
+    const dir = u.pathname.replace(/\/[^/]+$/, "");
 
     if (path.endsWith("/index.html") || path.endsWith("index.html")) {
-      push(`${u.origin}/swagger/v1/swagger.json`);
-      push(`${u.origin}/swagger/v1/swagger.yaml`);
+      const base = `${u.origin}${dir}`;
+      push(`${base}/swagger/v1/swagger.json`);
+      push(`${base}/swagger/v1/swagger.yaml`);
+      push(`${base}/v1/swagger.json`);
+      push(`${base}/v1/swagger.yaml`);
+      push(`${base}/openapi.json`);
+      push(`${base}/v3/api-docs`);
     }
 
     if (path.includes("/swagger/ui") || path.endsWith("/swagger")) {

@@ -4,14 +4,15 @@ import { useCallback, useEffect, useMemo } from "react";
 import type { TranslateFn } from "@/context/LanguageContext";
 import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
 import EditorChrome from "@/components/atomic/molecules/EditorChrome/EditorChrome";
+import SchemaInsightPanel from "@/components/atomic/organisms/SchemaInsightPanel/SchemaInsightPanel";
 import { useGroqStream } from "@/hooks/useGroqStream";
 import { useWorkspaceStore } from "@/store/workspaceStore";
 import type { OutputTab } from "@/types/api";
 import styles from "./WorkspaceCodePanel.module.css";
 
 const TAB_ORDER: OutputTab[] = [
-  "markdown",
   "typescript",
+  "markdown",
   "prompt",
   "snippet",
 ];
@@ -97,7 +98,7 @@ export default function WorkspaceCodePanel({ t }: WorkspaceCodePanelProps) {
     : t("workspace.fileLabelIdle");
 
   return (
-    <div className={styles.wrap}>
+    <div id="workspace-code" className={styles.wrap}>
       <div className={styles.toolbar}>
         <div className={styles.tabList} role="tablist" aria-label={t("workspace.previewAria")}>
           {TAB_ORDER.map((id) => {
@@ -147,36 +148,44 @@ export default function WorkspaceCodePanel({ t }: WorkspaceCodePanelProps) {
         </div>
       </div>
 
-      <div className={styles.editor}>
-        <EditorChrome
-          fileLabel={dynamicFileLabel}
-          fileMeta={t(`workspace.meta.${activeTab}`)}
-        />
+      <div className={styles.workspaceGrid}>
+        <div className={styles.editor}>
+          <EditorChrome
+            fileLabel={dynamicFileLabel}
+            fileMeta={t(`workspace.meta.${activeTab}`)}
+          />
 
-        <div className={styles.body}>
-          {!activeEndpoint ? (
-            <p className={styles.placeholder}>{t("workspace.selectEndpoint")}</p>
-          ) : loading && !result ? (
-            <p className={styles.placeholder}>{t("common.loading")}</p>
-          ) : error ? (
-            <p className={styles.error}>{error}</p>
-          ) : (
-            <pre className={styles.code}>{result || t("workspace.emptyOutput")}</pre>
-          )}
-        </div>
+          <div className={styles.body}>
+            {!activeEndpoint ? (
+              <p className={styles.placeholder}>{t("workspace.selectEndpoint")}</p>
+            ) : loading && !result ? (
+              <p className={styles.placeholder}>{t("common.loading")}</p>
+            ) : error ? (
+              <p className={styles.error}>{error}</p>
+            ) : (
+              <pre className={styles.code}>{result || t("workspace.emptyOutput")}</pre>
+            )}
+          </div>
 
-        <div className={styles.footer}>
-          <span className={styles.stats}>
-            {loading
-              ? `${t("workspace.stats", { lines, chars })} · ${t("common.streaming")}`
-              : t("workspace.stats", { lines, chars })}
-          </span>
-          {lastLatencyMs != null ? (
-            <span className={styles.latency}>
-              {t("footer.latency", { ms: lastLatencyMs })}
+          <div className={styles.footer}>
+            <span className={styles.stats}>
+              {loading
+                ? `${t("workspace.stats", { lines, chars })} · ${t("common.streaming")}`
+                : t("workspace.stats", { lines, chars })}
             </span>
-          ) : null}
+            {lastLatencyMs != null ? (
+              <span className={styles.latency}>
+                {t("footer.latency", { ms: lastLatencyMs })}
+              </span>
+            ) : null}
+          </div>
         </div>
+
+        {activeEndpoint ? (
+          <div className={styles.insight}>
+            <SchemaInsightPanel t={t} endpoint={activeEndpoint} />
+          </div>
+        ) : null}
       </div>
     </div>
   );
