@@ -35,11 +35,15 @@ export function useSwaggerParser() {
           endpoints?: Endpoint[];
           title?: string;
           version?: string;
+          serverUrls?: string[];
         };
         if (!res.ok || !data.success || !data.endpoints) {
           throw new Error(data.error || "Parse failed");
         }
-        setEndpoints(data.endpoints);
+        setEndpoints(
+          data.endpoints,
+          Array.isArray(data.serverUrls) ? data.serverUrls : undefined,
+        );
         setSpecMeta(
           typeof data.title === "string" ? data.title : null,
           typeof data.version === "string" ? data.version : null,
@@ -74,11 +78,15 @@ export function useSwaggerParser() {
           endpoints?: Endpoint[];
           title?: string;
           version?: string;
+          serverUrls?: string[];
         };
         if (!res.ok || !data.success || !data.endpoints) {
           throw new Error(data.error || "Parse failed");
         }
-        setEndpoints(data.endpoints);
+        setEndpoints(
+          data.endpoints,
+          Array.isArray(data.serverUrls) ? data.serverUrls : undefined,
+        );
         setSpecMeta(
           typeof data.title === "string" ? data.title : null,
           typeof data.version === "string" ? data.version : null,

@@ -19,7 +19,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "ApiForge | Forge your API workspace",
   description:
-    "Parse OpenAPI and Swagger specs, explore endpoints, and generate docs, TypeScript, and snippets with AI.",
+    "Parse OpenAPI and Swagger specs, explore endpoints, and generate TypeScript, AI prompts, and API tests with Groq.",
 };
 
 export default function RootLayout({

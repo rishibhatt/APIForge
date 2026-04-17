@@ -4,6 +4,7 @@ import SwaggerParser from "@apidevtools/swagger-parser";
 import yaml from "js-yaml";
 import type { ParseSwaggerResult } from "@/types/api";
 import { extractEndpointsFromSpec } from "@/lib/extract-endpoints";
+import { extractServerUrls } from "@/lib/extract-servers";
 import { specUrlCandidates } from "@/lib/spec-url";
 
 /** Lenient mode: resolve $refs like Swagger UI without strict OAS schema checks */
@@ -43,10 +44,12 @@ function resultFromDoc(
   const info = doc.info as
     | { title?: string; version?: string }
     | undefined;
+  const serverUrls = extractServerUrls(doc);
   return {
     endpoints,
     title: info?.title,
     version: info?.version,
+    serverUrls: serverUrls.length ? serverUrls : undefined,
   };
 }
 

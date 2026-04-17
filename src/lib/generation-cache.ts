@@ -1,35 +1,24 @@
-import type { OutputTab } from "@/types/api";
+import type { Endpoint, GenerationScope, GroqStreamTab } from "@/types/api";
 
 const store = new Map<string, string>();
 
-function cacheKey(endpointId: string, tab: OutputTab): string {
-  return `${endpointId}:${tab}`;
+export function generationCacheKey(
+  scope: GenerationScope,
+  operations: Endpoint[],
+  tab: GroqStreamTab,
+): string {
+  const ids = operations.map((o) => o.id).sort().join("\u0001");
+  return `${scope}\u0002${ids}\u0002${tab}`;
 }
 
-export function getGenerationCache(
-  endpointId: string,
-  tab: OutputTab,
-): string | undefined {
-  return store.get(cacheKey(endpointId, tab));
+export function getGenerationCache(key: string): string | undefined {
+  return store.get(key);
 }
 
-export function setGenerationCache(
-  endpointId: string,
-  tab: OutputTab,
-  text: string,
-): void {
-  store.set(cacheKey(endpointId, tab), text);
+export function setGenerationCache(key: string, text: string): void {
+  store.set(key, text);
 }
 
-export function clearGenerationCache(
-  endpointId: string,
-  tab?: OutputTab,
-): void {
-  if (tab === undefined) {
-    for (const key of Array.from(store.keys())) {
-      if (key.startsWith(`${endpointId}:`)) store.delete(key);
-    }
-    return;
-  }
-  store.delete(cacheKey(endpointId, tab));
+export function clearGenerationCache(key: string): void {
+  store.delete(key);
 }

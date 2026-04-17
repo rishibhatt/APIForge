@@ -37,7 +37,7 @@
   "hero": {
     "titleLine1": "Forge your",
     "titleLine2": "API Workspace.",
-    "subtitle": "Paste an OpenAPI or Swagger URL. Browse operations, then generate TypeScript types, Markdown docs, prompts, and client snippets with Groq.",
+    "subtitle": "Paste an OpenAPI or Swagger URL. Browse operations, then generate TypeScript types, IDE prompts, and test cases with Groq.",
     "inputPlaceholder": "https://api.example.com/v1/openapi.json or Swagger UI link",
     "forgeCta": "Forge Code",
     "forgeCtaShort": "Run",
@@ -47,26 +47,31 @@
     "card2Title": "Structured output",
     "card2Body": "LLM-generated docs and types from each operation’s parameters and schemas.",
     "card3Title": "Export ready",
-    "card3Body": "Copy or download Markdown, TypeScript, prompts, and fetch-style snippets."
+    "card3Body": "Copy or download TypeScript, IDE prompts, and generated test cases."
   },
   "workspace": {
     "endpointsHeading": "Endpoints",
     "sensorsBadge": "{count} operations",
     "previewAria": "Output format",
     "selectEndpoint": "Select an endpoint from the list to generate output.",
+    "scopedEmpty": "No operations match this scope. Pick another generation scope or select a different endpoint.",
+    "generationScopeAria": "Generation scope",
+    "scopeContext": "Scope: {scope}",
     "emptyOutput": "—",
     "regenerate": "Regenerate",
     "tabs": {
-      "markdown": "Markdown",
       "typescript": "TypeScript",
       "aiPrompt": "AI prompt",
-      "codeSnippet": "Snippet"
+      "testGeneration": "Test generation"
     },
+    "level": "Level",
+    "levelEndpoint": "Endpoint",
+    "levelCollection": "Collection",
+    "levelApi": "Full API",
+    "idePromptHint": "Copy this text into Cursor, Antigravity, or any IDE assistant — it is a meta-prompt, not generated app code.",
     "meta": {
-      "markdown": "Markdown / UTF-8",
       "typescript": "TypeScript / UTF-8",
-      "prompt": "Prompt / UTF-8",
-      "snippet": "Snippet / UTF-8"
+      "prompt": "IDE meta-prompt / UTF-8"
     },
     "export": "Export",
     "copy": "Copy",
@@ -106,5 +111,28 @@
     "parameters": "Parameters",
     "requestBody": "Request body",
     "noBody": "No JSON body schema on this operation."
+  },
+  "testGen": {
+    "matrixTitle": "Test suite matrix",
+    "scenariosTitle": "Test scenarios",
+    "scopeLabel": "Scope",
+    "generate": "Generate tests",
+    "loading": "Loading test cases…",
+    "error": "Could not generate tests",
+    "invalidResponse": "The server returned an unexpected response. Check the network tab or try again.",
+    "noCasesReturned": "No test cases were returned. Try a smaller scope or regenerate.",
+    "tapForDetail": "Tap for full detail",
+    "filterPlaceholder": "Filter by id or description…",
+    "colId": "Test ID",
+    "colType": "Type",
+    "colStatus": "Expected status",
+    "colPayload": "Payload preview",
+    "openDetail": "View full payload",
+    "closeDetail": "Close details",
+    "exportJson": "JSON",
+    "exportCurl": "cURL",
+    "exportJs": "JavaScript",
+    "exportPostman": "Postman",
+    "apiScopeLimitWarning": "Full API includes {total} endpoints. Only the first {limit} are included in this test request to stay within limits."
   }
 }

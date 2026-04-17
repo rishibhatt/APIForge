@@ -1,6 +1,10 @@
 import { create } from "zustand";
+import {
+  getScopedEndpoints as computeScopedEndpoints,
+  getScopeLabel as computeScopeLabel,
+} from "@/lib/endpoint-groups";
 import type { Endpoint } from "@/types/api";
-import type { OutputTab } from "@/types/api";
+import type { GenerationScope, OutputTab } from "@/types/api";
 
 const HTTP_METHODS_FILTER = [
   "GET",
@@ -18,20 +22,24 @@ export interface WorkspaceState {
   endpoints: Endpoint[];
   activeEndpoint: Endpoint | null;
   activeTab: OutputTab;
+  generationScope: GenerationScope;
   parseError: string | null;
   lastGenerationMs: number | null;
   /** Spec metadata from last successful parse */
   specTitle: string | null;
   specVersion: string | null;
+  /** From OpenAPI servers / Swagger host — for Run API defaults */
+  specServerUrls: string[];
   /** URL field (header + landing) */
   specUrlInput: string;
   endpointSearch: string;
   /** Empty = no method filter (show all) */
   methodFilters: MethodFilterKey[];
   mobileSidebarOpen: boolean;
-  setEndpoints: (e: Endpoint[]) => void;
+  setEndpoints: (e: Endpoint[], serverUrls?: string[]) => void;
   setActiveEndpoint: (e: Endpoint | null) => void;
   setActiveTab: (t: OutputTab) => void;
+  setGenerationScope: (s: GenerationScope) => void;
   setParseError: (msg: string | null) => void;
   setLastGenerationMs: (ms: number | null) => void;
   setSpecMeta: (title: string | null, version: string | null) => void;
@@ -47,10 +55,12 @@ const initial = {
   endpoints: [] as Endpoint[],
   activeEndpoint: null as Endpoint | null,
   activeTab: "typescript" as OutputTab,
+  generationScope: "endpoint" as GenerationScope,
   parseError: null as string | null,
   lastGenerationMs: null as number | null,
   specTitle: null as string | null,
   specVersion: null as string | null,
+  specServerUrls: [] as string[],
   specUrlInput: "",
   endpointSearch: "",
   methodFilters: [] as MethodFilterKey[],
@@ -59,14 +69,27 @@ const initial = {
 
 export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   ...initial,
-  setEndpoints: (endpoints) =>
+  setEndpoints: (endpoints, serverUrls) =>
     set({
       endpoints,
       parseError: null,
       activeEndpoint: endpoints.length ? endpoints[0]! : null,
+      specServerUrls: serverUrls?.length ? serverUrls : [],
     }),
   setActiveEndpoint: (activeEndpoint) => set({ activeEndpoint }),
-  setActiveTab: (activeTab) => set({ activeTab }),
+  setActiveTab: (activeTab) => {
+    const t = activeTab as string;
+    if (t === "runApi") {
+      set({ activeTab: "testGeneration" });
+      return;
+    }
+    if (t === "markdown" || t === "snippet") {
+      set({ activeTab: "typescript" });
+    } else {
+      set({ activeTab });
+    }
+  },
+  setGenerationScope: (generationScope) => set({ generationScope }),
   setParseError: (parseError) => set({ parseError }),
   setLastGenerationMs: (lastGenerationMs) => set({ lastGenerationMs }),
   setSpecMeta: (specTitle, specVersion) => set({ specTitle, specVersion }),
@@ -85,3 +108,21 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 }));
 
 export { HTTP_METHODS_FILTER };
+
+export function getScopedEndpoints(state: WorkspaceState): Endpoint[] {
+  return computeScopedEndpoints(
+    state.endpoints,
+    state.activeEndpoint,
+    state.generationScope,
+  );
+}
+
+export function getScopeLabel(state: WorkspaceState): string {
+  const scoped = getScopedEndpoints(state);
+  return computeScopeLabel(
+    state.endpoints,
+    state.activeEndpoint,
+    state.generationScope,
+    scoped,
+  );
+}
