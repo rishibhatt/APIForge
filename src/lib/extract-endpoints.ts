@@ -17,6 +17,7 @@ export function extractEndpointsFromSpec(doc: Record<string, unknown>): Endpoint
     string,
     Record<string, unknown>
   >;
+  const globalSecurity = doc.security;
   const list: Endpoint[] = [];
 
   for (const path of Object.keys(paths)) {
@@ -39,6 +40,8 @@ export function extractEndpointsFromSpec(doc: Record<string, unknown>): Endpoint
         requestBody: op.requestBody,
         responses: op.responses,
         parameters: op.parameters,
+        security:
+          op.security !== undefined ? op.security : globalSecurity,
       });
     }
   }

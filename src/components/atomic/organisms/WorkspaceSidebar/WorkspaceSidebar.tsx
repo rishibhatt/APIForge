@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { TranslateFn } from "@/context/LanguageContext";
 import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
 import MethodBadge from "@/components/atomic/atoms/MethodBadge/MethodBadge";
+import { computeApiQuality } from "@/lib/api-quality-metrics";
 import { groupEndpointsByTag } from "@/lib/extract-endpoints";
 import { useFilteredEndpoints } from "@/hooks/useFilteredEndpoints";
 import {
@@ -55,6 +56,10 @@ export default function WorkspaceSidebar({
 
   const filtered = useFilteredEndpoints();
   const grouped = useMemo(() => groupEndpointsByTag(filtered), [filtered]);
+  const quality = useMemo(
+    () => computeApiQuality(endpoints),
+    [endpoints],
+  );
 
   const [collapsedTags, setCollapsedTags] = useState<Set<string>>(
     () => new Set(),
@@ -114,6 +119,31 @@ export default function WorkspaceSidebar({
               {t("sidebar.endpointCount", { count: endpoints.length })}
             </span>
           </div>
+          {hasWorkspace && endpoints.length > 0 ? (
+            <div className={styles.qualityRow}>
+              <span className={styles.qualityScore}>
+                {t("sidebar.qualityScore", { score: quality.score })}
+              </span>
+              <span
+                className={
+                  quality.certification === "strong"
+                    ? styles.certStrong
+                    : quality.certification === "certified"
+                      ? styles.certOk
+                      : styles.certDraft
+                }
+              >
+                {t(`sidebar.cert.${quality.certification}`)}
+              </span>
+            </div>
+          ) : null}
+          {hasWorkspace && quality.duplicateOperations.length > 0 ? (
+            <p className={styles.dupHint}>
+              {t("sidebar.duplicateHint", {
+                n: quality.duplicateOperations.length,
+              })}
+            </p>
+          ) : null}
         </div>
 
         {hasWorkspace ? (

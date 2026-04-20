@@ -372,3 +372,205 @@
   word-break: break-word;
   color: color-mix(in srgb, var(--color-on-surface) 90%, transparent);
 }
+
+.instructionBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.instructionLabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.85);
+}
+
+.instructionArea {
+  width: 100%;
+  min-height: 52px;
+  resize: vertical;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(15, 23, 42, 0.45);
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-on-surface);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  outline: none;
+}
+
+.instructionArea::placeholder {
+  color: rgba(222, 224, 255, 0.35);
+}
+
+.genMetrics {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: rgba(196, 181, 253, 0.9);
+}
+
+.modalRun {
+  margin-bottom: var(--space-4);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.modalRunTitle {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(168, 232, 255, 0.75);
+}
+
+.inputLabel {
+  display: block;
+  margin: var(--space-2) 0 var(--space-1);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(148, 163, 184, 0.85);
+}
+
+.textInput {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(2, 6, 23, 0.45);
+  padding: 8px var(--space-3);
+  color: var(--color-on-surface);
+  font-size: 0.8125rem;
+  outline: none;
+}
+
+.modalActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.miniPrimary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 8px var(--space-4);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-on-primary);
+  background: var(--color-primary-container);
+  cursor: pointer;
+}
+
+.miniPrimary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.miniGhost {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-sm);
+  padding: 8px var(--space-3);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(226, 232, 240, 0.9);
+  background: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+}
+
+.miniGhost:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.runOutcome {
+  margin-top: var(--space-4);
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.runPass {
+  border-color: rgba(52, 211, 153, 0.35);
+  background: rgba(52, 211, 153, 0.06);
+}
+
+.runFail {
+  border-color: rgba(255, 107, 107, 0.35);
+  background: rgba(255, 107, 107, 0.06);
+}
+
+.runOutcomeMain {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: var(--space-2);
+  color: color-mix(in srgb, var(--color-on-surface) 88%, transparent);
+}
+
+.runBody {
+  margin: 0;
+  max-height: 160px;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: rgba(168, 232, 255, 0.7);
+}
+
+.issueList {
+  margin: var(--space-3) 0 0;
+  padding-left: var(--space-5);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: rgba(251, 191, 36, 0.95);
+}
+
+.issueSev {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: rgba(222, 224, 255, 0.45);
+}
+
+.explainBox {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: rgba(139, 92, 246, 0.08);
+  border: 1px solid rgba(139, 92, 246, 0.22);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: color-mix(in srgb, var(--color-on-surface) 90%, transparent);
+}
+
+.corsNote {
+  margin: var(--space-3) 0 0;
+  font-size: 0.6875rem;
+  line-height: 1.45;
+  color: rgba(148, 163, 184, 0.65);
+}

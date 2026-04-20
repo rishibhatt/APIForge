@@ -11,6 +11,7 @@ export function endpointToJsonSafe(ep: Endpoint): Endpoint {
     ...(ep.requestBody !== undefined ? { requestBody: ep.requestBody } : {}),
     ...(ep.responses !== undefined ? { responses: ep.responses } : {}),
     ...(ep.parameters !== undefined ? { parameters: ep.parameters } : {}),
+    ...(ep.security !== undefined ? { security: ep.security } : {}),
   };
 }
 

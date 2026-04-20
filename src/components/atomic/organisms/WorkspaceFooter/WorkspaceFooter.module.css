@@ -103,3 +103,10 @@
   letter-spacing: 0.08em;
   color: var(--color-cyan-accent);
 }
+
+.tokens {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: rgba(196, 181, 253, 0.85);
+  text-transform: uppercase;
+}

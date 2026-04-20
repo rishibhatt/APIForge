@@ -329,6 +329,12 @@
   color: var(--color-primary);
 }
 
+.tokens {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: rgba(196, 181, 253, 0.9);
+}
+
 .insight {
   min-height: 200px;
 }

@@ -13,6 +13,7 @@ import {
   getGenerationCache,
   setGenerationCache,
 } from "@/lib/generation-cache";
+import { parseUsageFromResponseHeaders } from "@/lib/groq-token-usage";
 import { useWorkspaceStore } from "@/store/workspaceStore";
 
 export type GenerateOptions = {
@@ -32,6 +33,7 @@ export function useGroqStream() {
   /** Prevents a superseded (aborted) request from clearing loading / wiping state. */
   const genIdRef = useRef(0);
   const setLastGlobal = useWorkspaceStore((s) => s.setLastGenerationMs);
+  const setLastGroqUsage = useWorkspaceStore((s) => s.setLastGroqUsage);
 
   const generate = useCallback(
     async (
@@ -57,6 +59,7 @@ export function useGroqStream() {
           setResult(hit);
           setError(null);
           setLoading(false);
+          /* Cached generations have no usage headers */
           return;
         }
       } else {
@@ -70,6 +73,7 @@ export function useGroqStream() {
       setLoading(true);
       setError(null);
       setResult("");
+      setLastGroqUsage(null);
       const t0 = performance.now();
 
       const primary =
@@ -109,6 +113,8 @@ export function useGroqStream() {
           throw new Error(msg);
         }
 
+        const usageHdr = parseUsageFromResponseHeaders(res.headers);
+
         const reader = res.body?.getReader();
         if (!reader) throw new Error("No response body");
 
@@ -129,6 +135,7 @@ export function useGroqStream() {
           const ms = Math.round(performance.now() - t0);
           setLastLatencyMs(ms);
           setLastGlobal(ms);
+          setLastGroqUsage(usageHdr);
         }
       } catch (e) {
         if ((e as Error).name === "AbortError") return;
@@ -136,13 +143,14 @@ export function useGroqStream() {
         setError(e instanceof Error ? e.message : "Generation failed");
         setResult("");
         setLastGlobal(null);
+        setLastGroqUsage(null);
       } finally {
         if (genIdRef.current === myId) {
           setLoading(false);
         }
       }
     },
-    [setLastGlobal],
+    [setLastGlobal, setLastGroqUsage],
   );
 
   return {

@@ -13,6 +13,7 @@ export default function WorkspaceFooter({ t, hasWorkspace }: WorkspaceFooterProp
   const endpoints = useWorkspaceStore((s) => s.endpoints);
   const parseError = useWorkspaceStore((s) => s.parseError);
   const lastMs = useWorkspaceStore((s) => s.lastGenerationMs);
+  const lastUsage = useWorkspaceStore((s) => s.lastGroqUsage);
 
   const errCount = parseError ? 1 : 0;
   const n = endpoints.length;
@@ -39,6 +40,15 @@ export default function WorkspaceFooter({ t, hasWorkspace }: WorkspaceFooterProp
         ) : (
           <span className={styles.genTime}>{t("footer.generationIdle")}</span>
         )}
+        {lastUsage != null && lastUsage.totalTokens > 0 ? (
+          <span className={styles.tokens}>
+            {t("footer.tokens", {
+              total: lastUsage.totalTokens,
+              in: lastUsage.promptTokens,
+              out: lastUsage.completionTokens,
+            })}
+          </span>
+        ) : null}
       </div>
     </footer>
   );

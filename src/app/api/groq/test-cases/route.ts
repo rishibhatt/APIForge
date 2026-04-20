@@ -2,6 +2,7 @@ import { createGroq } from "@ai-sdk/groq";
 import { buildTestCasesPrompt } from "@/lib/groq-prompts";
 import { generateGroqTextBuffered } from "@/lib/groq-generate-buffered";
 import { isGroqRateLimitError } from "@/lib/groq-errors";
+import { applyUsageHeaders } from "@/lib/groq-token-usage";
 import { resolveGroqModels } from "@/lib/groq-models";
 import { parseTestCasesFromModelText } from "@/lib/parse-test-cases-json";
 import type { Endpoint, GenerationScope } from "@/types/api";
@@ -36,6 +37,7 @@ export async function POST(req: Request) {
     active?: unknown;
     scope?: unknown;
     level?: unknown;
+    userInstruction?: unknown;
   };
 
   const scopeRaw = raw.scope ?? raw.level;
@@ -53,17 +55,25 @@ export async function POST(req: Request) {
   const allEndpoints = raw.allEndpoints as Endpoint[];
   const scope = scopeRaw as GenerationScope;
   const active = (raw.active ?? null) as Endpoint | null;
+  const userInstruction =
+    typeof raw.userInstruction === "string" ? raw.userInstruction.trim() : "";
 
   if (endpoints.length === 0) {
     return Response.json({ error: "No endpoints in scope" }, { status: 400 });
   }
 
-  const prompt = buildTestCasesPrompt(endpoints, scope, allEndpoints, active);
+  const prompt = buildTestCasesPrompt(
+    endpoints,
+    scope,
+    allEndpoints,
+    active,
+    userInstruction || undefined,
+  );
   const groq = createGroq({ apiKey });
   const { primary, fallback } = resolveGroqModels();
 
   try {
-    const { text } = await generateGroqTextBuffered({
+    const { text, usage } = await generateGroqTextBuffered({
       model: groq(primary),
       fallbackModel: groq(fallback),
       system:
@@ -76,7 +86,9 @@ export async function POST(req: Request) {
     });
 
     const testCases = parseTestCasesFromModelText(text);
-    return Response.json({ testCases });
+    const headers = new Headers({ "Content-Type": "application/json; charset=utf-8" });
+    applyUsageHeaders(headers, usage);
+    return new Response(JSON.stringify({ testCases }), { status: 200, headers });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Generation failed";
     const status = isGroqRateLimitError(e) ? 429 : 422;

@@ -1,13 +1,20 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { TranslateFn } from "@/context/LanguageContext";
 import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
 import { getScopedEndpoints, getScopeLabel } from "@/lib/endpoint-groups";
 import {
+  joinBaseAndPath,
+  prepareRequestFromPayload,
+  statusExpectationMet,
+} from "@/lib/execute-test-request";
+import { parseUsageFromResponseHeaders } from "@/lib/groq-token-usage";
+import {
   endpointToJsonSafe,
   endpointsToJsonSafe,
 } from "@/lib/serialize-endpoint";
+import type { SchemaValidationIssue } from "@/lib/validate-response-against-schema";
 import { useWorkspaceStore } from "@/store/workspaceStore";
 import type { TestCase } from "@/types/api";
 import styles from "./TestGenerationPanel.module.css";
@@ -46,16 +53,41 @@ function scenarioClass(type: TestCase["type"]): string {
   return styles.scenarioEdge;
 }
 
+type RunResult = {
+  status: number;
+  ms: number;
+  bodyText: string;
+  parsedBody: unknown;
+  pass: boolean;
+};
+
 export default function TestGenerationPanel({ t }: { t: TranslateFn }) {
   const endpoints = useWorkspaceStore((s) => s.endpoints);
   const activeEndpoint = useWorkspaceStore((s) => s.activeEndpoint);
   const generationScope = useWorkspaceStore((s) => s.generationScope);
+  const specServerUrls = useWorkspaceStore((s) => s.specServerUrls);
+  const setLastGroqUsage = useWorkspaceStore((s) => s.setLastGroqUsage);
+  const setLastGenerationMs = useWorkspaceStore((s) => s.setLastGenerationMs);
 
   const [cases, setCases] = useState<TestCase[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
   const [detail, setDetail] = useState<TestCase | null>(null);
+  const [userInstruction, setUserInstruction] = useState("");
+  const [lastGenMs, setLastGenMs] = useState<number | null>(null);
+  const [lastGenTokens, setLastGenTokens] = useState<number | null>(null);
+
+  const [baseUrl, setBaseUrl] = useState("");
+  const [bearer, setBearer] = useState("");
+  const [runLoading, setRunLoading] = useState(false);
+  const [runResult, setRunResult] = useState<RunResult | null>(null);
+  const [valLoading, setValLoading] = useState(false);
+  const [validationIssues, setValidationIssues] = useState<
+    SchemaValidationIssue[] | null
+  >(null);
+  const [explainLoading, setExplainLoading] = useState(false);
+  const [explanation, setExplanation] = useState<string | null>(null);
 
   const rawScoped = useMemo(
     () => getScopedEndpoints(endpoints, activeEndpoint, generationScope),
@@ -93,8 +125,9 @@ export default function TestGenerationPanel({ t }: { t: TranslateFn }) {
 
   const curlEndpoint = activeEndpoint ?? scopedForRequest[0] ?? null;
 
-  const payloadForApi = useMemo(
-    () => ({
+  const payloadForApi = useMemo(() => {
+    const trimmed = userInstruction.trim();
+    return {
       endpoints: endpointsToJsonSafe(scopedForRequest),
       allEndpoints: endpointsToJsonSafe(endpoints),
       active:
@@ -104,14 +137,30 @@ export default function TestGenerationPanel({ t }: { t: TranslateFn }) {
             ? endpointToJsonSafe(endpoints[0])
             : null,
       scope: generationScope,
-    }),
-    [scopedForRequest, endpoints, activeEndpoint, generationScope],
-  );
+      ...(trimmed ? { userInstruction: trimmed } : {}),
+    };
+  }, [
+    scopedForRequest,
+    endpoints,
+    activeEndpoint,
+    generationScope,
+    userInstruction,
+  ]);
+
+  useEffect(() => {
+    if (!detail?.id) return;
+    setRunResult(null);
+    setValidationIssues(null);
+    setExplanation(null);
+    const first = specServerUrls[0]?.trim() ?? "";
+    setBaseUrl((prev) => (prev.trim() ? prev : first));
+  }, [detail?.id, specServerUrls]);
 
   const onGenerate = useCallback(async () => {
     if (endpoints.length === 0 || scopedForRequest.length === 0) return;
     setLoading(true);
     setError(null);
+    const t0 = performance.now();
     try {
       const res = await fetch("/api/groq/test-cases", {
         method: "POST",
@@ -119,6 +168,7 @@ export default function TestGenerationPanel({ t }: { t: TranslateFn }) {
         body: JSON.stringify(payloadForApi),
       });
 
+      const usage = parseUsageFromResponseHeaders(res.headers);
       const text = await res.text();
       let data: { testCases?: TestCase[]; error?: string };
       try {
@@ -138,13 +188,147 @@ export default function TestGenerationPanel({ t }: { t: TranslateFn }) {
         throw new Error(t("testGen.noCasesReturned"));
       }
       setCases(data.testCases);
+      const ms = Math.round(performance.now() - t0);
+      setLastGenMs(ms);
+      setLastGenerationMs(ms);
+      const tok = usage?.totalTokens ?? null;
+      setLastGenTokens(tok);
+      setLastGroqUsage(usage);
     } catch (e) {
       setCases([]);
       setError(e instanceof Error ? e.message : t("testGen.error"));
+      setLastGenMs(null);
+      setLastGenTokens(null);
+      setLastGroqUsage(null);
     } finally {
       setLoading(false);
     }
-  }, [endpoints.length, scopedForRequest.length, payloadForApi, t]);
+  }, [
+    endpoints.length,
+    scopedForRequest.length,
+    payloadForApi,
+    t,
+    setLastGroqUsage,
+    setLastGenerationMs,
+  ]);
+
+  const onRunTest = useCallback(async () => {
+    if (!detail || !curlEndpoint || !baseUrl.trim()) return;
+    setRunLoading(true);
+    setValidationIssues(null);
+    setExplanation(null);
+    try {
+      const { urlPath, query, body, hasJsonBody } = prepareRequestFromPayload(
+        curlEndpoint,
+        detail.payload,
+      );
+      const u = new URL(joinBaseAndPath(baseUrl.trim(), urlPath));
+      query.forEach((value, key) => {
+        u.searchParams.append(key, value);
+      });
+      const headers: Record<string, string> = {};
+      if (hasJsonBody) headers["Content-Type"] = "application/json";
+      const token = bearer.trim();
+      if (token) headers.Authorization = `Bearer ${token}`;
+
+      const t0 = performance.now();
+      const res = await fetch(u.toString(), {
+        method: curlEndpoint.method,
+        headers,
+        body: body as BodyInit | undefined,
+      });
+      const ms = Math.round(performance.now() - t0);
+      const text = await res.text();
+      let parsed: unknown = null;
+      try {
+        parsed = text ? JSON.parse(text) : null;
+      } catch {
+        parsed = null;
+      }
+      const pass = statusExpectationMet(
+        res.status,
+        detail.expectedStatus,
+        detail.type,
+      );
+      setRunResult({
+        status: res.status,
+        ms,
+        bodyText: text.slice(0, 12_000),
+        parsedBody: parsed,
+        pass,
+      });
+    } catch (e) {
+      setRunResult({
+        status: 0,
+        ms: 0,
+        bodyText:
+          e instanceof Error
+            ? `${e.message}\n\n${t("testGen.corsHint")}`
+            : t("testGen.runError"),
+        parsedBody: null,
+        pass: false,
+      });
+    } finally {
+      setRunLoading(false);
+    }
+  }, [detail, curlEndpoint, baseUrl, bearer, t]);
+
+  const onValidateResponse = useCallback(async () => {
+    if (!runResult || !curlEndpoint || runResult.status === 0) return;
+    setValLoading(true);
+    try {
+      const bodyPayload =
+        runResult.parsedBody !== null
+          ? runResult.parsedBody
+          : runResult.bodyText;
+      const res = await fetch("/api/validate-response", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          endpoint: endpointToJsonSafe(curlEndpoint),
+          statusCode: runResult.status,
+          body: bodyPayload,
+        }),
+      });
+      const data = (await res.json()) as {
+        issues?: SchemaValidationIssue[];
+        error?: string;
+      };
+      if (!res.ok) {
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+      setValidationIssues(data.issues ?? []);
+    } catch {
+      setValidationIssues(null);
+    } finally {
+      setValLoading(false);
+    }
+  }, [runResult, curlEndpoint]);
+
+  const onExplainIssues = useCallback(async () => {
+    if (!validationIssues?.length || !runResult || !curlEndpoint) return;
+    setExplainLoading(true);
+    try {
+      const res = await fetch("/api/groq/schema-explain", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          issues: validationIssues,
+          endpointLine: `${curlEndpoint.method} ${curlEndpoint.path}`,
+          responsePreview: runResult.bodyText.slice(0, 1500),
+        }),
+      });
+      const data = (await res.json()) as { explanation?: string; error?: string };
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      setExplanation(data.explanation ?? null);
+      const usage = parseUsageFromResponseHeaders(res.headers);
+      if (usage) setLastGroqUsage(usage);
+    } catch {
+      setExplanation(null);
+    } finally {
+      setExplainLoading(false);
+    }
+  }, [validationIssues, runResult, curlEndpoint, setLastGroqUsage]);
 
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase();
@@ -245,6 +429,29 @@ export default function TestGenerationPanel({ t }: { t: TranslateFn }) {
           {loading ? t("common.loading") : t("testGen.generate")}
         </button>
       </header>
+
+      <div className={styles.instructionBlock}>
+        <label className={styles.instructionLabel} htmlFor="test-gen-instruction">
+          {t("testGen.instructionsLabel")}
+        </label>
+        <textarea
+          id="test-gen-instruction"
+          className={styles.instructionArea}
+          rows={2}
+          value={userInstruction}
+          onChange={(e) => setUserInstruction(e.target.value)}
+          placeholder={t("testGen.instructionsPlaceholder")}
+          disabled={loading}
+        />
+      </div>
+      {lastGenMs != null ? (
+        <p className={styles.genMetrics}>
+          {t("testGen.genMetrics", {
+            ms: lastGenMs,
+            tokens: lastGenTokens ?? "—",
+          })}
+        </p>
+      ) : null}
 
       <div className={styles.filterRow}>
         <MaterialIcon name="search" size="xs" className={styles.filterIcon} decorative />
@@ -351,6 +558,94 @@ export default function TestGenerationPanel({ t }: { t: TranslateFn }) {
               </button>
             </div>
             <p className={styles.reason}>{detail.reason}</p>
+
+            <div className={styles.modalRun}>
+              <p className={styles.modalRunTitle}>{t("testGen.runTitle")}</p>
+              <label className={styles.inputLabel} htmlFor="test-base-url">
+                {t("testGen.baseUrl")}
+              </label>
+              <input
+                id="test-base-url"
+                type="url"
+                className={styles.textInput}
+                value={baseUrl}
+                onChange={(e) => setBaseUrl(e.target.value)}
+                placeholder="https://api.example.com"
+              />
+              <label className={styles.inputLabel} htmlFor="test-bearer">
+                {t("testGen.bearer")}
+              </label>
+              <input
+                id="test-bearer"
+                type="password"
+                autoComplete="off"
+                className={styles.textInput}
+                value={bearer}
+                onChange={(e) => setBearer(e.target.value)}
+                placeholder={t("testGen.bearerPlaceholder")}
+              />
+              <div className={styles.modalActions}>
+                <button
+                  type="button"
+                  className={styles.miniPrimary}
+                  onClick={() => void onRunTest()}
+                  disabled={runLoading || !baseUrl.trim()}
+                >
+                  <MaterialIcon name="play_arrow" size="xs" />
+                  {runLoading ? t("common.loading") : t("testGen.runTest")}
+                </button>
+                {runResult ? (
+                  <>
+                    <button
+                      type="button"
+                      className={styles.miniGhost}
+                      onClick={() => void onValidateResponse()}
+                      disabled={valLoading || runResult.status === 0}
+                    >
+                      {valLoading ? t("common.loading") : t("testGen.validateSchema")}
+                    </button>
+                    {validationIssues?.length ? (
+                      <button
+                        type="button"
+                        className={styles.miniGhost}
+                        onClick={() => void onExplainIssues()}
+                        disabled={explainLoading}
+                      >
+                        {explainLoading
+                          ? t("common.loading")
+                          : t("testGen.explainAI")}
+                      </button>
+                    ) : null}
+                  </>
+                ) : null}
+              </div>
+              {runResult ? (
+                <div
+                  className={`${styles.runOutcome} ${runResult.pass ? styles.runPass : styles.runFail}`}
+                >
+                  <span className={styles.runOutcomeMain}>
+                    {runResult.pass ? t("testGen.runPass") : t("testGen.runFail")}{" "}
+                    · HTTP {runResult.status} · {runResult.ms}ms
+                  </span>
+                  <pre className={styles.runBody}>{runResult.bodyText}</pre>
+                </div>
+              ) : null}
+              {validationIssues?.length ? (
+                <ul className={styles.issueList}>
+                  {validationIssues.map((iss, i) => (
+                    <li key={`${iss.path}-${i}`}>
+                      <strong>{iss.path}</strong> — {iss.message}{" "}
+                      <span className={styles.issueSev}>({iss.severity})</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {explanation ? (
+                <p className={styles.explainBox}>{explanation}</p>
+              ) : null}
+              <p className={styles.corsNote}>{t("testGen.corsHint")}</p>
+            </div>
+
             <pre className={styles.modalPre}>{JSON.stringify(detail.payload, null, 2)}</pre>
           </div>
         </div>

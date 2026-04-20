@@ -17,6 +17,13 @@
     "inputPlaceholderShort": "OpenAPI / Swagger URL"
   },
   "sidebar": {
+    "qualityScore": "Quality · {score}/10",
+    "cert": {
+      "draft": "Draft",
+      "certified": "Certified",
+      "strong": "Strong"
+    },
+    "duplicateHint": "{n} duplicate method+path pairs in the spec.",
     "apiExplorer": "API Explorer",
     "noSpecTitle": "ApiForge",
     "specVersion": "v{version} • Active",
@@ -62,6 +69,7 @@
     "tabs": {
       "typescript": "TypeScript",
       "aiPrompt": "AI prompt",
+      "runApi": "Run API",
       "testGeneration": "Test generation"
     },
     "level": "Level",
@@ -79,6 +87,9 @@
     "stats": "Lines: {lines} | Chars: {chars}"
   },
   "footer": {
+    "tokens": "Tokens · {total} (in {in} / out {out})",
+    "tokensShort": "{total} tok",
+    "tokensTitle": "Prompt + completion tokens from the last Groq response",
     "status": "Ready",
     "parsed": "Endpoints: {endpoints}",
     "errors": "Issues: {errors}",
@@ -110,7 +121,33 @@
     "aria": "Request schema summary",
     "parameters": "Parameters",
     "requestBody": "Request body",
-    "noBody": "No JSON body schema on this operation."
+    "noBody": "No JSON body schema on this operation.",
+    "payloadTitle": "AI payload (natural language)",
+    "payloadHint": "Describe the payload you need (valid, invalid, multipart fields, etc.). Output is JSON you can paste into the request body or tests.",
+    "payloadPlaceholder": "Example: valid registration payload with password that fails complexity rules",
+    "generatePayload": "Generate",
+    "payloadCopy": "Copy",
+    "payloadError": "Could not generate payload"
+  },
+  "runApi": {
+    "title": "API execution",
+    "specAuth": "Spec auth: {hint}",
+    "noSpecAuth": "No security schemes on this operation — add credentials below if needed.",
+    "baseUrl": "Base URL",
+    "pathParams": "Path parameters",
+    "queryParams": "Query parameters",
+    "headersJson": "Headers (JSON object)",
+    "body": "Request body (JSON)",
+    "authManual": "Authentication (manual)",
+    "authNote": "Values here are applied if the header is not already set in the JSON headers above. Bearer / Basic are mutually exclusive with each other for the Authorization header.",
+    "resolvedUrl": "Resolved URL preview",
+    "send": "Send request",
+    "badHeaders": "Headers must be a JSON object, e.g. {\"Accept\":\"application/json\"}",
+    "sendFailed": "Request failed",
+    "status": "HTTP {code}",
+    "elapsed": "{ms} ms",
+    "validate": "Validate response vs schema",
+    "explain": "Explain issues (AI)"
   },
   "testGen": {
     "matrixTitle": "Test suite matrix",
@@ -133,6 +170,20 @@
     "exportCurl": "cURL",
     "exportJs": "JavaScript",
     "exportPostman": "Postman",
-    "apiScopeLimitWarning": "Full API includes {total} endpoints. Only the first {limit} are included in this test request to stay within limits."
+    "apiScopeLimitWarning": "Full API includes {total} endpoints. Only the first {limit} are included in this test request to stay within limits.",
+    "instructionsLabel": "Scenario focus (optional)",
+    "instructionsPlaceholder": "e.g. prioritize 401 when the token is expired; include edge cases for pagination…",
+    "genMetrics": "Last generation · {ms} ms · {tokens} tokens",
+    "runTitle": "Run against live API",
+    "baseUrl": "Base URL",
+    "bearer": "Bearer token (optional)",
+    "bearerPlaceholder": "paste token",
+    "runTest": "Run request",
+    "runPass": "Pass",
+    "runFail": "Fail",
+    "validateSchema": "Validate vs schema",
+    "explainAI": "Explain with AI",
+    "corsHint": "If the browser blocks the request (CORS), run the same call from your backend or disable CORS for local testing.",
+    "runError": "Request failed"
   }
 }

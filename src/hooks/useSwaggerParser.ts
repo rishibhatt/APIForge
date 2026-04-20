@@ -36,6 +36,7 @@ export function useSwaggerParser() {
           title?: string;
           version?: string;
           serverUrls?: string[];
+          securitySchemes?: Record<string, unknown>;
         };
         if (!res.ok || !data.success || !data.endpoints) {
           throw new Error(data.error || "Parse failed");
@@ -43,6 +44,7 @@ export function useSwaggerParser() {
         setEndpoints(
           data.endpoints,
           Array.isArray(data.serverUrls) ? data.serverUrls : undefined,
+          data.securitySchemes,
         );
         setSpecMeta(
           typeof data.title === "string" ? data.title : null,
@@ -79,6 +81,7 @@ export function useSwaggerParser() {
           title?: string;
           version?: string;
           serverUrls?: string[];
+          securitySchemes?: Record<string, unknown>;
         };
         if (!res.ok || !data.success || !data.endpoints) {
           throw new Error(data.error || "Parse failed");
@@ -86,6 +89,7 @@ export function useSwaggerParser() {
         setEndpoints(
           data.endpoints,
           Array.isArray(data.serverUrls) ? data.serverUrls : undefined,
+          data.securitySchemes,
         );
         setSpecMeta(
           typeof data.title === "string" ? data.title : null,

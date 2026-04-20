@@ -1,6 +1,11 @@
 "use client";
 
+import { useCallback, useState } from "react";
 import type { TranslateFn } from "@/context/LanguageContext";
+import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
+import { parseUsageFromResponseHeaders } from "@/lib/groq-token-usage";
+import { endpointToJsonSafe } from "@/lib/serialize-endpoint";
+import { useWorkspaceStore } from "@/store/workspaceStore";
 import type { Endpoint } from "@/types/api";
 import styles from "./SchemaInsightPanel.module.css";
 
@@ -66,8 +71,70 @@ export default function SchemaInsightPanel({
   t,
   endpoint,
 }: SchemaInsightPanelProps) {
+  const setLastGroqUsage = useWorkspaceStore((s) => s.setLastGroqUsage);
+  const setLastGenerationMs = useWorkspaceStore((s) => s.setLastGenerationMs);
+  const [nlPrompt, setNlPrompt] = useState("");
+  const [nlLoading, setNlLoading] = useState(false);
+  const [nlError, setNlError] = useState<string | null>(null);
+  const [nlOutput, setNlOutput] = useState<string | null>(null);
+
   const bodyFields = extractBodyFields(endpoint.requestBody);
   const paramRows = extractParamRows(endpoint);
+
+  const onGeneratePayload = useCallback(async () => {
+    const instruction = nlPrompt.trim();
+    if (!instruction) return;
+    setNlLoading(true);
+    setNlError(null);
+    setNlOutput(null);
+    const t0 = performance.now();
+    try {
+      const res = await fetch("/api/groq/payload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          endpoint: endpointToJsonSafe(endpoint),
+          instruction,
+        }),
+      });
+      const usage = parseUsageFromResponseHeaders(res.headers);
+      const data = (await res.json()) as {
+        payload?: unknown;
+        error?: string;
+        rawPreview?: string;
+      };
+      if (!res.ok) {
+        throw new Error(
+          data.error ||
+            data.rawPreview ||
+            `HTTP ${res.status}`,
+        );
+      }
+      setNlOutput(JSON.stringify(data.payload, null, 2));
+      setLastGenerationMs(Math.round(performance.now() - t0));
+      if (usage) setLastGroqUsage(usage);
+    } catch (e) {
+      setNlError(e instanceof Error ? e.message : t("schemaInsight.payloadError"));
+      setLastGroqUsage(null);
+    } finally {
+      setNlLoading(false);
+    }
+  }, [
+    endpoint,
+    nlPrompt,
+    setLastGroqUsage,
+    setLastGenerationMs,
+    t,
+  ]);
+
+  const onCopyPayload = useCallback(async () => {
+    if (!nlOutput) return;
+    try {
+      await navigator.clipboard.writeText(nlOutput);
+    } catch {
+      /* ignore */
+    }
+  }, [nlOutput]);
 
   return (
     <aside className={styles.wrap} aria-label={t("schemaInsight.aria")}>
@@ -98,6 +165,43 @@ export default function SchemaInsightPanel({
             ))}
           </div>
         )}
+      </section>
+
+      <section>
+        <h3 className={styles.sectionTitle}>{t("schemaInsight.payloadTitle")}</h3>
+        <p className={styles.hintBlock}>{t("schemaInsight.payloadHint")}</p>
+        <textarea
+          className={styles.nlArea}
+          rows={3}
+          value={nlPrompt}
+          onChange={(e) => setNlPrompt(e.target.value)}
+          placeholder={t("schemaInsight.payloadPlaceholder")}
+          disabled={nlLoading}
+          aria-label={t("schemaInsight.payloadPlaceholder")}
+        />
+        <div className={styles.payloadActions}>
+          <button
+            type="button"
+            className={styles.payloadBtn}
+            onClick={() => void onGeneratePayload()}
+            disabled={nlLoading || !nlPrompt.trim()}
+          >
+            <MaterialIcon name="auto_awesome" size="xs" />
+            {nlLoading ? t("common.loading") : t("schemaInsight.generatePayload")}
+          </button>
+          {nlOutput ? (
+            <button
+              type="button"
+              className={styles.payloadBtnGhost}
+              onClick={() => void onCopyPayload()}
+            >
+              <MaterialIcon name="content_copy" size="xs" />
+              {t("schemaInsight.payloadCopy")}
+            </button>
+          ) : null}
+        </div>
+        {nlError ? <p className={styles.nlError}>{nlError}</p> : null}
+        {nlOutput ? <pre className={styles.nlPre}>{nlOutput}</pre> : null}
       </section>
     </aside>
   );

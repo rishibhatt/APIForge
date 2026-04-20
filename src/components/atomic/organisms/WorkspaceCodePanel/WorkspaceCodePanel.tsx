@@ -11,6 +11,7 @@ import type { TranslateFn } from "@/context/LanguageContext";
 import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
 import EditorChrome from "@/components/atomic/molecules/EditorChrome/EditorChrome";
 import SchemaInsightPanel from "@/components/atomic/organisms/SchemaInsightPanel/SchemaInsightPanel";
+import RunApiPanel from "@/components/atomic/organisms/WorkspaceCodePanel/RunApiPanel";
 import TestGenerationPanel from "@/components/atomic/organisms/WorkspaceCodePanel/TestGenerationPanel";
 import { useGroqStream } from "@/hooks/useGroqStream";
 import { getScopedEndpoints, getScopeLabel } from "@/lib/endpoint-groups";
@@ -18,7 +19,7 @@ import { useWorkspaceStore } from "@/store/workspaceStore";
 import type { GenerationScope, GroqStreamTab, OutputTab } from "@/types/api";
 import styles from "./WorkspaceCodePanel.module.css";
 
-const TAB_ORDER: OutputTab[] = ["typescript", "prompt", "testGeneration"];
+const TAB_ORDER: OutputTab[] = ["typescript", "prompt", "runApi", "testGeneration"];
 
 interface WorkspaceCodePanelProps {
   t: TranslateFn;
@@ -30,6 +31,8 @@ function tabLabelKey(tab: OutputTab): string {
       return "workspace.tabs.typescript";
     case "prompt":
       return "workspace.tabs.aiPrompt";
+    case "runApi":
+      return "workspace.tabs.runApi";
     case "testGeneration":
       return "workspace.tabs.testGeneration";
     default:
@@ -56,7 +59,7 @@ function workspaceMetaKey(tab: GroqStreamTab): string {
 }
 
 function tabNeedsEndpointDisabled(id: OutputTab, endpointsCount: number): boolean {
-  return id === "testGeneration" && endpointsCount === 0;
+  return (id === "testGeneration" || id === "runApi") && endpointsCount === 0;
 }
 
 export default function WorkspaceCodePanel({ t }: WorkspaceCodePanelProps) {
@@ -68,6 +71,7 @@ export default function WorkspaceCodePanel({ t }: WorkspaceCodePanelProps) {
   const setGenerationScope = useWorkspaceStore((s) => s.setGenerationScope);
 
   const { result, loading, error, generate, lastLatencyMs } = useGroqStream();
+  const lastGroqUsage = useWorkspaceStore((s) => s.lastGroqUsage);
 
   const bodyRef = useRef<HTMLDivElement>(null);
   const scrollMemory = useRef<Partial<Record<OutputTab, number>>>({});
@@ -119,7 +123,7 @@ export default function WorkspaceCodePanel({ t }: WorkspaceCodePanelProps) {
 
   useLayoutEffect(() => {
     if (!bodyRef.current) return;
-    if (activeTab === "testGeneration") return;
+    if (activeTab === "testGeneration" || activeTab === "runApi") return;
     const y = scrollMemory.current[activeTab] ?? 0;
     bodyRef.current.scrollTop = y;
   }, [activeTab]);
@@ -149,6 +153,7 @@ export default function WorkspaceCodePanel({ t }: WorkspaceCodePanelProps) {
     if (!primaryForFile) return t("workspace.fileLabelIdle");
     if (activeTab === "prompt") return "ide-prompt.txt";
     if (activeTab === "testGeneration") return "tests.json";
+    if (activeTab === "runApi") return "request";
     if (activeTab === "typescript") {
       return `${fileSlug}.${exportExtension(activeTab)}`;
     }
@@ -176,7 +181,7 @@ export default function WorkspaceCodePanel({ t }: WorkspaceCodePanelProps) {
 
   const onExport = useCallback(() => {
     if (!displayText || !primaryForFile) return;
-    if (activeTab === "testGeneration") return;
+    if (activeTab === "testGeneration" || activeTab === "runApi") return;
     const ext = exportExtension(activeTab as GroqStreamTab);
     const blob = new Blob([displayText], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -209,7 +214,8 @@ export default function WorkspaceCodePanel({ t }: WorkspaceCodePanelProps) {
     endpoints,
   ]);
 
-  const showCodeBody = activeTab !== "testGeneration";
+  const showCodeBody =
+    activeTab !== "testGeneration" && activeTab !== "runApi";
 
   const showLoading =
     showCodeBody &&
@@ -221,7 +227,9 @@ export default function WorkspaceCodePanel({ t }: WorkspaceCodePanelProps) {
   const canUseStreamOutput = scoped.length > 0;
 
   const actionDisabled =
-    !canUseStreamOutput || activeTab === "testGeneration";
+    !canUseStreamOutput ||
+    activeTab === "testGeneration" ||
+    activeTab === "runApi";
 
   const bodyPlaceholder = (() => {
     if (endpoints.length === 0) return t("workspace.selectEndpoint");
@@ -254,6 +262,9 @@ export default function WorkspaceCodePanel({ t }: WorkspaceCodePanelProps) {
                 onClick={() => onSelectTab(id)}
               >
                 <span className={styles.tabInner}>
+                  {id === "runApi" ? (
+                    <MaterialIcon name="bolt" size="xs" />
+                  ) : null}
                   {id === "testGeneration" ? (
                     <MaterialIcon name="science" size="xs" />
                   ) : null}
@@ -311,7 +322,8 @@ export default function WorkspaceCodePanel({ t }: WorkspaceCodePanelProps) {
             disabled={
               !canUseStreamOutput ||
               loading ||
-              activeTab === "testGeneration"
+              activeTab === "testGeneration" ||
+              activeTab === "runApi"
             }
           >
             <MaterialIcon name="refresh" size="xs" />
@@ -334,6 +346,8 @@ export default function WorkspaceCodePanel({ t }: WorkspaceCodePanelProps) {
               <p className={styles.placeholder}>{bodyPlaceholder}</p>
             ) : activeTab === "testGeneration" ? (
               <TestGenerationPanel t={t} />
+            ) : activeTab === "runApi" ? (
+              <RunApiPanel t={t} />
             ) : showLoading ? (
               <p className={styles.placeholder}>{t("common.loading")}</p>
             ) : error ? (
@@ -360,6 +374,13 @@ export default function WorkspaceCodePanel({ t }: WorkspaceCodePanelProps) {
               {lastLatencyMs != null ? (
                 <span className={styles.latency}>
                   {t("footer.latency", { ms: lastLatencyMs })}
+                </span>
+              ) : null}
+              {lastGroqUsage != null && lastGroqUsage.totalTokens > 0 ? (
+                <span className={styles.tokens} title={t("footer.tokensTitle")}>
+                  {t("footer.tokensShort", {
+                    total: lastGroqUsage.totalTokens,
+                  })}
                 </span>
               ) : null}
             </div>

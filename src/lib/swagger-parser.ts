@@ -37,6 +37,23 @@ async function normalizeSpec(
   }
 }
 
+function extractSecuritySchemes(
+  doc: Record<string, unknown>,
+): Record<string, unknown> | undefined {
+  const comp = doc.components;
+  if (comp && typeof comp === "object") {
+    const raw = (comp as { securitySchemes?: unknown }).securitySchemes;
+    if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+      return raw as Record<string, unknown>;
+    }
+  }
+  const legacy = doc.securityDefinitions;
+  if (legacy && typeof legacy === "object" && !Array.isArray(legacy)) {
+    return legacy as Record<string, unknown>;
+  }
+  return undefined;
+}
+
 function resultFromDoc(
   doc: Record<string, unknown>,
 ): ParseSwaggerResult {
@@ -45,11 +62,13 @@ function resultFromDoc(
     | { title?: string; version?: string }
     | undefined;
   const serverUrls = extractServerUrls(doc);
+  const securitySchemes = extractSecuritySchemes(doc);
   return {
     endpoints,
     title: info?.title,
     version: info?.version,
     serverUrls: serverUrls.length ? serverUrls : undefined,
+    ...(securitySchemes ? { securitySchemes } : {}),
   };
 }
 

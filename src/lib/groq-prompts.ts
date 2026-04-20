@@ -263,9 +263,15 @@ export function buildTestCasesPrompt(
   scope: GenerationScope,
   allEndpoints: Endpoint[],
   active: Endpoint | null,
+  userInstruction?: string,
 ): string {
   const anchor = active ?? allEndpoints[0] ?? null;
   const scopeLine = `Generation scope: ${getScopeLabel(allEndpoints, anchor, scope, endpoints)}`;
+
+  const userBlock =
+    userInstruction && userInstruction.length > 0
+      ? `\n\nUser focus (prioritize scenarios that satisfy this intent; still obey the system JSON rules):\n${userInstruction}\n`
+      : "";
 
   if (endpoints.length === 1) {
     const ep = endpoints[0]!;
@@ -281,7 +287,7 @@ ${scopeLine}
 Parameters (compact): ${paramHint}
 Request body schema (compact): ${reqHint}
 Response schema (compact): ${resHint}
-
+${userBlock}
 Task: produce 8-10 JSON test cases (valid, invalid, edge) matching the request body shape. Small example payloads only. Follow the system message for JSON formatting.
 
 Each object MUST use these exact keys and types:
@@ -325,7 +331,7 @@ ${fullBlocks}
 
 COMPACT INVENTORY (method, path, tag, summary — for coverage only):
 ${compactLines || "(none — all listed above in full detail.)"}
-
+${userBlock}
 Generate a combined JSON array of 8-12 test cases total across this scope (distribute across endpoints; ids T001, T002, …).
 Each item must name the target in "description", e.g. "[POST /login] invalid password".
 
@@ -334,4 +340,41 @@ Payloads must be small (short literals only). Strings must be valid JSON: escape
 Return ONLY a valid JSON array. No markdown, no prose outside JSON.`;
 
   return trimPromptIfNeeded(prompt);
+}
+
+function endpointBlockCompact(ep: Endpoint): string {
+  return JSON.stringify(
+    {
+      method: ep.method,
+      path: ep.path,
+      summary: ep.summary,
+      parameters: ep.parameters,
+      requestBody: ep.requestBody,
+    },
+    null,
+    2,
+  );
+}
+
+/**
+ * Natural-language payload generation: model returns JSON only (enforced by route system message).
+ */
+export function buildNlPayloadPrompt(
+  endpoint: Endpoint,
+  userInstruction: string,
+): string {
+  const requestSchema = extractRequestSchema(endpoint.requestBody);
+  const paramHint = summarizeForTestPrompt(endpoint.parameters, MAX_TEST_PARAM_HINT_CHARS);
+  const reqHint = summarizeForTestPrompt(requestSchema, MAX_TEST_SCHEMA_CHARS);
+  const block = endpointBlockCompact(endpoint);
+  return `Operation (authoritative):
+${block}
+
+Parameters (compact): ${paramHint}
+Request body schema (compact): ${reqHint}
+
+User request:
+${userInstruction}
+
+Return ONE JSON value only: usually an object matching the request body schema (include query/path fields inside the same object if that helps the client; prefer flat keys matching parameter names). For multipart/file APIs, return a JSON object whose keys are part/field names and values describe dummy content (e.g. { "avatar": "<png bytes described as base64 placeholder>" }) — still valid JSON, no binary.`;
 }

@@ -57,3 +57,98 @@
   margin: 0;
   line-height: 1.5;
 }
+
+.hintBlock {
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: rgba(148, 163, 184, 0.75);
+  margin: 0 0 var(--space-3);
+}
+
+.nlArea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 64px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(133, 147, 152, 0.15);
+  background: rgba(15, 23, 42, 0.35);
+  padding: var(--space-3);
+  color: var(--color-on-surface);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  outline: none;
+}
+
+.nlArea::placeholder {
+  color: rgba(148, 163, 184, 0.45);
+}
+
+.payloadActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.payloadBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 8px var(--space-4);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-on-primary);
+  background: var(--color-primary-container);
+  cursor: pointer;
+}
+
+.payloadBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.payloadBtnGhost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-sm);
+  padding: 8px var(--space-3);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(226, 232, 240, 0.88);
+  background: rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+}
+
+.nlError {
+  margin: var(--space-3) 0 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: rgba(255, 180, 171, 0.95);
+}
+
+.nlPre {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: rgba(2, 6, 23, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 220px;
+  overflow: auto;
+  color: rgba(168, 232, 255, 0.72);
+}

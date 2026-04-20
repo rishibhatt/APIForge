@@ -1,5 +1,9 @@
 import { generateText } from "ai";
 import { groqErrorMessage, isGroqRateLimitError } from "@/lib/groq-errors";
+import {
+  type GroqTokenUsage,
+  usageFromGenerateTextResult,
+} from "@/lib/groq-token-usage";
 
 type ChatModel = Parameters<typeof generateText>[0]["model"];
 
@@ -18,7 +22,11 @@ export type BufferedGroqParams = {
  */
 export async function generateGroqTextBuffered(
   params: BufferedGroqParams,
-): Promise<{ text: string; usedFallback: boolean }> {
+): Promise<{
+  text: string;
+  usedFallback: boolean;
+  usage?: GroqTokenUsage;
+}> {
   const {
     model,
     fallbackModel,
@@ -47,7 +55,11 @@ export async function generateGroqTextBuffered(
         "The model returned empty text. Try again or set GROQ_MODEL to a smaller model.",
       );
     }
-    return { text, usedFallback: false };
+    return {
+      text,
+      usedFallback: false,
+      usage: usageFromGenerateTextResult(r),
+    };
   } catch (e) {
     if (!isGroqRateLimitError(e)) {
       throw new Error(groqErrorMessage(e));
@@ -58,7 +70,11 @@ export async function generateGroqTextBuffered(
       if (!text) {
         throw new Error(groqErrorMessage(e));
       }
-      return { text, usedFallback: true };
+      return {
+        text,
+        usedFallback: true,
+        usage: usageFromGenerateTextResult(r),
+      };
     } catch (e2) {
       throw new Error(
         `${groqErrorMessage(e2)}\n\nIf you are on Groq free tier: daily token limits are low on large models. Set GROQ_MODEL=llama-3.1-8b-instant or wait for the reset time shown above.`,

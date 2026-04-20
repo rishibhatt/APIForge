@@ -8,6 +8,7 @@ import type {
 import { buildGroqPrompt } from "@/lib/groq-prompts";
 import { generateGroqTextBuffered } from "@/lib/groq-generate-buffered";
 import { isGroqRateLimitError } from "@/lib/groq-errors";
+import { applyUsageHeaders } from "@/lib/groq-token-usage";
 import { resolveGroqModels } from "@/lib/groq-models";
 import {
   isEndpoint,
@@ -94,7 +95,7 @@ export async function POST(req: Request) {
   const { primary: primaryModel, fallback } = resolveGroqModels();
 
   try {
-    const { text } = await generateGroqTextBuffered({
+    const { text, usage } = await generateGroqTextBuffered({
       model: groq(primaryModel),
       fallbackModel: groq(fallback),
       prompt,
@@ -103,12 +104,15 @@ export async function POST(req: Request) {
       maxRetries: 1,
     });
 
+    const headers = new Headers({
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "no-store",
+    });
+    applyUsageHeaders(headers, usage);
+
     return new Response(text, {
       status: 200,
-      headers: {
-        "Content-Type": "text/plain; charset=utf-8",
-        "Cache-Control": "no-store",
-      },
+      headers,
     });
   } catch (e) {
     const status = isGroqRateLimitError(e) ? 429 : 502;
