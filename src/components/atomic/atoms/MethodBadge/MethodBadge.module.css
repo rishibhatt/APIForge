@@ -9,31 +9,31 @@
 }
 
 .get {
-  background: rgba(52, 211, 153, 0.2);
-  color: #6ee7b7;
+  background: var(--color-secondary-container);
+  color: var(--color-on-secondary-container);
 }
 
 .post {
-  background: rgba(251, 191, 36, 0.2);
-  color: #fcd34d;
+  background: color-mix(in srgb, var(--color-amber) 22%, transparent);
+  color: var(--color-amber);
 }
 
 .put {
-  background: rgba(56, 189, 248, 0.2);
-  color: #7dd3fc;
+  background: color-mix(in srgb, var(--color-cyan-accent) 22%, transparent);
+  color: var(--color-cyan-accent);
 }
 
 .patch {
-  background: rgba(167, 139, 250, 0.2);
-  color: #c4b5fd;
+  background: color-mix(in srgb, var(--color-primary-container) 18%, transparent);
+  color: var(--color-primary-container);
 }
 
 .delete {
-  background: rgba(251, 113, 133, 0.2);
-  color: #fda4af;
+  background: color-mix(in srgb, var(--color-rose) 22%, transparent);
+  color: var(--color-rose);
 }
 
 .default {
-  background: rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--color-on-surface) 6%, transparent);
   color: var(--color-on-surface-muted);
 }

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { Inter, Plus_Jakarta_Sans } from "next/font/google";
-import { GeistMono } from "geist/font/mono";
+import { Inter, Plus_Jakarta_Sans, Space_Mono } from "next/font/google";
+import { AppThemeProvider } from "@/components/providers/AppThemeProvider";
 import { LanguageProvider } from "@/context/LanguageContext";
 import bodyStyles from "./layout.module.css";
 import "./globals.css";
@@ -16,6 +16,12 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
+const spaceMono = Space_Mono({
+  subsets: ["latin"],
+  variable: "--font-space-mono",
+  weight: ["400", "700"],
+});
+
 export const metadata: Metadata = {
   title: "ApiForge | Forge your API workspace",
   description:
@@ -28,11 +34,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
       <body
-        className={`${plusJakarta.variable} ${inter.variable} ${GeistMono.variable} ${bodyStyles.body}`}
+        className={`${plusJakarta.variable} ${inter.variable} ${spaceMono.variable} ${bodyStyles.body}`}
       >
-        <LanguageProvider>{children}</LanguageProvider>
+        <AppThemeProvider>
+          <LanguageProvider>{children}</LanguageProvider>
+        </AppThemeProvider>
       </body>
     </html>
   );

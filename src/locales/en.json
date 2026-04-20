@@ -106,7 +106,9 @@
     "terminal": "Open terminal",
     "openExplorer": "Open endpoint explorer",
     "closeExplorer": "Close explorer",
-    "clearUrlInput": "Clear URL field"
+    "clearUrlInput": "Clear URL field",
+    "themeSwitchToLight": "Switch to light theme",
+    "themeSwitchToDark": "Switch to dark theme"
   },
   "mobileNav": {
     "aria": "Mobile workspace",

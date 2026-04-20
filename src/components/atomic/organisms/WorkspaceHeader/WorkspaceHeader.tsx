@@ -2,6 +2,7 @@
 
 import type { TranslateFn } from "@/context/LanguageContext";
 import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
+import ThemeToggle from "@/components/atomic/molecules/ThemeToggle/ThemeToggle";
 import { useWorkspaceStore } from "@/store/workspaceStore";
 import styles from "./WorkspaceHeader.module.css";
 
@@ -90,15 +91,18 @@ export default function WorkspaceHeader({
           </button>
         </div>
       ) : null}
-      {hasWorkspace ? (
-        <button
-          type="button"
-          className={`${styles.clearBtn} focusRing`}
-          onClick={() => clearWorkspace()}
-        >
-          {t("header.clearWorkspace")}
-        </button>
-      ) : null}
+      <div className={styles.right}>
+        <ThemeToggle t={t} />
+        {hasWorkspace ? (
+          <button
+            type="button"
+            className={`${styles.clearBtn} focusRing`}
+            onClick={() => clearWorkspace()}
+          >
+            {t("header.clearWorkspace")}
+          </button>
+        ) : null}
+      </div>
     </header>
   );
 }

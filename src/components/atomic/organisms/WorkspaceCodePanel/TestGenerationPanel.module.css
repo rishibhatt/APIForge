@@ -31,7 +31,7 @@
   margin: 0;
   font-family: var(--font-mono);
   font-size: 0.6875rem;
-  color: rgba(222, 224, 255, 0.45);
+  color: var(--color-on-surface-subtle);
   line-height: 1.5;
 }
 
@@ -39,7 +39,7 @@
   margin: var(--space-2) 0 0;
   font-size: 0.75rem;
   line-height: 1.45;
-  color: rgba(255, 212, 128, 0.9);
+  color: var(--color-amber);
 }
 
 .generateCta {
@@ -79,13 +79,13 @@
   gap: var(--space-2);
   padding: 2px var(--space-3);
   border-radius: var(--radius-md);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid var(--color-border-default);
+  background: var(--color-field-bg);
   max-width: 400px;
 }
 
 .filterIcon {
-  color: rgba(222, 224, 255, 0.35);
+  color: var(--color-on-surface-subtle);
   flex-shrink: 0;
 }
 
@@ -101,7 +101,7 @@
 }
 
 .filter::placeholder {
-  color: rgba(222, 224, 255, 0.35);
+  color: var(--color-on-surface-subtle);
 }
 
 .cardList {
@@ -117,15 +117,15 @@
   display: block;
   width: 100%;
   text-align: left;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--color-border-default);
   border-radius: var(--radius-lg);
   padding: var(--space-4) var(--space-5);
   background: linear-gradient(
     145deg,
-    rgba(26, 30, 55, 0.95) 0%,
-    rgba(15, 18, 40, 0.88) 100%
+    var(--color-result-panel-bg) 0%,
+    var(--color-surface-container-low) 100%
   );
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 1px 0 0 var(--color-interactive-hover);
   cursor: pointer;
   transition:
     border-color 0.2s ease,
@@ -135,7 +135,7 @@
 .card:hover {
   border-color: color-mix(in srgb, var(--color-primary-container) 35%, transparent);
   box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.06),
+    inset 0 1px 0 0 var(--color-divider-subtle),
     0 0 0 1px color-mix(in srgb, var(--color-primary-container) 15%, transparent);
 }
 
@@ -155,15 +155,15 @@
 }
 
 .scenarioPos {
-  color: rgba(52, 211, 153, 0.95);
+  color: var(--color-pill-success-fg);
 }
 
 .scenarioNeg {
-  color: rgba(255, 180, 171, 0.95);
+  color: var(--color-error-surface-text);
 }
 
 .scenarioEdge {
-  color: rgba(196, 181, 253, 0.95);
+  color: var(--color-primary-muted);
 }
 
 .statusBadge {
@@ -178,39 +178,39 @@
 }
 
 .badgeOk {
-  color: rgba(52, 211, 153, 0.95);
-  background: rgba(52, 211, 153, 0.12);
-  border: 1px solid rgba(52, 211, 153, 0.22);
+  color: var(--color-pill-success-fg);
+  background: var(--color-pill-success-bg);
+  border: 1px solid var(--color-pill-success-border);
 }
 
 .badgeWarn {
-  color: rgba(251, 191, 36, 0.95);
-  background: rgba(251, 191, 36, 0.1);
-  border: 1px solid rgba(251, 191, 36, 0.22);
+  color: var(--color-amber);
+  background: color-mix(in srgb, var(--color-amber) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-amber) 28%, transparent);
 }
 
 .badgeBad {
-  color: rgba(255, 180, 171, 0.95);
-  background: rgba(255, 107, 107, 0.1);
-  border: 1px solid rgba(255, 107, 107, 0.22);
+  color: var(--color-error-surface-text);
+  background: color-mix(in srgb, var(--color-rose) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-rose) 28%, transparent);
 }
 
 .badgeAuth {
-  color: rgba(251, 191, 36, 0.95);
-  background: rgba(251, 191, 36, 0.08);
-  border: 1px solid rgba(251, 191, 36, 0.2);
+  color: var(--color-amber);
+  background: color-mix(in srgb, var(--color-amber) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-amber) 22%, transparent);
 }
 
 .badgeRate {
-  color: rgba(196, 181, 253, 0.98);
-  background: rgba(139, 92, 246, 0.14);
-  border: 1px solid rgba(139, 92, 246, 0.28);
+  color: var(--color-primary-muted);
+  background: var(--color-pill-info-bg);
+  border: 1px solid var(--color-pill-info-border);
 }
 
 .badgeNeutral {
-  color: rgba(222, 224, 255, 0.75);
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--color-on-surface-muted);
+  background: var(--color-chip-surface);
+  border: 1px solid var(--color-border-default);
 }
 
 .cardTitle {
@@ -225,12 +225,12 @@
   margin: 0;
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
-  background: rgba(2, 6, 23, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--color-code-editor-bg);
+  border: 1px solid var(--color-divider-subtle);
   font-family: var(--font-mono);
   font-size: 0.6875rem;
   line-height: 1.55;
-  color: rgba(168, 232, 255, 0.65);
+  color: var(--color-section-accent);
   white-space: pre-wrap;
   word-break: break-word;
   max-height: 140px;
@@ -244,14 +244,14 @@
   font-size: 9px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: rgba(222, 224, 255, 0.28);
+  color: var(--color-on-surface-subtle);
 }
 
 .btnGhost {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--color-border-default);
   border-radius: var(--radius-sm);
   padding: 8px var(--space-3);
   font-family: var(--font-mono);
@@ -259,14 +259,14 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: rgba(226, 232, 240, 0.85);
-  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-muted-foreground-subtle);
+  background: var(--color-interactive-hover);
   cursor: pointer;
   transition: background 0.2s ease;
 }
 
 .btnGhost:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--color-interactive-pressed);
 }
 
 .exportRow {
@@ -274,14 +274,14 @@
   flex-wrap: wrap;
   gap: var(--space-2);
   padding-top: var(--space-2);
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--color-divider-subtle);
 }
 
 .placeholder {
   margin: 0;
   font-family: var(--font-mono);
   font-size: 0.875rem;
-  color: rgba(222, 224, 255, 0.45);
+  color: var(--color-on-surface-subtle);
 }
 
 .error {
@@ -290,16 +290,16 @@
   border-radius: var(--radius-md);
   font-size: 0.8125rem;
   line-height: 1.5;
-  color: rgba(255, 218, 214, 0.95);
-  background: rgba(147, 0, 10, 0.25);
-  border: 1px solid rgba(255, 180, 171, 0.25);
+  color: var(--color-error-surface-text);
+  background: var(--color-error-surface-bg);
+  border: 1px solid var(--color-error-surface-border);
 }
 
 .iconBtn {
   border: none;
   background: none;
   padding: var(--space-2);
-  color: rgba(222, 224, 255, 0.45);
+  color: var(--color-on-surface-subtle);
   cursor: pointer;
   border-radius: var(--radius-sm);
   transition:
@@ -309,7 +309,7 @@
 
 .iconBtn:hover {
   color: var(--color-primary-container);
-  background: rgba(0, 212, 255, 0.08);
+  background: var(--color-callout-info-bg);
 }
 
 .modalBackdrop {
@@ -320,7 +320,7 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-6);
-  background: rgba(0, 0, 0, 0.65);
+  background: var(--color-overlay-scrim);
 }
 
 .modal {
@@ -329,7 +329,7 @@
   overflow: auto;
   border-radius: var(--radius-lg);
   background: var(--color-surface-container);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--color-border-default);
   padding: var(--space-5);
   box-shadow: var(--shadow-glass);
 }
@@ -357,14 +357,14 @@
   margin: 0 0 var(--space-4);
   font-size: 0.8125rem;
   line-height: 1.55;
-  color: rgba(222, 224, 255, 0.55);
+  color: var(--color-on-surface-muted);
 }
 
 .modalPre {
   margin: 0;
   padding: var(--space-4);
   border-radius: var(--radius-md);
-  background: rgba(2, 6, 23, 0.5);
+  background: var(--color-code-editor-bg);
   font-family: var(--font-mono);
   font-size: 0.75rem;
   line-height: 1.55;
@@ -385,7 +385,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(148, 163, 184, 0.85);
+  color: var(--color-muted-foreground-subtle);
 }
 
 .instructionArea {
@@ -393,8 +393,8 @@
   min-height: 52px;
   resize: vertical;
   border-radius: var(--radius-md);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid var(--color-border-default);
+  background: var(--color-field-bg);
   padding: var(--space-3) var(--space-4);
   color: var(--color-on-surface);
   font-size: 0.8125rem;
@@ -403,7 +403,7 @@
 }
 
 .instructionArea::placeholder {
-  color: rgba(222, 224, 255, 0.35);
+  color: var(--color-on-surface-subtle);
 }
 
 .genMetrics {
@@ -411,15 +411,15 @@
   font-family: var(--font-mono);
   font-size: 10px;
   letter-spacing: 0.04em;
-  color: rgba(196, 181, 253, 0.9);
+  color: var(--color-primary-muted);
 }
 
 .modalRun {
   margin-bottom: var(--space-4);
   padding: var(--space-4);
   border-radius: var(--radius-md);
-  background: rgba(15, 23, 42, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--color-field-bg);
+  border: 1px solid var(--color-divider-subtle);
 }
 
 .modalRunTitle {
@@ -429,7 +429,7 @@
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(168, 232, 255, 0.75);
+  color: var(--color-primary-muted);
 }
 
 .inputLabel {
@@ -438,15 +438,15 @@
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: rgba(148, 163, 184, 0.85);
+  color: var(--color-muted-foreground-subtle);
 }
 
 .textInput {
   width: 100%;
   box-sizing: border-box;
   border-radius: var(--radius-sm);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(2, 6, 23, 0.45);
+  border: 1px solid var(--color-border-default);
+  background: var(--color-field-bg);
   padding: 8px var(--space-3);
   color: var(--color-on-surface);
   font-size: 0.8125rem;
@@ -473,7 +473,7 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--color-on-primary);
-  background: var(--color-primary-container);
+  background: var(--color-cta-fill);
   cursor: pointer;
 }
 
@@ -485,7 +485,7 @@
 .miniGhost {
   display: inline-flex;
   align-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--color-border-default);
   border-radius: var(--radius-sm);
   padding: 8px var(--space-3);
   font-family: var(--font-mono);
@@ -493,8 +493,8 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: rgba(226, 232, 240, 0.9);
-  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-muted-foreground);
+  background: var(--color-chip-surface);
   cursor: pointer;
 }
 
@@ -507,17 +507,17 @@
   margin-top: var(--space-4);
   padding: var(--space-3);
   border-radius: var(--radius-sm);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--color-border-default);
 }
 
 .runPass {
-  border-color: rgba(52, 211, 153, 0.35);
-  background: rgba(52, 211, 153, 0.06);
+  border-color: color-mix(in srgb, var(--color-emerald) 35%, transparent);
+  background: color-mix(in srgb, var(--color-emerald) 8%, transparent);
 }
 
 .runFail {
-  border-color: rgba(255, 107, 107, 0.35);
-  background: rgba(255, 107, 107, 0.06);
+  border-color: color-mix(in srgb, var(--color-rose) 35%, transparent);
+  background: color-mix(in srgb, var(--color-rose) 8%, transparent);
 }
 
 .runOutcomeMain {
@@ -540,7 +540,7 @@
   line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-word;
-  color: rgba(168, 232, 255, 0.7);
+  color: var(--color-primary-muted);
 }
 
 .issueList {
@@ -548,21 +548,21 @@
   padding-left: var(--space-5);
   font-size: 0.75rem;
   line-height: 1.5;
-  color: rgba(251, 191, 36, 0.95);
+  color: var(--color-amber);
 }
 
 .issueSev {
   font-family: var(--font-mono);
   font-size: 9px;
-  color: rgba(222, 224, 255, 0.45);
+  color: var(--color-on-surface-subtle);
 }
 
 .explainBox {
   margin: var(--space-3) 0 0;
   padding: var(--space-3);
   border-radius: var(--radius-sm);
-  background: rgba(139, 92, 246, 0.08);
-  border: 1px solid rgba(139, 92, 246, 0.22);
+  background: var(--color-explain-bg);
+  border: 1px solid var(--color-explain-border);
   font-size: 0.8125rem;
   line-height: 1.55;
   color: color-mix(in srgb, var(--color-on-surface) 90%, transparent);
@@ -572,5 +572,5 @@
   margin: var(--space-3) 0 0;
   font-size: 0.6875rem;
   line-height: 1.45;
-  color: rgba(148, 163, 184, 0.65);
+  color: var(--color-muted-foreground-subtle);
 }

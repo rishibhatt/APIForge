@@ -7,7 +7,7 @@
 .icon {
   position: absolute;
   left: var(--space-3);
-  color: rgba(222, 224, 255, 0.35);
+  color: var(--color-on-surface-subtle);
   pointer-events: none;
 }
 
@@ -20,16 +20,17 @@
   padding: 6px var(--space-4) 6px 2.5rem;
   font-size: 0.875rem;
   color: var(--color-on-surface);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--color-outline-variant) 65%, transparent);
 }
 
 .input::placeholder {
-  color: rgba(222, 224, 255, 0.35);
+  color: var(--color-on-surface-subtle);
 }
 
 .input:focus {
   outline: none;
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
-    0 0 0 1px color-mix(in srgb, var(--color-primary) 35%, transparent);
+    inset 0 0 0 1px color-mix(in srgb, var(--color-outline-variant) 65%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--color-primary-container) 40%, transparent);
 }

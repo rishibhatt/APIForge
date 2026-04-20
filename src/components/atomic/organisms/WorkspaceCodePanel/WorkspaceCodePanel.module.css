@@ -12,7 +12,7 @@
   gap: var(--space-2);
   font-family: var(--font-mono);
   font-size: 10px;
-  color: rgba(168, 232, 255, 0.65);
+  color: var(--color-section-accent);
 }
 
 .scopeContextText {
@@ -24,7 +24,7 @@
   flex-direction: column;
   gap: var(--space-4);
   padding-bottom: var(--space-1);
-  box-shadow: inset 0 -1px 0 0 rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 -1px 0 0 var(--color-toolbar-rule);
 }
 
 @media (min-width: 640px) {
@@ -51,16 +51,16 @@
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: rgba(222, 224, 255, 0.45);
+  color: var(--color-on-surface-subtle);
   transition: color 0.2s ease;
 }
 
 .tab:hover {
-  color: rgba(226, 232, 240, 0.85);
+  color: var(--color-on-surface-muted);
 }
 
 .tabActive {
-  color: var(--color-primary);
+  color: var(--color-primary-container);
   box-shadow: inset 0 -2px 0 0 var(--color-primary-container);
 }
 
@@ -82,8 +82,8 @@
   align-items: center;
   padding: 2px;
   border-radius: var(--radius-sm);
-  background: rgba(22, 26, 51, 0.9);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  background: var(--color-segmented-track-bg);
+  box-shadow: inset 0 0 0 1px var(--color-segmented-border);
 }
 
 .scopeSegBtn {
@@ -95,7 +95,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: rgba(222, 224, 255, 0.45);
+  color: var(--color-on-surface-subtle);
   background: transparent;
   cursor: pointer;
   transition:
@@ -105,7 +105,7 @@
 }
 
 .scopeSegBtn:hover:not(:disabled) {
-  color: rgba(226, 232, 240, 0.85);
+  color: var(--color-on-surface-muted);
 }
 
 .scopeSegBtn:disabled {
@@ -115,10 +115,10 @@
 
 .scopeSegBtnActive {
   color: var(--color-on-primary);
-  background: var(--color-primary-container);
+  background: var(--color-cta-fill);
   box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--color-primary-container) 55%, transparent),
-    0 0 16px color-mix(in srgb, var(--color-primary-container) 28%, transparent);
+    0 0 0 1px color-mix(in srgb, var(--color-primary) 40%, transparent),
+    0 0 16px color-mix(in srgb, var(--color-primary) 22%, transparent);
 }
 
 .scopeSegBtn:focus-visible {
@@ -129,7 +129,7 @@
 .templateBar {
   margin-bottom: var(--space-4);
   padding-bottom: var(--space-4);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--color-toolbar-rule);
 }
 
 .templateHeading {
@@ -140,7 +140,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: rgba(222, 224, 255, 0.45);
+  color: var(--color-on-surface-subtle);
 }
 
 .templateChips {
@@ -150,7 +150,7 @@
 }
 
 .templateChip {
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--color-border-default);
   border-radius: var(--radius-sm);
   padding: 6px var(--space-3);
   font-family: var(--font-mono);
@@ -158,8 +158,8 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: rgba(222, 224, 255, 0.5);
-  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-on-surface-muted);
+  background: var(--color-chip-surface);
   cursor: pointer;
   transition:
     color 0.15s ease,
@@ -168,13 +168,13 @@
 }
 
 .templateChip:hover {
-  color: rgba(226, 232, 240, 0.9);
-  background: rgba(255, 255, 255, 0.07);
+  color: var(--color-on-surface);
+  background: var(--color-chip-surface-hover);
 }
 
 .templateChipActive {
-  color: var(--color-primary);
-  border-color: rgba(0, 212, 255, 0.35);
+  color: var(--color-primary-container);
+  border-color: color-mix(in srgb, var(--color-primary-container) 38%, transparent);
   box-shadow: inset 0 -2px 0 0 var(--color-primary-container);
 }
 
@@ -182,11 +182,11 @@
   margin: 0 0 var(--space-4);
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
-  border: 1px solid rgba(0, 212, 255, 0.2);
-  background: rgba(0, 212, 255, 0.06);
+  border: 1px solid var(--color-callout-info-border);
+  background: var(--color-callout-info-bg);
   font-size: 0.8125rem;
   line-height: 1.5;
-  color: rgba(222, 224, 255, 0.65);
+  color: var(--color-on-surface-muted);
 }
 
 .actions {
@@ -207,13 +207,13 @@
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: rgba(226, 232, 240, 0.75);
-  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-muted-foreground-subtle);
+  background: var(--color-interactive-hover);
   transition: background 0.2s ease;
 }
 
 .btnGhost:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--color-interactive-pressed);
 }
 
 .btnGhost:disabled {
@@ -234,7 +234,7 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--color-on-primary);
-  background: var(--color-primary-container);
+  background: var(--color-cta-fill);
   transition: filter 0.2s ease;
 }
 
@@ -271,13 +271,13 @@
   background: var(--color-surface-container-lowest);
   box-shadow:
     var(--shadow-inner-recess),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    inset 0 0 0 1px var(--color-panel-inset-glow);
 }
 
 .body {
   flex: 1;
   overflow: auto;
-  background: rgba(2, 6, 23, 0.4);
+  background: var(--color-code-editor-bg);
   padding: var(--space-6);
 }
 
@@ -288,14 +288,14 @@
   line-height: 1.65;
   white-space: pre-wrap;
   word-break: break-word;
-  color: color-mix(in srgb, var(--color-on-surface) 92%, transparent);
+  color: var(--color-on-surface);
 }
 
 .placeholder {
   margin: 0;
   font-family: var(--font-mono);
   font-size: 0.875rem;
-  color: rgba(222, 224, 255, 0.45);
+  color: var(--color-on-surface-subtle);
 }
 
 .error {
@@ -311,8 +311,8 @@
   gap: var(--space-4);
   flex-wrap: wrap;
   padding: var(--space-2) var(--space-6);
-  background: rgba(15, 23, 42, 0.3);
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+  background: var(--color-editor-footer-bg);
+  box-shadow: inset 0 1px 0 0 var(--color-toolbar-rule);
 }
 
 .stats {
@@ -320,19 +320,19 @@
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: rgba(222, 224, 255, 0.35);
+  color: var(--color-on-surface-subtle);
 }
 
 .latency {
   font-family: var(--font-mono);
   font-size: 10px;
-  color: var(--color-primary);
+  color: var(--color-primary-container);
 }
 
 .tokens {
   font-family: var(--font-mono);
   font-size: 10px;
-  color: rgba(196, 181, 253, 0.9);
+  color: var(--color-primary-muted);
 }
 
 .insight {

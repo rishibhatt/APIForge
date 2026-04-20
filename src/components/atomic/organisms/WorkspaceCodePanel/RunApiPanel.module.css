@@ -16,28 +16,28 @@
   font-size: 1.25rem;
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: color-mix(in srgb, var(--color-on-surface) 96%, transparent);
+  color: var(--color-on-surface);
 }
 
 .subtitle {
   margin: 0;
   font-family: var(--font-mono);
   font-size: 0.75rem;
-  color: rgba(168, 232, 255, 0.55);
+  color: var(--color-subtitle-accent);
 }
 
 .hintSpec {
   margin: var(--space-2) 0 0;
   font-size: 0.75rem;
   line-height: 1.45;
-  color: rgba(52, 211, 153, 0.88);
+  color: var(--color-emerald);
 }
 
 .hintSpecMuted {
   margin: var(--space-2) 0 0;
   font-size: 0.75rem;
   line-height: 1.45;
-  color: rgba(148, 163, 184, 0.65);
+  color: var(--color-muted-foreground-subtle);
 }
 
 .label {
@@ -46,7 +46,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(148, 163, 184, 0.85);
+  color: var(--color-muted-foreground-subtle);
 }
 
 .miniLabel {
@@ -55,7 +55,7 @@
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: rgba(148, 163, 184, 0.75);
+  color: var(--color-muted-foreground-subtle);
 }
 
 .input,
@@ -64,8 +64,8 @@
   width: 100%;
   box-sizing: border-box;
   border-radius: var(--radius-md);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid var(--color-field-border);
+  background: var(--color-field-bg);
   padding: 10px var(--space-4);
   color: var(--color-on-surface);
   font-size: 0.8125rem;
@@ -92,7 +92,7 @@
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(168, 232, 255, 0.65);
+  color: var(--color-section-accent);
 }
 
 .fieldRow {
@@ -105,7 +105,7 @@
   margin: 0 0 var(--space-2);
   font-size: 0.75rem;
   line-height: 1.45;
-  color: rgba(148, 163, 184, 0.7);
+  color: var(--color-muted-foreground-subtle);
 }
 
 .twoCol {
@@ -130,8 +130,8 @@
 .urlPreview {
   padding: var(--space-3);
   border-radius: var(--radius-md);
-  background: rgba(2, 6, 23, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--color-code-editor-bg);
+  border: 1px solid var(--color-border-default);
 }
 
 .urlPreviewLabel {
@@ -139,7 +139,7 @@
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: rgba(148, 163, 184, 0.75);
+  color: var(--color-muted-foreground-subtle);
   margin-bottom: var(--space-2);
 }
 
@@ -149,7 +149,7 @@
   font-size: 0.6875rem;
   line-height: 1.5;
   word-break: break-all;
-  color: rgba(168, 232, 255, 0.72);
+  color: var(--color-primary-muted);
 }
 
 .sendBtn {
@@ -167,11 +167,11 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--color-on-primary);
-  background: var(--color-primary-container);
+  background: var(--color-cta-fill);
   cursor: pointer;
   box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--color-primary-container) 40%, transparent),
-    0 4px 20px color-mix(in srgb, var(--color-primary-container) 22%, transparent);
+    0 0 0 1px color-mix(in srgb, var(--color-primary) 35%, transparent),
+    0 4px 20px color-mix(in srgb, var(--color-primary) 18%, transparent);
 }
 
 .sendBtn:disabled {
@@ -183,7 +183,7 @@
   margin: 0;
   font-family: var(--font-mono);
   font-size: 0.875rem;
-  color: rgba(222, 224, 255, 0.45);
+  color: var(--color-on-surface-subtle);
 }
 
 .error {
@@ -192,9 +192,9 @@
   border-radius: var(--radius-md);
   font-size: 0.8125rem;
   line-height: 1.5;
-  color: rgba(255, 218, 214, 0.95);
-  background: rgba(147, 0, 10, 0.25);
-  border: 1px solid rgba(255, 180, 171, 0.25);
+  color: var(--color-error-surface-text);
+  background: var(--color-error-surface-bg);
+  border: 1px solid var(--color-error-surface-border);
 }
 
 .result {
@@ -203,12 +203,8 @@
   gap: var(--space-3);
   padding: var(--space-4);
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: linear-gradient(
-    145deg,
-    rgba(26, 30, 55, 0.92) 0%,
-    rgba(15, 18, 40, 0.88) 100%
-  );
+  border: 1px solid var(--color-result-panel-border);
+  background: var(--color-result-gradient);
 }
 
 .resultMeta {
@@ -225,9 +221,9 @@
   text-transform: uppercase;
   padding: 6px 12px;
   border-radius: var(--radius-sm);
-  color: rgba(52, 211, 153, 0.95);
-  background: rgba(52, 211, 153, 0.12);
-  border: 1px solid rgba(52, 211, 153, 0.25);
+  color: var(--color-pill-success-fg);
+  background: var(--color-pill-success-bg);
+  border: 1px solid var(--color-pill-success-border);
 }
 
 .timePill {
@@ -238,9 +234,9 @@
   text-transform: uppercase;
   padding: 6px 12px;
   border-radius: var(--radius-sm);
-  color: rgba(196, 181, 253, 0.95);
-  background: rgba(139, 92, 246, 0.14);
-  border: 1px solid rgba(139, 92, 246, 0.28);
+  color: var(--color-pill-info-fg);
+  background: var(--color-pill-info-bg);
+  border: 1px solid var(--color-pill-info-border);
 }
 
 .responseBody {
@@ -249,14 +245,14 @@
   overflow: auto;
   padding: var(--space-4);
   border-radius: var(--radius-md);
-  background: rgba(2, 6, 23, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--color-code-editor-bg);
+  border: 1px solid var(--color-border-default);
   font-family: var(--font-mono);
   font-size: 0.6875rem;
   line-height: 1.55;
   white-space: pre-wrap;
   word-break: break-word;
-  color: rgba(168, 232, 255, 0.72);
+  color: var(--color-response-code-fg);
 }
 
 .valActions {
@@ -269,7 +265,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--color-border-default);
   border-radius: var(--radius-sm);
   padding: 8px var(--space-3);
   font-family: var(--font-mono);
@@ -277,8 +273,8 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: rgba(226, 232, 240, 0.85);
-  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-muted-foreground);
+  background: var(--color-interactive-hover);
   cursor: pointer;
 }
 
@@ -292,22 +288,22 @@
   padding-left: var(--space-5);
   font-size: 0.75rem;
   line-height: 1.5;
-  color: rgba(251, 191, 36, 0.95);
+  color: var(--color-amber);
 }
 
 .issueSev {
   font-family: var(--font-mono);
   font-size: 9px;
-  color: rgba(222, 224, 255, 0.45);
+  color: var(--color-on-surface-subtle);
 }
 
 .explain {
   margin: 0;
   padding: var(--space-3);
   border-radius: var(--radius-sm);
-  background: rgba(139, 92, 246, 0.08);
-  border: 1px solid rgba(139, 92, 246, 0.22);
+  background: var(--color-explain-bg);
+  border: 1px solid var(--color-explain-border);
   font-size: 0.8125rem;
   line-height: 1.55;
-  color: color-mix(in srgb, var(--color-on-surface) 90%, transparent);
+  color: var(--color-on-surface-muted);
 }
