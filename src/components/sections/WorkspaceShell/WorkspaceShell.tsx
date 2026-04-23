@@ -18,6 +18,7 @@ import WorkspaceSidebar from "@/components/atomic/organisms/WorkspaceSidebar/Wor
 import MobileBottomNav from "@/components/atomic/organisms/MobileBottomNav/MobileBottomNav";
 import HeroSection from "@/components/sections/HeroSection/HeroSection";
 import LandingMarketing from "@/components/sections/LandingMarketing/LandingMarketing";
+import LandingFooter from "@/components/sections/LandingFooter/LandingFooter";
 import shell from "./WorkspaceShell.module.css";
 
 export default function WorkspaceShell() {
@@ -77,6 +78,7 @@ export default function WorkspaceShell() {
               error={error}
               onForge={onForge}
             />
+            <LandingFooter t={t} />
           </>
         ) : (
           <div className={shell.workspaceMain}>

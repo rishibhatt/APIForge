@@ -143,21 +143,6 @@ export default function HeroSection({
         <div className={styles.uptimeValue}>{t("landing.uptimeValue")}</div>
         <div className={styles.uptimeLabel}>{t("landing.uptimeLabel")}</div>
       </div>
-
-      <footer className={styles.landingFooter}>
-        <p className={styles.copyright}>{t("landing.copyright")}</p>
-        <div className={styles.footerLinks}>
-          <a className={styles.footerLink} href="#">
-            {t("landing.footerSecurity")}
-          </a>
-          <a className={styles.footerLink} href="#">
-            {t("landing.footerPrivacy")}
-          </a>
-          <a className={styles.footerLink} href="#">
-            {t("landing.footerTerms")}
-          </a>
-        </div>
-      </footer>
     </section>
   );
 }

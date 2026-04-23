@@ -1,7 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import type { TranslateFn } from "@/context/LanguageContext";
 import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
+import { LANDING_SHOWCASE_IMAGE_PATH } from "@/constants/assets";
 import { useWorkspaceStore } from "@/store/workspaceStore";
 import styles from "./LandingMarketing.module.css";
 
@@ -76,11 +78,17 @@ export default function LandingMarketing({
                 ))}
               </ul>
             </div>
-            <div className={styles.placeholder} aria-hidden={false}>
-              <div className={styles.placeholderIcon}>
-                <MaterialIcon name="dashboard" size="md" />
+            <div className={styles.placeholder}>
+              <div className={styles.showcaseImageWrap}>
+                <Image
+                  src={LANDING_SHOWCASE_IMAGE_PATH}
+                  alt={t("landing.marketing.showcaseImageAlt")}
+                  fill
+                  className={styles.showcaseImage}
+                  sizes="(max-width: 900px) 100vw, 42rem"
+                  quality={92}
+                />
               </div>
-              <p className={styles.placeholderText}>{t("landing.marketing.workspacePlaceholder")}</p>
             </div>
           </div>
         </div>

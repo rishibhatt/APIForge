@@ -75,7 +75,7 @@
       "showcaseTitle": "Everything you need. Right where you need it.",
       "showcaseSubtitle": "A single surface for exploration, generation, and execution — tuned for deep work.",
       "showcaseBullets": "No more manual parsing|Collections and filters that stay fast on large specs|AI payload and schema insight beside your editor|Re-parse a new URL from the header without losing flow",
-      "workspacePlaceholder": "Workspace preview image — drop a screenshot or recording here when ready.",
+      "showcaseImageAlt": "APIForge workspace preview",
       "stepsEyebrow": "Flow",
       "stepsTitle": "How it works",
       "stepsSubtitle": "From URL to validated request in four moves.",
@@ -118,10 +118,11 @@
     "throughput": "Throughput",
     "uptimeValue": "99.9%",
     "uptimeLabel": "Global Uptime",
-    "copyright": "© 2024 APIForge Intelligence",
-    "footerSecurity": "Security",
-    "footerPrivacy": "Privacy",
-    "footerTerms": "Terms"
+    "footer": {
+      "madeBy": "Made by Rishie",
+      "linkedin": "LinkedIn",
+      "x": "X"
+    }
   },
   "hero": {
     "titleLine1": "Forge your",
