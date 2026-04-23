@@ -292,7 +292,7 @@
 }
 
 .uploadBtn:hover:not(:disabled) .uploadIcon {
-  color: var(--color-primary);
+  color: var(--color-text-accent);
 }
 
 .supportsRow {
@@ -476,5 +476,5 @@
 }
 
 .footerLink:hover {
-  color: var(--color-primary);
+  color: var(--color-text-accent);
 }

@@ -125,7 +125,7 @@
 }
 
 .pillPut {
-  color: var(--color-primary);
+  color: var(--color-text-accent);
   background: color-mix(in srgb, var(--color-primary) 14%, transparent);
 }
 

@@ -67,7 +67,7 @@
 
 .iconBtn:hover {
   color: var(--color-on-surface);
-  background: var(--color-surface-container-highest);
+  background: var(--color-interactive-hover);
 }
 
 .iconPlaceholder {

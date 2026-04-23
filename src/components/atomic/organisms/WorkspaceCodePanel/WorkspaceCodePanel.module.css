@@ -73,7 +73,7 @@
 }
 
 .toolbarRunApiOnly .tabList {
-  gap: var(--space-2);
+  gap: var(--space-4) var(--space-6);
   max-width: 100%;
 }
 
@@ -102,7 +102,7 @@
 .tabList {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-4);
+  gap: var(--space-6) var(--space-8);
   min-width: 0;
   max-width: 100%;
 }
@@ -112,7 +112,7 @@
   cursor: pointer;
   border: none;
   background: none;
-  padding: 0 0 var(--space-3);
+  padding: 0 var(--space-2) var(--space-3);
   font-family: var(--font-mono);
   font-size: 0.8125rem;
   text-transform: uppercase;
@@ -122,11 +122,11 @@
 }
 
 .tab:hover {
-  color: var(--color-on-surface-muted);
+  color: var(--color-on-surface);
 }
 
 .tabActive {
-  color: var(--color-primary);
+  color: var(--color-text-accent);
   box-shadow: inset 0 -2px 0 0 var(--color-primary);
 }
 
@@ -288,7 +288,7 @@
 }
 
 .templateChipActive {
-  color: var(--color-primary);
+  color: var(--color-text-accent);
   border-color: transparent;
   box-shadow: inset 0 -2px 0 0 var(--color-primary);
 }
@@ -431,6 +431,39 @@
   background: var(--color-surface-container-lowest);
 }
 
+.bodyPrompt {
+  padding: var(--space-6) clamp(var(--space-5), 4vw, var(--space-10));
+  background: var(--color-workspace-prompt-bg);
+}
+
+/* AI Prompt: neutral “paper” code block; overrides global github-dark .hljs for this panel */
+.bodyPrompt :global(pre.hljs) {
+  margin: 0;
+  padding: var(--space-5) var(--space-6) !important;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-workspace-prompt-code-border);
+  background: var(--color-workspace-prompt-code-bg) !important;
+  color: var(--color-workspace-prompt-fg) !important;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-on-surface) 5%, transparent);
+}
+
+.bodyPrompt :global(pre.hljs code),
+.bodyPrompt :global(code.hljs) {
+  background: transparent !important;
+  color: inherit !important;
+}
+
+.bodyPrompt :global(.hljs),
+.bodyPrompt :global(.hljs *) {
+  color: inherit !important;
+  background: transparent !important;
+}
+
+.bodyPrompt :global(.hljs-strong) {
+  font-weight: 700;
+  color: var(--color-on-surface) !important;
+}
+
 .code {
   margin: 0;
   font-family: var(--font-mono);
@@ -477,7 +510,7 @@
 .latency {
   font-family: var(--font-mono);
   font-size: 0.6875rem;
-  color: var(--color-primary);
+  color: var(--color-text-accent);
 }
 
 .tokens {

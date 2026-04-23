@@ -1,6 +1,7 @@
 "use client";
 
 import type { TranslateFn } from "@/context/LanguageContext";
+import AppLogo from "@/components/atomic/atoms/AppLogo/AppLogo";
 import ThemeToggle from "@/components/atomic/molecules/ThemeToggle/ThemeToggle";
 import styles from "./LandingHeader.module.css";
 
@@ -19,6 +20,7 @@ export default function LandingHeader({ t }: LandingHeaderProps) {
   return (
     <header className={styles.header}>
       <div className={styles.left}>
+        <AppLogo size={56} maxWidth={280} priority className={styles.brandLogo} />
         <span className={styles.brand}>{t("common.appName")}</span>
       </div>
       <nav className={styles.nav} aria-label={t("landing.navAria")}>

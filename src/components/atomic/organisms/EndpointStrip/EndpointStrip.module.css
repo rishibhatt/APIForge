@@ -59,7 +59,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--color-primary);
+  color: var(--color-text-accent);
   background: var(--color-surface-container-highest);
   border: 1px solid color-mix(in srgb, var(--color-primary) 42%, transparent);
 }
@@ -74,6 +74,6 @@
 }
 
 .counts strong {
-  color: var(--color-primary);
+  color: var(--color-text-accent);
   font-weight: 700;
 }

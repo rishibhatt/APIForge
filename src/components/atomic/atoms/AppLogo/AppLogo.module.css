@@ -1,0 +1,15 @@
+.wrap {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.img {
+  display: block;
+  width: auto;
+  height: var(--app-logo-size, 28px);
+  max-width: min(var(--app-logo-max-w, 120px), 100%);
+  object-fit: contain;
+}

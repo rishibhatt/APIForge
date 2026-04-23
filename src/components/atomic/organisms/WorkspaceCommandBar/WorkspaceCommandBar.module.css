@@ -121,7 +121,7 @@
 }
 
 .iconBtn:first-child {
-  color: var(--color-primary);
+  color: var(--color-text-accent);
 }
 
 .iconBtn:disabled {

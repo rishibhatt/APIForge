@@ -128,7 +128,7 @@
 .preForge :global(.hljs-string),
 .preForge :global(.hljs-template-string),
 .preForge :global(.hljs-addition) {
-  color: #98c379;
+  color: #d8dee9;
 }
 
 .preForge :global(.hljs-number),

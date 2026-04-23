@@ -4,9 +4,8 @@ import { useCallback, useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
 import type { TranslateFn } from "@/context/LanguageContext";
 import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
-import WorkspaceAiAssistant, {
-  type WorkspaceAssistantApiContext,
-} from "@/components/atomic/organisms/WorkspaceAiAssistant/WorkspaceAiAssistant";
+import WorkspaceAiAssistant from "@/components/atomic/organisms/WorkspaceAiAssistant/WorkspaceAiAssistant";
+import type { WorkspaceAssistantApiContext } from "@/lib/workspace-assistant-context";
 import styles from "./WorkspaceAiChatDock.module.css";
 
 interface WorkspaceAiChatDockProps {

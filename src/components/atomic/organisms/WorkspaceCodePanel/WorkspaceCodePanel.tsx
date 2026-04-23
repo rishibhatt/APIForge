@@ -15,7 +15,10 @@ import EditorChrome from "@/components/atomic/molecules/EditorChrome/EditorChrom
 import HighlightedCode from "@/components/atomic/molecules/HighlightedCode/HighlightedCode";
 import SchemaInsightPanel from "@/components/atomic/organisms/SchemaInsightPanel/SchemaInsightPanel";
 import WorkspaceAiChatDock from "@/components/atomic/organisms/WorkspaceAiChatDock/WorkspaceAiChatDock";
-import type { WorkspaceAssistantApiContext } from "@/components/atomic/organisms/WorkspaceAiAssistant/WorkspaceAiAssistant";
+import {
+  buildWorkspaceAssistantApiContext,
+  type WorkspaceAssistantApiContext,
+} from "@/lib/workspace-assistant-context";
 import RunApiPanel from "@/components/atomic/organisms/WorkspaceCodePanel/RunApiPanel";
 import { useGroqStream } from "@/hooks/useGroqStream";
 import { getScopedEndpoints, getScopeLabel } from "@/lib/endpoint-groups";
@@ -271,29 +274,17 @@ export default function WorkspaceCodePanel({ t }: WorkspaceCodePanelProps) {
   const showAssistant = endpoints.length > 0 && scoped.length > 0;
 
   const assistantApiContext: WorkspaceAssistantApiContext = useMemo(
-    () => ({
-      specTitle:
-        specTitle?.trim() && specTitle.trim().length > 0
-          ? specTitle.trim()
-          : t("workspace.workspaceLabel"),
-      specVersion: specVersion?.trim() ?? null,
-      endpointCount: endpoints.length,
-      activeTabLabel: t(tabLabelKey(activeTab)),
-      scopeLabel,
-      activeEndpointLine: activeEndpoint
-        ? `${activeEndpoint.method.toUpperCase()} ${activeEndpoint.path}`
-        : null,
-      activeSummary: activeEndpoint?.summary?.trim() || null,
-    }),
-    [
-      specTitle,
-      specVersion,
-      endpoints.length,
-      activeTab,
-      scopeLabel,
-      activeEndpoint,
-      t,
-    ],
+    () =>
+      buildWorkspaceAssistantApiContext({
+        specTitle,
+        specVersion,
+        endpoints,
+        activeEndpoint,
+        activeTabLabel: t(tabLabelKey(activeTab)),
+        scopeLabel,
+        defaultSpecName: t("workspace.workspaceLabel"),
+      }),
+    [specTitle, specVersion, endpoints, activeEndpoint, activeTab, scopeLabel, t],
   );
 
   const copyLabel = copied ? t("workspace.copied") : t("workspace.copy");
@@ -421,7 +412,7 @@ export default function WorkspaceCodePanel({ t }: WorkspaceCodePanelProps) {
 
           <div
             ref={bodyRef}
-            className={`${styles.body} ${activeTab === "runApi" ? styles.bodyRunApi : ""} ${showCodeBody ? styles.bodyStream : ""} ${activeTab === "typescript" && showCodeBody ? styles.bodyTsForge : ""}`}
+            className={`${styles.body} ${activeTab === "runApi" ? styles.bodyRunApi : ""} ${showCodeBody ? styles.bodyStream : ""} ${activeTab === "typescript" && showCodeBody ? styles.bodyTsForge : ""} ${activeTab === "prompt" && showCodeBody ? styles.bodyPrompt : ""}`}
           >
             {bodyPlaceholder ? (
               <p className={styles.placeholder}>{bodyPlaceholder}</p>

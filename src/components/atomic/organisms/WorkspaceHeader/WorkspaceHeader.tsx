@@ -1,6 +1,7 @@
 "use client";
 
 import type { TranslateFn } from "@/context/LanguageContext";
+import AppLogo from "@/components/atomic/atoms/AppLogo/AppLogo";
 import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
 import ThemeToggle from "@/components/atomic/molecules/ThemeToggle/ThemeToggle";
 import { useWorkspaceStore } from "@/store/workspaceStore";
@@ -74,6 +75,7 @@ export default function WorkspaceHeader({
         >
           <MaterialIcon name="menu" size="md" />
         </button>
+        <AppLogo size={32} maxWidth={120} className={styles.brandLogo} />
         <span className={styles.brand} aria-label={t("common.appName")}>
           {t("common.appName")}
         </span>

@@ -19,13 +19,13 @@
   --color-on-primary: #1c1028;
 
   --color-surface-tint: #d0bcff;
-  --color-on-surface: #1f1b24;
-  --color-on-surface-variant: #5c5466;
-  --color-on-surface-muted: rgba(31, 27, 36, 0.78);
-  --color-on-surface-subtle: rgba(31, 27, 36, 0.58);
+  --color-on-surface: #1a1520;
+  --color-on-surface-variant: #4a4356;
+  --color-on-surface-muted: rgba(26, 21, 32, 0.9);
+  --color-on-surface-subtle: rgba(26, 21, 32, 0.72);
 
-  --color-muted-foreground: rgba(60, 53, 70, 0.92);
-  --color-muted-foreground-subtle: rgba(80, 72, 92, 0.88);
+  --color-muted-foreground: #3a3344;
+  --color-muted-foreground-subtle: #45404f;
 
   --color-outline-variant: #494454;
   --color-outline-ghost: color-mix(
@@ -106,16 +106,20 @@
     var(--color-surface-container) 8%
   );
 
+  /* Neutral hovers on light surfaces — avoids muddy purple wash */
   --color-interactive-hover: color-mix(
     in srgb,
-    var(--color-primary-container) 8%,
+    var(--color-on-surface) 6%,
     transparent
   );
   --color-interactive-pressed: color-mix(
     in srgb,
-    var(--color-primary-container) 14%,
+    var(--color-on-surface) 11%,
     transparent
   );
+
+  /** Accents that stay on-brand but meet contrast on light UI (tabs, links, metrics). */
+  --color-text-accent: var(--color-primary-container);
 
   --color-toggle-track: var(--color-surface-container-high);
   --color-toggle-thumb: #ffffff;
@@ -140,18 +144,18 @@
   --color-segmented-border: color-mix(in srgb, var(--color-on-surface) 8%, transparent);
   --color-primary-muted: color-mix(
     in srgb,
-    var(--color-primary-container) 88%,
-    var(--color-on-surface) 12%
+    var(--color-primary-container) 42%,
+    var(--color-on-surface-muted) 58%
   );
   --color-subtitle-accent: color-mix(
     in srgb,
-    var(--color-primary-container) 85%,
-    var(--color-on-surface) 15%
+    var(--color-primary-container) 58%,
+    var(--color-on-surface) 42%
   );
   --color-section-accent: color-mix(
     in srgb,
-    var(--color-primary-container) 72%,
-    var(--color-muted-foreground) 28%
+    var(--color-primary-container) 50%,
+    var(--color-on-surface-variant) 50%
   );
   --color-callout-info-bg: color-mix(
     in srgb,
@@ -174,8 +178,8 @@
   );
   --color-response-code-fg: color-mix(
     in srgb,
-    var(--color-primary-container) 35%,
-    var(--color-on-surface) 65%
+    var(--color-primary-container) 18%,
+    var(--color-on-surface) 82%
   );
   --color-error-surface-bg: color-mix(
     in srgb,
@@ -275,6 +279,20 @@
   );
   --color-assistant-input-bg: var(--color-surface-container-lowest);
 
+  /* AI Prompt tab: readable “paper” panel (markdown / IDE prompt output) */
+  --color-workspace-prompt-bg: color-mix(
+    in srgb,
+    var(--color-surface-container-lowest) 94%,
+    var(--color-primary-container) 6%
+  );
+  --color-workspace-prompt-code-bg: #ffffff;
+  --color-workspace-prompt-code-border: color-mix(
+    in srgb,
+    var(--color-on-surface) 11%,
+    transparent
+  );
+  --color-workspace-prompt-fg: var(--color-on-surface);
+
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -290,7 +308,7 @@
   --z-sidebar-backdrop: 45;
   --z-sidebar-drawer: 48;
   --z-footer: 50;
-  --header-h: 56px;
+  --header-h: 64px;
   --sidebar-w: 288px;
   --footer-h: 32px;
 
@@ -310,6 +328,7 @@
 
 .dark {
   color-scheme: dark;
+  --color-text-accent: var(--color-primary);
   /* —— Kinetic Terminal · dark —— */
   --color-surface: #131315;
   --color-surface-container-lowest: #0e0e10;
@@ -542,6 +561,11 @@
   );
   --color-assistant-chip-border: color-mix(in srgb, var(--color-primary) 24%, transparent);
   --color-assistant-input-bg: var(--color-surface-container-lowest);
+
+  --color-workspace-prompt-bg: var(--color-surface-container-low);
+  --color-workspace-prompt-code-bg: var(--color-surface-container);
+  --color-workspace-prompt-code-border: var(--color-panel-border);
+  --color-workspace-prompt-fg: var(--color-on-surface);
 
   --glass-bg: color-mix(
     in srgb,

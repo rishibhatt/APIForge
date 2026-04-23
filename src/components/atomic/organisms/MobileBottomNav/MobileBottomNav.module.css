@@ -38,7 +38,7 @@
 }
 
 .btn:hover {
-  color: var(--color-primary);
+  color: var(--color-text-accent);
 }
 
 .btnActive {

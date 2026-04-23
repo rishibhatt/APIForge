@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { TranslateFn } from "@/context/LanguageContext";
 import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
@@ -165,14 +164,14 @@ export default function WorkspaceSidebar({
       >
         <div className={styles.head}>
           <div className={styles.headTop}>
-            <div className={styles.iconWrap}>
-              <Image
-                src="/icon.svg"
-                alt=""
-                width={20}
-                height={20}
-                className={styles.logoImg}
-                unoptimized
+            <div
+              className={styles.iconWrap}
+              title={t("sidebar.workspaceWorkflowIcon")}
+            >
+              <MaterialIcon
+                name="account_tree"
+                size="md"
+                className={styles.workflowIcon}
               />
             </div>
             <div className={styles.headTitles}>

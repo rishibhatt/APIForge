@@ -41,6 +41,10 @@
   justify-self: start;
 }
 
+.brandLogo {
+  flex-shrink: 0;
+}
+
 .center {
   grid-area: center;
   display: flex;
@@ -182,7 +186,7 @@
 
 .focusBtn:hover {
   background: color-mix(in srgb, var(--color-on-surface) 10%, transparent);
-  color: var(--color-primary);
+  color: var(--color-text-accent);
 }
 
 .clearBtn {
