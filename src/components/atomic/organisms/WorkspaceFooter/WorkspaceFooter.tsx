@@ -11,6 +11,7 @@ interface WorkspaceFooterProps {
 
 export default function WorkspaceFooter({ t, hasWorkspace }: WorkspaceFooterProps) {
   const endpoints = useWorkspaceStore((s) => s.endpoints);
+  const focusMode = useWorkspaceStore((s) => s.focusMode);
   const parseError = useWorkspaceStore((s) => s.parseError);
   const lastMs = useWorkspaceStore((s) => s.lastGenerationMs);
   const lastUsage = useWorkspaceStore((s) => s.lastGroqUsage);
@@ -20,7 +21,7 @@ export default function WorkspaceFooter({ t, hasWorkspace }: WorkspaceFooterProp
 
   return (
     <footer
-      className={`${styles.footer} ${hasWorkspace ? styles.footerWorkspace : ""}`}
+      className={`${styles.footer} ${hasWorkspace ? styles.footerWorkspace : ""} ${hasWorkspace && focusMode ? styles.footerFocusMode : ""}`}
     >
       <div className={styles.left}>
         <div className={styles.statusRow}>

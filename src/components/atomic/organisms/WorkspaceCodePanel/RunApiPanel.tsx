@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { TranslateFn } from "@/context/LanguageContext";
 import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
+import HighlightedCode from "@/components/atomic/molecules/HighlightedCode/HighlightedCode";
+import type { HighlightLanguage } from "@/components/atomic/molecules/HighlightedCode/HighlightedCode";
 import { joinBaseAndPath } from "@/lib/execute-test-request";
 import {
   authHintSummary,
@@ -42,10 +44,15 @@ function parseParamRows(endpoint: Endpoint): {
     .filter((x): x is { name: string; inn: string; spec: Record<string, unknown> } => x !== null);
 }
 
+type ResponseTab = "body" | "headers" | "tests";
+type BodyView = "pretty" | "raw" | "preview";
+
 export default function RunApiPanel({ t }: { t: TranslateFn }) {
   const endpoint = useWorkspaceStore((s) => s.activeEndpoint);
   const specServerUrls = useWorkspaceStore((s) => s.specServerUrls);
   const specSecuritySchemes = useWorkspaceStore((s) => s.specSecuritySchemes);
+  const workspaceDefaultBearer = useWorkspaceStore((s) => s.workspaceDefaultBearer);
+  const setWorkspaceDefaultBearer = useWorkspaceStore((s) => s.setWorkspaceDefaultBearer);
   const setLastGroqUsage = useWorkspaceStore((s) => s.setLastGroqUsage);
 
   const [baseUrl, setBaseUrl] = useState("");
@@ -66,11 +73,18 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
   const [elapsedMs, setElapsedMs] = useState<number | null>(null);
   const [responseText, setResponseText] = useState<string | null>(null);
   const [parsedBody, setParsedBody] = useState<unknown>(null);
+  const [responseHeaders, setResponseHeaders] = useState<[string, string][]>([]);
+
+  const [responseTab, setResponseTab] = useState<ResponseTab>("body");
+  const [bodyView, setBodyView] = useState<BodyView>("pretty");
+  const [responseExpanded, setResponseExpanded] = useState(false);
 
   const [valLoading, setValLoading] = useState(false);
   const [issues, setIssues] = useState<SchemaValidationIssue[] | null>(null);
   const [explainLoading, setExplainLoading] = useState(false);
   const [explanation, setExplanation] = useState<string | null>(null);
+  const [responseCopied, setResponseCopied] = useState(false);
+  const copyResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const hints = useMemo(
     () => authHintsForOperation(specSecuritySchemes ?? undefined, endpoint?.security),
@@ -106,6 +120,10 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
     setElapsedMs(null);
     setResponseText(null);
     setParsedBody(null);
+    setResponseHeaders([]);
+    setResponseTab("body");
+    setBodyView("pretty");
+    setResponseExpanded(false);
     setIssues(null);
     setExplanation(null);
     const first = specServerUrls[0]?.trim() ?? "";
@@ -165,6 +183,8 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
     );
     if (bearer.trim() && !hasAuth) {
       h.set("Authorization", `Bearer ${bearer.trim()}`);
+    } else if (!hasAuth && workspaceDefaultBearer.trim()) {
+      h.set("Authorization", `Bearer ${workspaceDefaultBearer.trim()}`);
     } else if (basicUser.trim() || basicPass) {
       const raw = `${basicUser}:${basicPass}`;
       const token = btoa(unescape(encodeURIComponent(raw)));
@@ -203,6 +223,11 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
       });
       const ms = Math.round(performance.now() - t0);
       const text = await res.text();
+      const pairs: [string, string][] = [];
+      res.headers.forEach((value, key) => {
+        pairs.push([key, value]);
+      });
+      setResponseHeaders(pairs);
       setStatus(res.status);
       setElapsedMs(ms);
       setResponseText(text.slice(0, 48_000));
@@ -216,6 +241,7 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
       setElapsedMs(null);
       setResponseText(null);
       setParsedBody(null);
+      setResponseHeaders([]);
       setSendError(
         e instanceof Error
           ? `${e.message} — ${t("testGen.corsHint")}`
@@ -231,6 +257,7 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
     queryValues,
     headersText,
     bearer,
+    workspaceDefaultBearer,
     basicUser,
     basicPass,
     apiKeyValue,
@@ -267,6 +294,30 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
     }
   }, [endpoint, status, parsedBody, responseText]);
 
+  const responseDisplay = useMemo(() => {
+    if (responseText == null) return "";
+    if (parsedBody !== null) {
+      return JSON.stringify(parsedBody, null, 2);
+    }
+    const trimmed = responseText.trim();
+    if (
+      (trimmed.startsWith("{") && trimmed.includes("}")) ||
+      (trimmed.startsWith("[") && trimmed.includes("]"))
+    ) {
+      try {
+        return JSON.stringify(JSON.parse(trimmed), null, 2);
+      } catch {
+        return responseText;
+      }
+    }
+    return responseText;
+  }, [responseText, parsedBody]);
+
+  const looksLikeJson =
+    parsedBody !== null ||
+    (responseText?.trim().startsWith("{") ?? false) ||
+    (responseText?.trim().startsWith("[") ?? false);
+
   const onExplain = useCallback(async () => {
     if (!issues?.length || !endpoint || responseText == null) return;
     setExplainLoading(true);
@@ -292,41 +343,138 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
     }
   }, [issues, endpoint, responseText, setLastGroqUsage]);
 
+  const responseBodyForView = useMemo(() => {
+    if (responseText == null) return "";
+    if (bodyView === "raw") return responseText;
+    if (bodyView === "preview") return responseDisplay;
+    return responseDisplay;
+  }, [responseText, bodyView, responseDisplay]);
+
+  const responseBytes = useMemo(() => {
+    try {
+      return new TextEncoder().encode(responseBodyForView).length;
+    } catch {
+      return 0;
+    }
+  }, [responseBodyForView]);
+
+  const onCopyResponse = useCallback(async () => {
+    let text = "";
+    if (responseTab === "headers") {
+      text = responseHeaders.map(([k, v]) => `${k}: ${v}`).join("\n");
+    } else if (responseTab === "body") {
+      text = responseBodyForView;
+    } else {
+      text = "";
+    }
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      if (copyResetRef.current) clearTimeout(copyResetRef.current);
+      setResponseCopied(true);
+      copyResetRef.current = setTimeout(() => {
+        setResponseCopied(false);
+        copyResetRef.current = null;
+      }, 2000);
+    } catch {
+      /* ignore */
+    }
+  }, [responseTab, responseHeaders, responseBodyForView]);
+
+  const responseHighlightLang: HighlightLanguage = useMemo(() => {
+    if (responseTab !== "body") return "javascript";
+    if (looksLikeJson && bodyView !== "raw") return "json";
+    return "javascript";
+  }, [responseTab, looksLikeJson, bodyView]);
+
+  useEffect(() => {
+    setResponseCopied(false);
+    if (copyResetRef.current) {
+      clearTimeout(copyResetRef.current);
+      copyResetRef.current = null;
+    }
+  }, [responseTab, bodyView, status]);
+
+  useEffect(() => {
+    return () => {
+      if (copyResetRef.current) clearTimeout(copyResetRef.current);
+    };
+  }, []);
+
   if (!endpoint) {
     return <p className={styles.placeholder}>{t("workspace.selectEndpoint")}</p>;
   }
 
+  const fullUrlPreview = joinBaseAndPath(
+    baseUrl.trim() || "…",
+    resolvedPath || endpoint.path,
+  );
+
+  const statusOk = status != null && status >= 200 && status < 300;
+
   return (
     <div className={styles.panel}>
-      <header className={styles.header}>
-        <div>
-          <h2 className={styles.title}>{t("runApi.title")}</h2>
-          <p className={styles.subtitle}>
-            {endpoint.method} {endpoint.path}
-          </p>
-          {hintLine ? (
-            <p className={styles.hintSpec}>{t("runApi.specAuth", { hint: hintLine })}</p>
-          ) : (
-            <p className={styles.hintSpecMuted}>{t("runApi.noSpecAuth")}</p>
-          )}
-        </div>
-      </header>
+      <details className={styles.acc}>
+        <summary className={styles.accSummary}>{t("runApi.workspaceBearerSummary")}</summary>
+        <p className={styles.authNote}>{t("runApi.workspaceBearerHint")}</p>
+        <label className={styles.miniLabel} htmlFor="workspace-default-bearer">
+          {t("runApi.workspaceBearerLabel")}
+        </label>
+        <input
+          id="workspace-default-bearer"
+          type="password"
+          autoComplete="off"
+          className={styles.input}
+          value={workspaceDefaultBearer}
+          onChange={(e) => setWorkspaceDefaultBearer(e.target.value)}
+          placeholder={t("runApi.workspaceBearerPlaceholder")}
+        />
+      </details>
 
-      <label className={styles.label} htmlFor="run-base">
-        {t("runApi.baseUrl")}
-      </label>
-      <input
-        id="run-base"
-        type="url"
-        className={styles.input}
-        value={baseUrl}
-        onChange={(e) => setBaseUrl(e.target.value)}
-        placeholder="https://api.example.com"
-      />
+      <div className={styles.chrome}>
+        <div className={styles.chromeInner}>
+          <div className={styles.methodPill}>{endpoint.method.toUpperCase()}</div>
+          <input
+            type="text"
+            className={styles.chromeUrl}
+            readOnly
+            size={1}
+            value={fullUrlPreview}
+            aria-label={t("runApi.resolvedUrl")}
+          />
+        </div>
+        <button
+          type="button"
+          className={styles.sendPrimary}
+          onClick={() => void onSend()}
+          disabled={sending || !baseUrl.trim()}
+        >
+          <MaterialIcon name="play_arrow" size="sm" />
+          {sending ? t("common.loading") : t("runApi.send")}
+        </button>
+      </div>
+
+      {hintLine ? (
+        <p className={styles.hintSpec}>{t("runApi.specAuth", { hint: hintLine })}</p>
+      ) : (
+        <p className={styles.hintSpecMuted}>{t("runApi.noSpecAuth")}</p>
+      )}
+
+      <details className={styles.acc}>
+        <summary className={styles.accSummary}>{t("runApi.baseUrl")}</summary>
+        <input
+          id="run-base"
+          type="url"
+          className={styles.input}
+          value={baseUrl}
+          onChange={(e) => setBaseUrl(e.target.value)}
+          placeholder="https://api.example.com"
+        />
+      </details>
 
       {pathParams.length > 0 ? (
-        <section className={styles.section}>
-          <h3 className={styles.sectionTitle}>{t("runApi.pathParams")}</h3>
+        <details className={styles.acc}>
+          <summary className={styles.accSummary}>{t("runApi.pathParams")}</summary>
           {pathParams.map((row) => (
             <div key={row.name} className={styles.fieldRow}>
               <label className={styles.miniLabel} htmlFor={`pp-${row.name}`}>
@@ -342,12 +490,12 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
               />
             </div>
           ))}
-        </section>
+        </details>
       ) : null}
 
       {queryParams.length > 0 ? (
-        <section className={styles.section}>
-          <h3 className={styles.sectionTitle}>{t("runApi.queryParams")}</h3>
+        <details className={styles.acc}>
+          <summary className={styles.accSummary}>{t("runApi.queryParams")}</summary>
           {queryParams.map((row) => (
             <div key={row.name} className={styles.fieldRow}>
               <label className={styles.miniLabel} htmlFor={`qp-${row.name}`}>
@@ -363,11 +511,11 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
               />
             </div>
           ))}
-        </section>
+        </details>
       ) : null}
 
-      <section className={styles.section}>
-        <h3 className={styles.sectionTitle}>{t("runApi.headersJson")}</h3>
+      <details className={styles.acc}>
+        <summary className={styles.accSummary}>{t("runApi.headersJson")}</summary>
         <textarea
           className={styles.textarea}
           rows={4}
@@ -376,11 +524,11 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
           spellCheck={false}
           aria-label={t("runApi.headersJson")}
         />
-      </section>
+      </details>
 
       {endpoint.requestBody != null ? (
-        <section className={styles.section}>
-          <h3 className={styles.sectionTitle}>{t("runApi.body")}</h3>
+        <details className={styles.acc}>
+          <summary className={styles.accSummary}>{t("runApi.body")}</summary>
           <textarea
             className={styles.textarea}
             rows={8}
@@ -390,11 +538,11 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
             placeholder="{}"
             aria-label={t("runApi.body")}
           />
-        </section>
+        </details>
       ) : null}
 
-      <section className={styles.section}>
-        <h3 className={styles.sectionTitle}>{t("runApi.authManual")}</h3>
+      <details className={styles.acc}>
+        <summary className={styles.accSummary}>{t("runApi.authManual")}</summary>
         <p className={styles.authNote}>{t("runApi.authNote")}</p>
         <label className={styles.miniLabel} htmlFor="run-bearer">
           Bearer
@@ -474,65 +622,180 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
           value={apiKeyValue}
           onChange={(e) => setApiKeyValue(e.target.value)}
         />
-      </section>
-
-      <div className={styles.urlPreview}>
-        <span className={styles.urlPreviewLabel}>{t("runApi.resolvedUrl")}</span>
-        <code className={styles.urlPreviewCode}>
-          {joinBaseAndPath(baseUrl.trim() || "…", resolvedPath || endpoint.path)}
-          {queryValues &&
-          Object.entries(queryValues).some(([, v]) => v !== "")
-            ? `?${new URLSearchParams(
-                Object.entries(queryValues).filter(([, v]) => v !== ""),
-              ).toString()}`
-            : ""}
-        </code>
-      </div>
-
-      <button
-        type="button"
-        className={styles.sendBtn}
-        onClick={() => void onSend()}
-        disabled={sending || !baseUrl.trim()}
-      >
-        <MaterialIcon name="send" size="xs" />
-        {sending ? t("common.loading") : t("runApi.send")}
-      </button>
+      </details>
 
       {sendError ? <p className={styles.error}>{sendError}</p> : null}
 
       {status != null && elapsedMs != null ? (
-        <div className={styles.result}>
-          <div className={styles.resultMeta}>
-            <span className={styles.statusPill}>
-              {t("runApi.status", { code: status })}
-            </span>
-            <span className={styles.timePill}>
-              {t("runApi.elapsed", { ms: elapsedMs })}
+        <div
+          className={`${styles.responseShell} ${responseExpanded ? styles.responseShellExpanded : ""}`}
+        >
+          <div className={styles.responseHeader}>
+            <h3 className={styles.sectionHeading}>{t("runApi.responseSection")}</h3>
+            <span
+              className={`${styles.statusBadge} ${statusOk ? styles.statusBadgeOk : styles.statusBadgeErr}`}
+            >
+              {status}
             </span>
           </div>
-          <pre className={styles.responseBody}>{responseText ?? ""}</pre>
-          <div className={styles.valActions}>
+
+          <div className={styles.responseTabs} role="tablist">
             <button
               type="button"
-              className={styles.btnGhost}
-              onClick={() => void onValidate()}
-              disabled={valLoading}
+              role="tab"
+              aria-selected={responseTab === "body"}
+              className={`${styles.rtab} ${responseTab === "body" ? styles.rtabActive : ""}`}
+              onClick={() => setResponseTab("body")}
             >
-              {valLoading ? t("common.loading") : t("runApi.validate")}
+              {t("runApi.tabBody")}
             </button>
-            {issues != null && issues.length > 0 ? (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={responseTab === "headers"}
+              className={`${styles.rtab} ${responseTab === "headers" ? styles.rtabActive : ""}`}
+              onClick={() => setResponseTab("headers")}
+            >
+              {t("runApi.tabHeaders", { count: responseHeaders.length })}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={responseTab === "tests"}
+              className={`${styles.rtab} ${responseTab === "tests" ? styles.rtabActive : ""}`}
+              onClick={() => setResponseTab("tests")}
+            >
+              {t("runApi.tabTests", { count: 0 })}
+            </button>
+          </div>
+
+          {responseTab === "body" ? (
+            <>
+              <div className={styles.subToolbar}>
+                <div className={styles.viewToggles}>
+                  {(["pretty", "raw", "preview"] as const).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      className={`${styles.viewBtn} ${bodyView === v ? styles.viewBtnActive : ""}`}
+                      onClick={() => setBodyView(v)}
+                    >
+                      {v === "pretty"
+                        ? t("runApi.viewPretty")
+                        : v === "raw"
+                          ? t("runApi.viewRaw")
+                          : t("runApi.viewPreview")}
+                    </button>
+                  ))}
+                </div>
+                <label className={styles.formatLabel}>
+                  <span className="srOnly">{t("runApi.formatLabel")}</span>
+                  <select
+                    className={styles.formatSelect}
+                    value={looksLikeJson ? "json" : "text"}
+                    disabled
+                    aria-hidden
+                  >
+                    <option value="json">{t("runApi.formatJson")}</option>
+                    <option value="text">{t("runApi.formatText")}</option>
+                  </select>
+                </label>
+              </div>
+              <div className={styles.responseBodyWrap}>
+                <HighlightedCode
+                  code={bodyView === "raw" ? (responseText ?? "") : responseBodyForView}
+                  language={responseHighlightLang}
+                  className={styles.responseHl}
+                />
+              </div>
+            </>
+          ) : null}
+
+          {responseTab === "headers" ? (
+            <div className={styles.responseBodyWrap}>
+              <HighlightedCode
+                code={
+                  responseHeaders.length
+                    ? responseHeaders.map(([k, v]) => `${k}: ${v}`).join("\n")
+                    : "—"
+                }
+                language="javascript"
+                className={styles.responseHl}
+              />
+            </div>
+          ) : null}
+
+          {responseTab === "tests" ? (
+            <div className={styles.testsEmpty}>
+              <MaterialIcon name="science" size="md" className={styles.testsIcon} />
+              <p className={styles.testsEmptyText}>{t("runApi.testsEmpty")}</p>
+              <button type="button" className={styles.addTestBtn} disabled>
+                {t("runApi.addTest")}
+              </button>
+            </div>
+          ) : null}
+
+          {responseTab === "body" ? (
+            <div className={styles.responseFooter}>
+              <span className={styles.footerMeta}>
+                {t("runApi.elapsed", { ms: elapsedMs })}
+              </span>
+              <span className={styles.footerMeta}>
+                {t("runApi.bytes", { n: responseBytes })}
+              </span>
+              <button
+                type="button"
+                className={`${styles.iconGhost} ${responseCopied ? styles.copyBtnDone : ""}`}
+                onClick={() => void onCopyResponse()}
+                aria-label={responseCopied ? t("workspace.copied") : t("runApi.copyResponse")}
+              >
+                <MaterialIcon
+                  name={responseCopied ? "check" : "content_copy"}
+                  size="sm"
+                />
+              </button>
+              <span className={styles.copyState} aria-live="polite">
+                {responseCopied ? t("workspace.copied") : ""}
+              </span>
+              <button
+                type="button"
+                className={styles.iconGhost}
+                onClick={() => setResponseExpanded((e) => !e)}
+                aria-label={
+                  responseExpanded ? t("runApi.collapse") : t("runApi.expand")
+                }
+              >
+                <MaterialIcon
+                  name={responseExpanded ? "close_fullscreen" : "open_in_full"}
+                  size="sm"
+                />
+              </button>
+            </div>
+          ) : null}
+
+          {responseTab === "body" ? (
+            <div className={styles.valActions}>
               <button
                 type="button"
                 className={styles.btnGhost}
-                onClick={() => void onExplain()}
-                disabled={explainLoading}
+                onClick={() => void onValidate()}
+                disabled={valLoading}
               >
-                {explainLoading ? t("common.loading") : t("runApi.explain")}
+                {valLoading ? t("common.loading") : t("runApi.validate")}
               </button>
-            ) : null}
-          </div>
-          {issues != null && issues.length > 0 ? (
+              {issues != null && issues.length > 0 ? (
+                <button
+                  type="button"
+                  className={styles.btnGhost}
+                  onClick={() => void onExplain()}
+                  disabled={explainLoading}
+                >
+                  {explainLoading ? t("common.loading") : t("runApi.explain")}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+          {issues != null && issues.length > 0 && responseTab === "body" ? (
             <ul className={styles.issueList}>
               {issues.map((iss, i) => (
                 <li key={`${iss.path}-${i}`}>
@@ -542,7 +805,9 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
               ))}
             </ul>
           ) : null}
-          {explanation ? <p className={styles.explain}>{explanation}</p> : null}
+          {explanation && responseTab === "body" ? (
+            <p className={styles.explain}>{explanation}</p>
+          ) : null}
         </div>
       ) : null}
     </div>

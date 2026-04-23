@@ -1,36 +1,36 @@
 .badge {
   flex-shrink: 0;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
   padding: 2px 6px;
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 0.625rem;
   font-weight: 800;
   text-transform: uppercase;
 }
 
 .get {
-  background: var(--color-secondary-container);
-  color: var(--color-on-secondary-container);
+  background: color-mix(in srgb, var(--color-method-get) 10%, transparent);
+  color: var(--color-method-get);
 }
 
 .post {
-  background: color-mix(in srgb, var(--color-amber) 22%, transparent);
-  color: var(--color-amber);
+  background: color-mix(in srgb, var(--color-method-post) 10%, transparent);
+  color: var(--color-method-post);
 }
 
 .put {
-  background: color-mix(in srgb, var(--color-cyan-accent) 22%, transparent);
-  color: var(--color-cyan-accent);
+  background: color-mix(in srgb, var(--color-method-put) 10%, transparent);
+  color: var(--color-method-put);
 }
 
 .patch {
-  background: color-mix(in srgb, var(--color-primary-container) 18%, transparent);
-  color: var(--color-primary-container);
+  background: color-mix(in srgb, var(--color-method-patch) 10%, transparent);
+  color: var(--color-method-patch);
 }
 
 .delete {
-  background: color-mix(in srgb, var(--color-rose) 22%, transparent);
-  color: var(--color-rose);
+  background: color-mix(in srgb, var(--color-method-delete) 10%, transparent);
+  color: var(--color-method-delete);
 }
 
 .default {

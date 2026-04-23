@@ -1,7 +1,9 @@
 import { create } from "zustand";
+import { groupEndpointsByTag } from "@/lib/extract-endpoints";
 import {
   getScopedEndpoints as computeScopedEndpoints,
   getScopeLabel as computeScopeLabel,
+  primaryTag,
 } from "@/lib/endpoint-groups";
 import type { GroqTokenUsage } from "@/lib/groq-token-usage";
 import type { Endpoint } from "@/types/api";
@@ -37,10 +39,19 @@ export interface WorkspaceState {
   specSecuritySchemes: Record<string, unknown> | null;
   /** URL field (header + landing) */
   specUrlInput: string;
+  /** Optional Bearer applied to every Run API request when Authorization is unset */
+  workspaceDefaultBearer: string;
   endpointSearch: string;
   /** Empty = no method filter (show all) */
   methodFilters: MethodFilterKey[];
   mobileSidebarOpen: boolean;
+  /** Hides explorer sidebar, collection list, and schema rail for a wider editor */
+  focusMode: boolean;
+  setFocusMode: (v: boolean) => void;
+  toggleFocusMode: () => void;
+  /** OpenAPI tag key for middle column endpoint list (e.g. \"Auth\") */
+  selectedCollectionTag: string | null;
+  setSelectedCollectionTag: (tag: string | null) => void;
   setEndpoints: (
     e: Endpoint[],
     serverUrls?: string[],
@@ -54,6 +65,7 @@ export interface WorkspaceState {
   setLastGroqUsage: (u: GroqTokenUsage | null) => void;
   setSpecMeta: (title: string | null, version: string | null) => void;
   setSpecUrlInput: (s: string) => void;
+  setWorkspaceDefaultBearer: (s: string) => void;
   setEndpointSearch: (s: string) => void;
   toggleMethodFilter: (m: MethodFilterKey) => void;
   clearMethodFilters: () => void;
@@ -64,7 +76,7 @@ export interface WorkspaceState {
 const initial = {
   endpoints: [] as Endpoint[],
   activeEndpoint: null as Endpoint | null,
-  activeTab: "typescript" as OutputTab,
+  activeTab: "runApi" as OutputTab,
   generationScope: "endpoint" as GenerationScope,
   parseError: null as string | null,
   lastGenerationMs: null as number | null,
@@ -74,28 +86,53 @@ const initial = {
   specServerUrls: [] as string[],
   specSecuritySchemes: null as Record<string, unknown> | null,
   specUrlInput: "",
+  workspaceDefaultBearer: "",
   endpointSearch: "",
   methodFilters: [] as MethodFilterKey[],
   mobileSidebarOpen: false,
+  focusMode: false,
+  selectedCollectionTag: null as string | null,
 };
+
+function firstCollectionTag(endpoints: Endpoint[]): string | null {
+  const g = groupEndpointsByTag(endpoints);
+  const first = g.keys().next().value;
+  return typeof first === "string" ? first : null;
+}
 
 export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   ...initial,
-  setEndpoints: (endpoints, serverUrls, securitySchemes) =>
+  setEndpoints: (endpoints, serverUrls, securitySchemes) => {
+    const tag = endpoints.length ? firstCollectionTag(endpoints) : null;
+    const firstEp = endpoints.length ? endpoints[0]! : null;
     set({
       endpoints,
       parseError: null,
-      activeEndpoint: endpoints.length ? endpoints[0]! : null,
+      activeEndpoint: firstEp,
+      selectedCollectionTag: tag,
       specServerUrls: serverUrls?.length ? serverUrls : [],
       specSecuritySchemes:
         securitySchemes && Object.keys(securitySchemes).length > 0
           ? securitySchemes
           : null,
+    });
+  },
+  setActiveEndpoint: (activeEndpoint) =>
+    set({
+      activeEndpoint,
+      selectedCollectionTag: activeEndpoint
+        ? primaryTag(activeEndpoint) ?? "default"
+        : null,
     }),
-  setActiveEndpoint: (activeEndpoint) => set({ activeEndpoint }),
+  setSelectedCollectionTag: (selectedCollectionTag) =>
+    set({ selectedCollectionTag }),
   setActiveTab: (activeTab) => {
     const t = activeTab as string;
     if (t === "runApi") {
+      set({ activeTab: "runApi" });
+      return;
+    }
+    if (t === "testGeneration") {
       set({ activeTab: "runApi" });
       return;
     }
@@ -111,6 +148,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   setLastGroqUsage: (lastGroqUsage) => set({ lastGroqUsage }),
   setSpecMeta: (specTitle, specVersion) => set({ specTitle, specVersion }),
   setSpecUrlInput: (specUrlInput) => set({ specUrlInput }),
+  setWorkspaceDefaultBearer: (workspaceDefaultBearer) =>
+    set({ workspaceDefaultBearer }),
   setEndpointSearch: (endpointSearch) => set({ endpointSearch }),
   toggleMethodFilter: (m) => {
     const cur = get().methodFilters;
@@ -121,7 +160,10 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   },
   clearMethodFilters: () => set({ methodFilters: [] }),
   setMobileSidebarOpen: (mobileSidebarOpen) => set({ mobileSidebarOpen }),
-  clearWorkspace: () => set({ ...initial }),
+  setFocusMode: (focusMode) => set({ focusMode }),
+  toggleFocusMode: () => set((s) => ({ focusMode: !s.focusMode })),
+  clearWorkspace: () =>
+    set({ ...initial, focusMode: false, selectedCollectionTag: null }),
 }));
 
 export { HTTP_METHODS_FILTER };

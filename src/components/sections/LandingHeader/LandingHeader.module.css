@@ -1,0 +1,127 @@
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: var(--z-header);
+  display: grid;
+  width: 100%;
+  height: var(--header-h);
+  align-items: center;
+  column-gap: var(--space-3);
+  padding: 0 var(--space-4);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-on-surface) 6%, transparent);
+  background: color-mix(in srgb, var(--color-surface) 78%, transparent);
+  backdrop-filter: blur(16px) saturate(1.35);
+  -webkit-backdrop-filter: blur(16px) saturate(1.35);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-on-surface) 4%, transparent),
+    0 12px 40px color-mix(in srgb, var(--color-on-surface) 6%, transparent);
+  font-family: var(--font-body);
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+  grid-template-columns: auto 1fr auto;
+}
+
+@media (min-width: 768px) {
+  .header {
+    padding: 0 var(--space-6);
+    column-gap: var(--space-4);
+  }
+}
+
+.left {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.brand {
+  flex-shrink: 0;
+  font-size: 1.25rem;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  color: var(--color-on-surface);
+}
+
+.nav {
+  display: none;
+  min-width: 0;
+  justify-content: center;
+}
+
+@media (min-width: 768px) {
+  .nav {
+    display: flex;
+  }
+}
+
+.navList {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.navLink {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-on-surface-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.15s ease;
+}
+
+.navLink:hover {
+  color: var(--color-primary-container);
+}
+
+.right {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+@media (min-width: 480px) {
+  .right {
+    gap: var(--space-3);
+  }
+}
+
+.openApp {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--color-cta-fill);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--color-on-primary);
+  box-shadow: var(--shadow-ambient);
+  transition: filter 0.15s ease;
+}
+
+.openApp:hover {
+  filter: brightness(1.06);
+}
+
+@media (min-width: 520px) {
+  .openApp {
+    display: inline-flex;
+  }
+}

@@ -9,20 +9,59 @@ import styles from "./WorkspaceHeader.module.css";
 export interface WorkspaceHeaderProps {
   t: TranslateFn;
   hasWorkspace: boolean;
-  isLoading: boolean;
-  onForge: () => void;
+  isParsing: boolean;
+  parseError: string | null;
+  onParse: () => void;
 }
 
 export default function WorkspaceHeader({
   t,
   hasWorkspace,
-  isLoading,
-  onForge,
+  isParsing,
+  parseError,
+  onParse,
 }: WorkspaceHeaderProps) {
-  const specUrlInput = useWorkspaceStore((s) => s.specUrlInput);
-  const setSpecUrlInput = useWorkspaceStore((s) => s.setSpecUrlInput);
   const clearWorkspace = useWorkspaceStore((s) => s.clearWorkspace);
   const setMobileSidebarOpen = useWorkspaceStore((s) => s.setMobileSidebarOpen);
+  const focusMode = useWorkspaceStore((s) => s.focusMode);
+  const toggleFocusMode = useWorkspaceStore((s) => s.toggleFocusMode);
+  const specUrlInput = useWorkspaceStore((s) => s.specUrlInput);
+  const setSpecUrlInput = useWorkspaceStore((s) => s.setSpecUrlInput);
+
+  const parseBar = hasWorkspace ? (
+    <div className={styles.parseBar}>
+      <div className={styles.parseInner}>
+        <MaterialIcon name="link" className={styles.parseLinkIcon} size="sm" />
+        <label htmlFor="workspace-spec-url" className="srOnly">
+          {t("landing.inputPlaceholder")}
+        </label>
+        <input
+          id="workspace-spec-url"
+          type="url"
+          name="specUrl"
+          autoComplete="url"
+          placeholder={t("header.inputPlaceholderShort")}
+          className={`${styles.parseInput} focusRing`}
+          value={specUrlInput}
+          onChange={(e) => setSpecUrlInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") onParse();
+          }}
+          aria-invalid={Boolean(parseError)}
+          title={parseError ?? undefined}
+        />
+        <button
+          type="button"
+          className={`${styles.parseBtn} focusRing`}
+          onClick={onParse}
+          disabled={isParsing}
+        >
+          {isParsing ? t("common.loading") : t("landing.parseCta")}
+          {!isParsing ? <MaterialIcon name="bolt" size="xs" /> : null}
+        </button>
+      </div>
+    </div>
+  ) : null;
 
   return (
     <header className={styles.header}>
@@ -36,62 +75,39 @@ export default function WorkspaceHeader({
           <MaterialIcon name="menu" size="md" />
         </button>
         <span className={styles.brand} aria-label={t("common.appName")}>
-          <span className={styles.brandFull} aria-hidden>
-            {t("common.appName")}
-          </span>
-          <span className={styles.brandShort} aria-hidden>
-            {t("common.appNameShort")}
-          </span>
+          {t("common.appName")}
         </span>
       </div>
-      {hasWorkspace ? (
-        <div className={styles.urlBar}>
-          <MaterialIcon name="link" className={styles.urlIcon} size="sm" />
-          <label htmlFor="header-spec-url" className="srOnly">
-            {t("hero.inputPlaceholder")}
-          </label>
-          <input
-            id="header-spec-url"
-            type="url"
-            name="specUrl"
-            autoComplete="url"
-            placeholder={t("header.inputPlaceholderShort")}
-            title={t("hero.inputPlaceholder")}
-            className={styles.input}
-            value={specUrlInput}
-            onChange={(e) => setSpecUrlInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") onForge();
-            }}
-          />
-          {specUrlInput.trim().length > 0 ? (
-            <button
-              type="button"
-              className={`${styles.clearInputBtn} focusRing`}
-              onClick={() => setSpecUrlInput("")}
-              aria-label={t("a11y.clearUrlInput")}
-            >
-              <MaterialIcon name="close" size="sm" />
-            </button>
-          ) : null}
+
+      {parseBar ? <div className={styles.center}>{parseBar}</div> : null}
+
+      <div className={styles.right}>
+        {hasWorkspace ? (
           <button
             type="button"
-            className={`${styles.forgeBtn} focusRing`}
-            onClick={onForge}
-            disabled={isLoading}
+            className={`${styles.focusBtn} focusRing`}
+            onClick={() => {
+              setMobileSidebarOpen(false);
+              toggleFocusMode();
+            }}
+            title={
+              focusMode
+                ? t("header.exitFocusMode")
+                : t("header.enterFocusMode")
+            }
+            aria-pressed={focusMode}
+            aria-label={
+              focusMode
+                ? t("header.exitFocusMode")
+                : t("header.enterFocusMode")
+            }
           >
-            {isLoading ? (
-              t("common.loading")
-            ) : (
-              <>
-                <span className={styles.forgeLabelFull}>{t("hero.forgeCta")}</span>
-                <span className={styles.forgeLabelShort}>{t("hero.forgeCtaShort")}</span>
-              </>
-            )}
+            <MaterialIcon
+              name={focusMode ? "close_fullscreen" : "open_in_full"}
+              size="md"
+            />
           </button>
-        </div>
-      ) : null}
-      <div className={styles.right}>
+        ) : null}
         <ThemeToggle t={t} />
         {hasWorkspace ? (
           <button

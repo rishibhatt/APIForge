@@ -1,30 +1,90 @@
 .wrap {
   display: flex;
+  box-sizing: border-box;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-4);
   min-height: 0;
+  min-width: 0;
   flex: 1;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  padding: var(--space-4) clamp(var(--space-2), 1.2vw, var(--space-4)) var(--space-5);
+  container-type: inline-size;
+  container-name: workspace-code;
+}
+
+.wrapFocus {
+  padding-left: var(--space-5);
+  padding-right: var(--space-5);
+  padding-bottom: var(--space-6);
+}
+
+.endpointSummary {
+  flex-shrink: 0;
+  min-width: 0;
+  max-width: 100%;
+  margin-bottom: var(--space-2);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--color-panel-border);
+}
+
+.endpointSummaryStrip {
+  padding: var(--space-4) var(--space-5) var(--space-4) var(--space-4) !important;
+  border-radius: 0;
 }
 
 .scopeContext {
   display: flex;
-  align-items: center;
-  gap: var(--space-2);
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-width: 0;
+  max-width: 100%;
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-divider-subtle);
+  margin-bottom: var(--space-1);
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 0.6875rem;
+  line-height: 1.45;
   color: var(--color-section-accent);
 }
 
 .scopeContextText {
+  min-width: 0;
+  flex: 1;
   letter-spacing: 0.02em;
+  padding-top: 1px;
+  overflow-wrap: anywhere;
 }
 
 .toolbar {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  padding-bottom: var(--space-1);
-  box-shadow: inset 0 -1px 0 0 var(--color-toolbar-rule);
+  min-width: 0;
+  max-width: 100%;
+  padding: var(--space-2) 0 var(--space-4);
+  box-shadow: none;
+}
+
+.toolbarRunApiOnly {
+  padding-bottom: var(--space-3);
+}
+
+.toolbarRunApiOnly .tabList {
+  gap: var(--space-2);
+  max-width: 100%;
+}
+
+.toolbarRunApiOnly .tab {
+  padding-bottom: var(--space-2);
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+}
+
+.toolbarRunApiOnly .tabInner {
+  gap: 4px;
 }
 
 @media (min-width: 640px) {
@@ -33,12 +93,18 @@
     align-items: center;
     justify-content: space-between;
   }
+
+  .toolbarRunApiOnly {
+    justify-content: flex-start;
+  }
 }
 
 .tabList {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-4);
+  min-width: 0;
+  max-width: 100%;
 }
 
 .tab {
@@ -48,9 +114,9 @@
   background: none;
   padding: 0 0 var(--space-3);
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   color: var(--color-on-surface-subtle);
   transition: color 0.2s ease;
 }
@@ -60,14 +126,16 @@
 }
 
 .tabActive {
-  color: var(--color-primary-container);
-  box-shadow: inset 0 -2px 0 0 var(--color-primary-container);
+  color: var(--color-primary);
+  box-shadow: inset 0 -2px 0 0 var(--color-primary);
 }
 
-.tabDisabled {
-  opacity: 0.45;
+.tabDisabled,
+.tab:disabled {
   cursor: not-allowed;
   pointer-events: none;
+  opacity: 0.78;
+  color: var(--color-on-surface-muted);
 }
 
 .tabInner {
@@ -76,14 +144,59 @@
   gap: 6px;
 }
 
+.chromeActionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--color-panel-border);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-on-surface-muted);
+  background: color-mix(in srgb, var(--color-on-surface) 4%, transparent);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.chromeActionBtn:hover:not(:disabled) {
+  background: var(--color-interactive-hover);
+  color: var(--color-on-surface);
+}
+
+.chromeActionBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.chromeActionBtnCopied {
+  color: var(--color-method-get);
+  border-color: color-mix(in srgb, var(--color-method-get) 35%, transparent);
+}
+
+.chromeActionLabel {
+  line-height: 1;
+}
+
+.highlighted {
+  min-height: 2rem;
+}
+
 .scopeSegment {
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
+  max-width: 100%;
   padding: 2px;
   border-radius: var(--radius-sm);
   background: var(--color-segmented-track-bg);
-  box-shadow: inset 0 0 0 1px var(--color-segmented-border);
+  border: 1px solid var(--color-segmented-border);
+  box-shadow: none;
 }
 
 .scopeSegBtn {
@@ -109,8 +222,10 @@
 }
 
 .scopeSegBtn:disabled {
-  opacity: 0.45;
   cursor: not-allowed;
+  opacity: 0.78;
+  color: var(--color-on-surface-muted);
+  background: color-mix(in srgb, var(--color-on-surface) 5%, transparent);
 }
 
 .scopeSegBtnActive {
@@ -122,14 +237,14 @@
 }
 
 .scopeSegBtn:focus-visible {
-  outline: 2px solid var(--color-primary-container);
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
 .templateBar {
   margin-bottom: var(--space-4);
   padding-bottom: var(--space-4);
-  border-bottom: 1px solid var(--color-toolbar-rule);
+  border-bottom: none;
 }
 
 .templateHeading {
@@ -150,7 +265,7 @@
 }
 
 .templateChip {
-  border: 1px solid var(--color-border-default);
+  border: none;
   border-radius: var(--radius-sm);
   padding: 6px var(--space-3);
   font-family: var(--font-mono);
@@ -173,20 +288,9 @@
 }
 
 .templateChipActive {
-  color: var(--color-primary-container);
-  border-color: color-mix(in srgb, var(--color-primary-container) 38%, transparent);
-  box-shadow: inset 0 -2px 0 0 var(--color-primary-container);
-}
-
-.idePromptHint {
-  margin: 0 0 var(--space-4);
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-callout-info-border);
-  background: var(--color-callout-info-bg);
-  font-size: 0.8125rem;
-  line-height: 1.5;
-  color: var(--color-on-surface-muted);
+  color: var(--color-primary);
+  border-color: transparent;
+  box-shadow: inset 0 -2px 0 0 var(--color-primary);
 }
 
 .actions {
@@ -251,40 +355,86 @@
   display: grid;
   grid-template-columns: 1fr;
   flex: 1;
+  min-width: 0;
   min-height: 0;
+  max-width: 100%;
   overflow: hidden;
+  overflow-x: hidden;
+  gap: var(--space-4);
+  padding-top: var(--space-1);
 }
 
-@media (min-width: 1024px) {
-  .workspaceGrid {
-    grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+/* Grid items default to min-width:auto (content-sized); force shrink so the rail stays in view */
+.workspaceGrid > .editor,
+.workspaceGrid > .insight {
+  min-width: 0;
+}
+
+@container workspace-code (min-width: 720px) {
+  .workspaceGridWithInsight {
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 300px);
   }
+
+  /*
+   * Run API + chrome URL bar: keep the insight rail at a predictable width (vw)
+   * so the editor column shrinks instead of pushing the rail off-screen.
+   */
+  .workspaceGridWithInsight.workspaceGridRunSplit {
+    gap: var(--space-2);
+    grid-template-columns: minmax(0, 1fr) clamp(272px, 28vw, 360px);
+  }
+
+  /* Insight rail height follows its content; editor column still stretches to fill the row */
+  .workspaceGridWithInsight > .insight {
+    align-self: start;
+  }
+}
+
+.workspaceGridFocus {
+  grid-template-columns: 1fr;
 }
 
 .editor {
   display: flex;
   min-height: 280px;
+  min-width: 0;
   flex: 1;
   flex-direction: column;
   overflow: hidden;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-panel-border);
   background: var(--color-surface-container-lowest);
-  box-shadow:
-    var(--shadow-inner-recess),
-    inset 0 0 0 1px var(--color-panel-inset-glow);
+  box-shadow: var(--shadow-inner-recess);
+  gap: 0;
 }
 
 .body {
   flex: 1;
+  min-width: 0;
   overflow: auto;
+  overflow-x: hidden;
   background: var(--color-code-editor-bg);
   padding: var(--space-6);
+}
+
+.bodyRunApi {
+  padding: var(--space-4) clamp(var(--space-4), 3vw, var(--space-6)) var(--space-5);
+  background: var(--color-surface-container-lowest);
+}
+
+.bodyStream {
+  padding: var(--space-6) clamp(var(--space-5), 4vw, var(--space-10));
+}
+
+.bodyTsForge {
+  padding: var(--space-3);
+  background: var(--color-surface-container-lowest);
 }
 
 .code {
   margin: 0;
   font-family: var(--font-mono);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   line-height: 1.65;
   white-space: pre-wrap;
   word-break: break-word;
@@ -312,12 +462,13 @@
   flex-wrap: wrap;
   padding: var(--space-2) var(--space-6);
   background: var(--color-editor-footer-bg);
-  box-shadow: inset 0 1px 0 0 var(--color-toolbar-rule);
+  border-top: 1px solid var(--color-divider-subtle);
+  box-shadow: none;
 }
 
 .stats {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 0.6875rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--color-on-surface-subtle);
@@ -325,23 +476,28 @@
 
 .latency {
   font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--color-primary-container);
+  font-size: 0.6875rem;
+  color: var(--color-primary);
 }
 
 .tokens {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 0.6875rem;
   color: var(--color-primary-muted);
 }
 
 .insight {
-  min-height: 200px;
+  display: flex;
+  max-width: 100%;
+  flex-direction: column;
+  padding-left: var(--space-3);
+  border-left: 1px solid var(--color-panel-border);
+  overflow: visible;
 }
 
-@media (min-width: 1024px) {
+@container workspace-code (min-width: 720px) {
   .insight {
+    min-width: 0;
     min-height: 0;
-    max-height: 100%;
   }
 }

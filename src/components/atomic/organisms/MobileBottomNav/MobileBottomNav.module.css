@@ -9,11 +9,10 @@
   align-items: center;
   padding: var(--space-3) var(--space-4);
   padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0));
-  background: var(--color-surface-elevated);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-top: 1px solid
-    color-mix(in srgb, var(--color-outline-variant) 50%, transparent);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-top: none;
 }
 
 @media (min-width: 768px) {
@@ -39,7 +38,7 @@
 }
 
 .btn:hover {
-  color: var(--color-primary-container);
+  color: var(--color-primary);
 }
 
 .btnActive {

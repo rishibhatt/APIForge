@@ -1,54 +1,130 @@
 .wrap {
+  box-sizing: border-box;
   display: flex;
+  width: 100%;
+  height: fit-content;
+  min-width: 0;
+  max-width: 100%;
+  flex: 0 1 auto;
   flex-direction: column;
   gap: var(--space-5);
-  padding: var(--space-5);
+  padding: var(--space-5) var(--space-5) var(--space-6);
   background: var(--color-surface-container-low);
-  border-left: 1px solid var(--color-divider-subtle);
+  border-left: none;
+  overflow-x: hidden;
   overflow-y: auto;
-  max-height: 100%;
+  max-height: min(82dvh, calc(100dvh - var(--header-h) - 13rem));
+}
+
+.wrap > section {
+  flex: 0 0 auto;
+  width: 100%;
+}
+
+.rubricSection {
+  flex: 0 0 auto;
+  width: 100%;
+}
+
+.rubricSection .empty {
+  margin: 0;
+}
+
+.wrapCompact {
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-3) var(--space-4);
+}
+
+.payloadSection {
+  flex: 0 1 auto;
+  min-height: 0;
+}
+
+.wrapCompact .hintBlock {
+  margin-bottom: var(--space-2);
+  font-size: 0.6875rem;
+  line-height: 1.4;
+}
+
+.wrapCompact .nlArea {
+  min-height: 44px;
+  max-height: 96px;
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.75rem;
+}
+
+.wrapCompact .payloadActions {
+  margin-top: var(--space-2);
+}
+
+.wrapCompact .nlPre {
+  max-height: min(28vh, 140px);
+  margin-top: var(--space-2);
+  padding: var(--space-2);
+  font-size: 0.625rem;
+}
+
+.wrap > section + section {
+  margin-top: var(--space-1);
+  padding-top: var(--space-4);
+  border-top: 1px solid color-mix(in srgb, var(--color-on-surface) 5%, transparent);
 }
 
 .sectionTitle {
+  max-width: 100%;
+  margin: 0 0 var(--space-3);
+  overflow-wrap: anywhere;
   font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
   color: var(--color-muted-foreground-subtle);
-  margin: 0 0 var(--space-3);
 }
 
 .card {
-  padding: var(--space-4);
+  box-sizing: border-box;
+  max-width: 100%;
+  padding: var(--space-6) var(--space-4) var(--space-4) var(--space-6);
   border-radius: var(--radius-md);
   background: var(--color-surface-container-lowest);
-  border: 1px solid var(--color-border-default);
+  border: none;
+}
+
+.wrapCompact .card {
+  padding: var(--space-4) var(--space-3) var(--space-3) var(--space-4);
 }
 
 .row {
   display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-2) 0;
-  border-bottom: 1px solid var(--color-toolbar-rule);
-}
-
-.row:last-child {
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-3) 0;
   border-bottom: none;
 }
 
+.row:not(:last-child) {
+  margin-bottom: var(--space-2);
+}
+
 .name {
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-family: var(--font-mono);
   font-size: 0.75rem;
-  color: var(--color-primary-container);
+  color: var(--color-primary);
 }
 
 .hint {
+  max-width: 100%;
   font-size: 10px;
   color: var(--color-muted-foreground-subtle);
-  white-space: nowrap;
+  line-height: 1.35;
+  text-align: end;
+  white-space: normal;
 }
 
 .empty {
@@ -70,14 +146,20 @@
   box-sizing: border-box;
   resize: vertical;
   min-height: 64px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-field-border);
+  border-radius: var(--radius-sm);
+  border: none;
   background: var(--color-field-bg);
   padding: var(--space-3);
   color: var(--color-on-surface);
   font-size: 0.8125rem;
   line-height: 1.45;
   outline: none;
+}
+
+.nlArea:focus {
+  box-shadow:
+    0 0 0 1px var(--color-primary),
+    0 0 0 3px color-mix(in srgb, var(--color-primary) 8%, transparent);
 }
 
 .nlArea::placeholder {
@@ -117,7 +199,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border: 1px solid var(--color-border-default);
+  border: 1px solid color-mix(in srgb, var(--color-outline-variant) 40%, transparent);
   border-radius: var(--radius-sm);
   padding: 8px var(--space-3);
   font-family: var(--font-mono);
@@ -126,7 +208,7 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--color-muted-foreground);
-  background: var(--color-interactive-hover);
+  background: transparent;
   cursor: pointer;
 }
 
@@ -142,7 +224,7 @@
   padding: var(--space-3);
   border-radius: var(--radius-md);
   background: var(--color-code-editor-bg);
-  border: 1px solid var(--color-border-default);
+  border: none;
   font-family: var(--font-mono);
   font-size: 0.6875rem;
   line-height: 1.55;

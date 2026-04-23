@@ -1,24 +1,33 @@
 .strip {
-  padding: var(--space-6) var(--space-6) var(--space-5);
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  padding: var(--space-6) var(--space-8) var(--space-5) var(--space-6);
   background: var(--color-surface-container-low);
-  border-bottom: 1px solid var(--color-divider-subtle);
+  border-bottom: none;
 }
 
 .row {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-3);
+  min-width: 0;
   margin-bottom: var(--space-2);
 }
 
 .path {
+  flex: 1 1 0%;
+  min-width: 0;
   font-family: var(--font-display);
   font-size: 1.5rem;
   font-weight: 900;
   letter-spacing: -0.03em;
   color: var(--color-on-surface);
   margin: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .meta {
@@ -26,14 +35,17 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-4);
+  min-width: 0;
+  max-width: 100%;
 }
 
 .summary {
   margin: 0;
   font-size: 0.875rem;
   color: var(--color-muted-foreground);
-  max-width: 48rem;
+  max-width: min(48rem, 100%);
   line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .tagPill {
@@ -47,9 +59,9 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--color-primary-container);
+  color: var(--color-primary);
   background: var(--color-surface-container-highest);
-  border: 1px solid var(--color-border-default);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 42%, transparent);
 }
 
 .counts {
@@ -62,6 +74,6 @@
 }
 
 .counts strong {
-  color: var(--color-primary-container);
+  color: var(--color-primary);
   font-weight: 700;
 }

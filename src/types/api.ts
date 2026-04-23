@@ -1,6 +1,6 @@
 export type GroqStreamTab = "typescript" | "prompt";
 
-export type OutputTab = GroqStreamTab | "runApi" | "testGeneration";
+export type OutputTab = GroqStreamTab | "runApi";
 
 /** What to include when generating Types / AI prompt / tests. */
 export type GenerationScope = "endpoint" | "collection" | "api";

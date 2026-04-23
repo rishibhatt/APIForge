@@ -1,0 +1,249 @@
+.rail {
+  display: none;
+  width: 20rem;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: var(--space-6);
+  overflow-x: hidden;
+  overflow-y: auto;
+  border-left: 1px solid color-mix(in srgb, var(--color-on-surface) 4%, transparent);
+  background: var(--color-surface-container-low);
+  padding: var(--space-6);
+  scrollbar-width: thin;
+}
+
+@media (min-width: 1280px) {
+  .rail {
+    display: flex;
+  }
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-on-surface-variant);
+}
+
+.aiCard {
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 10%, transparent);
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--color-primary-container) 20%, transparent) 0%,
+    var(--color-surface-container) 100%
+  );
+  padding: var(--space-5);
+}
+
+.aiCardHead {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.aiIconPrimary {
+  display: flex;
+  height: 2.5rem;
+  width: 2.5rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.aiIconTertiary {
+  display: flex;
+  height: 2.5rem;
+  width: 2.5rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: var(--color-method-get);
+  color: var(--color-surface-container-lowest);
+}
+
+.aiTitle {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-on-surface);
+}
+
+.aiSub {
+  margin: 2px 0 0;
+  font-size: 10px;
+  color: var(--color-on-surface-variant);
+}
+
+.aiBody {
+  margin: 0 0 var(--space-4);
+  font-size: 0.75rem;
+  line-height: 1.55;
+  color: var(--color-on-surface-variant);
+}
+
+.aiCta {
+  width: 100%;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 10px var(--space-3);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.aiCta:active {
+  transform: scale(0.98);
+}
+
+.toolCard {
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--color-on-surface) 3%, transparent);
+  background: var(--color-surface-container-highest);
+  padding: var(--space-5);
+}
+
+.toolBtn {
+  width: 100%;
+  border: 1px solid color-mix(in srgb, var(--color-outline-variant) 30%, transparent);
+  border-radius: var(--radius-sm);
+  padding: 10px var(--space-3);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-on-surface);
+  background: var(--color-surface-container);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.toolBtn:hover {
+  background: var(--color-surface-container-highest);
+}
+
+.exportGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.exportTile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  color: var(--color-on-surface-variant);
+  background: var(--color-surface-container);
+  cursor: pointer;
+  transition:
+    color 0.2s ease,
+    background 0.2s ease;
+}
+
+.exportTile:hover {
+  color: var(--color-primary);
+  background: var(--color-surface-container-high);
+}
+
+.exportTile span:last-child {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.health {
+  position: relative;
+  margin-top: auto;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-container-lowest);
+  padding: var(--space-4);
+}
+
+.healthLabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-method-get);
+}
+
+.healthValue {
+  margin-top: 4px;
+  font-size: 1.25rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: var(--color-on-surface);
+}
+
+.healthBars {
+  margin-top: var(--space-2);
+  display: flex;
+  height: 2rem;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.bar {
+  width: 4px;
+  border-radius: 2px 2px 0 0;
+  background: var(--color-method-get);
+}
+
+.bar:nth-child(1) {
+  height: 40%;
+  opacity: 0.4;
+}
+.bar:nth-child(2) {
+  height: 60%;
+  opacity: 0.6;
+}
+.bar:nth-child(3) {
+  height: 35%;
+  opacity: 0.4;
+}
+.bar:nth-child(4) {
+  height: 75%;
+  opacity: 0.8;
+}
+.bar:nth-child(5) {
+  height: 50%;
+  opacity: 0.5;
+}
+.bar:nth-child(6) {
+  height: 100%;
+  opacity: 1;
+}
+.bar:nth-child(7) {
+  height: 45%;
+  opacity: 0.4;
+}
+
+.healthGlow {
+  position: absolute;
+  right: -1rem;
+  bottom: -1rem;
+  width: 6rem;
+  height: 6rem;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-method-get) 5%, transparent);
+  filter: blur(24px);
+}

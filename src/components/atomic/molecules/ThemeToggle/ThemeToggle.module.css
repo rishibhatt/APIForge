@@ -49,3 +49,30 @@
   background: var(--color-toggle-track);
   opacity: 0.5;
 }
+
+.iconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-on-surface-variant);
+  cursor: pointer;
+  transition:
+    color 0.2s ease,
+    background 0.2s ease;
+}
+
+.iconBtn:hover {
+  color: var(--color-on-surface);
+  background: var(--color-surface-container-highest);
+}
+
+.iconPlaceholder {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-sm);
+  opacity: 0.4;
+}

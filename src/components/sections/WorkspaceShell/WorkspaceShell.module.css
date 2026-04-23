@@ -9,22 +9,29 @@
   flex: 1;
   flex-direction: column;
   min-height: 0;
+  min-width: 0;
+  overflow-x: hidden;
   padding-top: var(--header-h);
   padding-bottom: var(--space-8);
 }
 
 .mainLanding {
-  align-items: center;
+  align-items: stretch;
   justify-content: flex-start;
   width: 100%;
   max-width: 100vw;
   box-sizing: border-box;
+  padding-bottom: var(--space-12);
 }
 
 .main.withWorkspaceMobile {
   padding-bottom: calc(
     72px + var(--footer-h) + env(safe-area-inset-bottom, 0)
   );
+}
+
+.mainFocus.withWorkspaceMobile {
+  padding-bottom: calc(var(--footer-h) + env(safe-area-inset-bottom, 0));
 }
 
 @media (min-width: 768px) {
@@ -38,20 +45,65 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  padding: 0 var(--space-4) var(--space-8);
+  min-height: 0;
+  overflow-x: hidden;
+  padding: 0 clamp(var(--space-2), 1.5vw, var(--space-5)) var(--space-6);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
+/*
+ * Sidebar is position:fixed — margin-left only offsets main visually.
+ * width:100% + margin would exceed the viewport and push the code panel (and AI rail) off-screen.
+ */
 @media (min-width: 768px) {
   .workspaceMain {
+    width: calc(100% - var(--sidebar-w));
+    max-width: calc(100% - var(--sidebar-w));
     margin-left: var(--sidebar-w);
-    padding: 0 var(--space-6) var(--space-10);
+    padding: 0 clamp(var(--space-2), 1.5vw, var(--space-5)) var(--space-6);
+  }
+
+  .focusMode .workspaceMain {
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0;
   }
 }
 
-.workspaceBody {
-  flex: 1;
+.workspaceChrome {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
+  flex: 1;
   min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .workspaceChrome {
+    flex-direction: row;
+    align-items: stretch;
+  }
+}
+
+/* EndpointListColumn (collection sidepane) removed — engine spans full chrome width */
+.workspaceChromeNoCollection .workspaceEngine {
+  flex: 1;
+  min-width: 0;
+}
+
+.workspaceEngine {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  overflow-x: hidden;
+  background: var(--color-surface-container-lowest);
+}
+
+.focusMode .workspaceEngine {
+  padding-left: var(--space-2);
+  padding-right: var(--space-2);
 }

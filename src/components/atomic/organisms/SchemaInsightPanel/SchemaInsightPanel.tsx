@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { TranslateFn } from "@/context/LanguageContext";
 import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
 import { parseUsageFromResponseHeaders } from "@/lib/groq-token-usage";
@@ -65,18 +65,38 @@ function extractParamRows(endpoint: Endpoint): { name: string; hint: string }[] 
 interface SchemaInsightPanelProps {
   t: TranslateFn;
   endpoint: Endpoint;
+  /** Tighter layout beside Run API so the rail fits without horizontal overflow */
+  compact?: boolean;
+  /** OpenAPI request-body schema rubric — only relevant next to Run API */
+  showRequestBodySection?: boolean;
 }
 
 export default function SchemaInsightPanel({
   t,
   endpoint,
+  compact = false,
+  showRequestBodySection = false,
 }: SchemaInsightPanelProps) {
   const setLastGroqUsage = useWorkspaceStore((s) => s.setLastGroqUsage);
   const setLastGenerationMs = useWorkspaceStore((s) => s.setLastGenerationMs);
   const [nlPrompt, setNlPrompt] = useState("");
   const [nlLoading, setNlLoading] = useState(false);
+  const [payloadCopied, setPayloadCopied] = useState(false);
+  const copyResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [nlError, setNlError] = useState<string | null>(null);
   const [nlOutput, setNlOutput] = useState<string | null>(null);
+
+  useEffect(() => {
+    setNlPrompt("");
+    setNlOutput(null);
+    setNlError(null);
+    setNlLoading(false);
+    setPayloadCopied(false);
+    if (copyResetRef.current) {
+      clearTimeout(copyResetRef.current);
+      copyResetRef.current = null;
+    }
+  }, [endpoint.id]);
 
   const bodyFields = extractBodyFields(endpoint.requestBody);
   const paramRows = extractParamRows(endpoint);
@@ -131,15 +151,30 @@ export default function SchemaInsightPanel({
     if (!nlOutput) return;
     try {
       await navigator.clipboard.writeText(nlOutput);
+      if (copyResetRef.current) clearTimeout(copyResetRef.current);
+      setPayloadCopied(true);
+      copyResetRef.current = setTimeout(() => {
+        setPayloadCopied(false);
+        copyResetRef.current = null;
+      }, 2000);
     } catch {
       /* ignore */
     }
   }, [nlOutput]);
 
+  useEffect(() => {
+    return () => {
+      if (copyResetRef.current) clearTimeout(copyResetRef.current);
+    };
+  }, []);
+
   return (
-    <aside className={styles.wrap} aria-label={t("schemaInsight.aria")}>
+    <aside
+      className={`${styles.wrap} ${compact ? styles.wrapCompact : ""}`}
+      aria-label={t("schemaInsight.aria")}
+    >
       {paramRows.length > 0 ? (
-        <section>
+        <section className={styles.rubricSection}>
           <h3 className={styles.sectionTitle}>{t("schemaInsight.parameters")}</h3>
           <div className={styles.card}>
             {paramRows.map((r) => (
@@ -151,28 +186,30 @@ export default function SchemaInsightPanel({
           </div>
         </section>
       ) : null}
-      <section>
-        <h3 className={styles.sectionTitle}>{t("schemaInsight.requestBody")}</h3>
-        {bodyFields.length === 0 ? (
-          <p className={styles.empty}>{t("schemaInsight.noBody")}</p>
-        ) : (
-          <div className={styles.card}>
-            {bodyFields.map((r) => (
-              <div key={r.name} className={styles.row}>
-                <code className={styles.name}>{r.name}</code>
-                <span className={styles.hint}>{r.hint}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+      {showRequestBodySection ? (
+        <section className={styles.rubricSection}>
+          <h3 className={styles.sectionTitle}>{t("schemaInsight.requestBody")}</h3>
+          {bodyFields.length === 0 ? (
+            <p className={styles.empty}>{t("schemaInsight.noBody")}</p>
+          ) : (
+            <div className={styles.card}>
+              {bodyFields.map((r) => (
+                <div key={r.name} className={styles.row}>
+                  <code className={styles.name}>{r.name}</code>
+                  <span className={styles.hint}>{r.hint}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      ) : null}
 
-      <section>
+      <section className={styles.payloadSection}>
         <h3 className={styles.sectionTitle}>{t("schemaInsight.payloadTitle")}</h3>
         <p className={styles.hintBlock}>{t("schemaInsight.payloadHint")}</p>
         <textarea
           className={styles.nlArea}
-          rows={3}
+          rows={compact ? 2 : 3}
           value={nlPrompt}
           onChange={(e) => setNlPrompt(e.target.value)}
           placeholder={t("schemaInsight.payloadPlaceholder")}
@@ -195,8 +232,8 @@ export default function SchemaInsightPanel({
               className={styles.payloadBtnGhost}
               onClick={() => void onCopyPayload()}
             >
-              <MaterialIcon name="content_copy" size="xs" />
-              {t("schemaInsight.payloadCopy")}
+              <MaterialIcon name={payloadCopied ? "check" : "content_copy"} size="xs" />
+              {payloadCopied ? t("workspace.copied") : t("schemaInsight.payloadCopy")}
             </button>
           ) : null}
         </div>

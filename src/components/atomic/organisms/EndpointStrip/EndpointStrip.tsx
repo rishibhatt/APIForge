@@ -21,15 +21,17 @@ function countResponses(ep: Endpoint): number {
 interface EndpointStripProps {
   t: TranslateFn;
   endpoint: Endpoint;
+  /** Merged onto the root strip (e.g. compact padding from a parent layout). */
+  className?: string;
 }
 
-export default function EndpointStrip({ t, endpoint }: EndpointStripProps) {
+export default function EndpointStrip({ t, endpoint, className = "" }: EndpointStripProps) {
   const tag = endpoint.tags?.[0]?.trim();
   const nParams = countParams(endpoint);
   const nRes = countResponses(endpoint);
 
   return (
-    <div className={styles.strip}>
+    <div className={`${styles.strip} ${className}`.trim()}>
       <div className={styles.row}>
         <MethodBadge method={endpoint.method} />
         <h1 className={styles.path}>{endpoint.path}</h1>

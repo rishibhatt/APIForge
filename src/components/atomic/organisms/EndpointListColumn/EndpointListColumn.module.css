@@ -1,0 +1,192 @@
+.column {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  flex-direction: column;
+  border-right: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-on-surface) 4%, transparent);
+  background: var(--color-surface);
+  max-height: min(42vh, 360px);
+}
+
+@media (min-width: 768px) {
+  .column {
+    flex: 0 1 16rem;
+    width: 16rem;
+    min-width: 12rem;
+    max-width: 16rem;
+    max-height: none;
+    border-bottom: none;
+    border-right: 1px solid color-mix(in srgb, var(--color-on-surface) 2%, transparent);
+  }
+}
+
+.head {
+  flex-shrink: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-on-surface) 4%, transparent);
+  padding: var(--space-4);
+}
+
+.collectionTitle {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-on-surface);
+}
+
+.collectionMeta {
+  margin: 4px 0 0;
+  font-size: 0.75rem;
+  color: var(--color-on-surface-variant);
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: var(--space-3);
+  scrollbar-width: none;
+}
+
+.scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.empty {
+  margin: 0;
+  padding: var(--space-3);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-on-surface-variant);
+}
+
+.card {
+  display: block;
+  width: 100%;
+  margin-bottom: var(--space-3);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--color-on-surface) 2%, transparent);
+  padding: var(--space-4);
+  text-align: left;
+  background: var(--color-surface-container);
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.card:hover {
+  background: var(--color-surface-container-high);
+  border-color: color-mix(in srgb, var(--color-on-surface) 8%, transparent);
+}
+
+.cardActive {
+  border-color: color-mix(in srgb, var(--color-primary) 35%, transparent);
+  background: var(--color-surface-container-low);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+  border-left: 4px solid var(--color-primary);
+  padding-left: calc(var(--space-4) - 3px);
+}
+
+.cardActive:hover {
+  background: var(--color-surface-container-low);
+  border-color: color-mix(in srgb, var(--color-primary) 45%, transparent);
+}
+
+.cardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.methodPill {
+  flex-shrink: 0;
+  border-radius: 9999px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.pillGet {
+  color: var(--color-tertiary);
+  background: var(--color-tertiary-container);
+}
+
+.pillPost {
+  color: var(--color-secondary);
+  background: color-mix(in srgb, var(--color-secondary-container) 35%, transparent);
+}
+
+.pillPut {
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+}
+
+.pillDelete {
+  color: var(--color-error);
+  background: color-mix(in srgb, var(--color-error) 12%, transparent);
+}
+
+.pillDefault {
+  color: var(--color-on-surface-variant);
+  background: var(--color-surface-container-highest);
+}
+
+.pathTiny {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-on-surface-variant);
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardHeading {
+  margin: 0 0 var(--space-1);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--color-on-surface);
+}
+
+.card:hover .cardHeading {
+  color: var(--color-on-surface);
+}
+
+.cardActive .cardHeading {
+  color: var(--color-on-surface);
+}
+
+.summary {
+  margin: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-size: 0.75rem;
+  line-height: 1.55;
+  color: var(--color-on-surface-variant);
+}
+
+.card:hover .summary,
+.card:hover .summaryMuted,
+.cardActive:hover .summary,
+.cardActive:hover .summaryMuted {
+  color: var(--color-on-surface-variant);
+}
+
+.summaryMuted {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.55;
+  font-style: italic;
+  color: color-mix(in srgb, var(--color-on-surface-variant) 75%, transparent);
+}

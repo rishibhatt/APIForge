@@ -15,13 +15,12 @@
   width: 16rem;
   max-width: 100%;
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   background: var(--color-surface-container-high);
   padding: 6px var(--space-4) 6px 2.5rem;
   font-size: 0.875rem;
   color: var(--color-on-surface);
-  box-shadow: inset 0 0 0 1px
-    color-mix(in srgb, var(--color-outline-variant) 65%, transparent);
+  box-shadow: none;
 }
 
 .input::placeholder {
@@ -31,6 +30,6 @@
 .input:focus {
   outline: none;
   box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--color-outline-variant) 65%, transparent),
-    0 0 0 1px color-mix(in srgb, var(--color-primary-container) 40%, transparent);
+    0 0 0 1px var(--color-primary),
+    0 0 0 3px color-mix(in srgb, var(--color-primary) 8%, transparent);
 }

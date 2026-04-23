@@ -1,0 +1,167 @@
+/* github-dark.css sets `pre code.hljs { overflow-x: auto }` — force wrap instead of a nested horizontal scroller */
+.pre {
+  margin: 0;
+  padding: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  background: transparent !important;
+}
+
+.pre :global(code.hljs) {
+  display: block;
+  max-width: 100%;
+  padding: 0 !important;
+  overflow-x: hidden !important;
+  white-space: pre-wrap !important;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.code {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+/* —— Forge TS editor skin (read-only, One Dark–inspired) —— */
+.forgeShell {
+  display: flex;
+  max-width: 100%;
+  min-width: 0;
+  flex: 1;
+  cursor: default;
+  border-radius: var(--radius-sm);
+  border: 1px solid #30363d;
+  background: #0d1117;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 4%);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.65;
+  user-select: text;
+}
+
+.forgeGutter {
+  flex-shrink: 0;
+  min-width: 2.75rem;
+  padding: 12px 10px 12px 12px;
+  border-right: 1px solid #21262d;
+  background: #0d1117;
+  color: #6e7681;
+  font-size: 0.75rem;
+  line-height: 1.65;
+  text-align: right;
+  user-select: none;
+}
+
+.forgeLineNum {
+  min-height: calc(1.65 * 0.8125rem);
+  font-variant-numeric: tabular-nums;
+}
+
+.preForge {
+  margin: 0;
+  min-width: 0;
+  flex: 1;
+  padding: 12px 14px 14px 12px;
+  overflow: auto;
+  overflow-x: auto;
+  border: none;
+  background: #0d1117 !important;
+  color: #abb2bf;
+  white-space: pre;
+  tab-size: 2;
+}
+
+.codeForge {
+  display: block;
+  width: max-content;
+  min-width: 100%;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  background: transparent !important;
+}
+
+/* Token map (overrides github-dark where both apply) */
+.preForge :global(.hljs-keyword),
+.preForge :global(.hljs-selector-tag),
+.preForge :global(.hljs-meta .hljs-keyword) {
+  color: #c678dd;
+}
+
+.preForge :global(.hljs-built_in),
+.preForge :global(.hljs-name) {
+  color: #e06c75;
+}
+
+.preForge :global(.hljs-title),
+.preForge :global(.hljs-title.class_),
+.preForge :global(.hljs-title.class_.inherited__) {
+  color: #e5c07b;
+}
+
+.preForge :global(.hljs-type),
+.preForge :global(.hljs-class) {
+  color: #56b6c2;
+}
+
+.preForge :global(.hljs-params),
+.preForge :global(.hljs-variable) {
+  color: #abb2bf;
+}
+
+.preForge :global(.hljs-attr),
+.preForge :global(.hljs-attribute),
+.preForge :global(.hljs-property) {
+  color: #61afef;
+}
+
+.preForge :global(.hljs-string),
+.preForge :global(.hljs-template-string),
+.preForge :global(.hljs-addition) {
+  color: #98c379;
+}
+
+.preForge :global(.hljs-number),
+.preForge :global(.hljs-literal) {
+  color: #d19a66;
+}
+
+.preForge :global(.hljs-regexp) {
+  color: #56b6c2;
+}
+
+.preForge :global(.hljs-comment),
+.preForge :global(.hljs-quote) {
+  color: #5c6370;
+  font-style: italic;
+}
+
+.preForge :global(.hljs-meta),
+.preForge :global(.hljs-doctag) {
+  color: #c678dd;
+}
+
+.preForge :global(.hljs-subst),
+.preForge :global(.hljs-punctuation),
+.preForge :global(.hljs-operator) {
+  color: #abb2bf;
+}
+
+.preForge :global(.hljs-function .hljs-keyword),
+.preForge :global(.hljs-function) {
+  color: #61afef;
+}
+
+.preForge :global(.hljs-variable.language_) {
+  color: #c678dd;
+}
