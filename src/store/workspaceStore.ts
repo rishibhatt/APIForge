@@ -49,6 +49,8 @@ export interface WorkspaceState {
   focusMode: boolean;
   setFocusMode: (v: boolean) => void;
   toggleFocusMode: () => void;
+  qualityScoreModalOpen: boolean;
+  setQualityScoreModalOpen: (v: boolean) => void;
   /** OpenAPI tag key for middle column endpoint list (e.g. \"Auth\") */
   selectedCollectionTag: string | null;
   setSelectedCollectionTag: (tag: string | null) => void;
@@ -91,6 +93,7 @@ const initial = {
   methodFilters: [] as MethodFilterKey[],
   mobileSidebarOpen: false,
   focusMode: false,
+  qualityScoreModalOpen: false,
   selectedCollectionTag: null as string | null,
 };
 
@@ -162,8 +165,15 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   setMobileSidebarOpen: (mobileSidebarOpen) => set({ mobileSidebarOpen }),
   setFocusMode: (focusMode) => set({ focusMode }),
   toggleFocusMode: () => set((s) => ({ focusMode: !s.focusMode })),
+  setQualityScoreModalOpen: (qualityScoreModalOpen) =>
+    set({ qualityScoreModalOpen }),
   clearWorkspace: () =>
-    set({ ...initial, focusMode: false, selectedCollectionTag: null }),
+    set({
+      ...initial,
+      focusMode: false,
+      qualityScoreModalOpen: false,
+      selectedCollectionTag: null,
+    }),
 }));
 
 export { HTTP_METHODS_FILTER };

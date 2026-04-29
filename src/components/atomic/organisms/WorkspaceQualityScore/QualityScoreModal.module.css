@@ -1,0 +1,56 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: var(--space-6) var(--space-4);
+  overflow-y: auto;
+  background: var(--color-overlay-scrim);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.panel {
+  position: relative;
+  width: 100%;
+  max-width: 36rem;
+  margin-top: max(24px, 6vh);
+  margin-bottom: var(--space-8);
+  outline: none;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--space-3);
+}
+
+.closeBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--color-on-surface) 12%, transparent);
+  border-radius: 9999px;
+  background: var(--color-surface-container-lowest);
+  color: var(--color-on-surface-muted);
+  box-shadow: var(--shadow-ambient);
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.closeBtn:hover {
+  background: var(--color-interactive-hover);
+  color: var(--color-on-surface);
+  transform: scale(1.04);
+}
+
+.cardWrap {
+  position: relative;
+}

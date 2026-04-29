@@ -3,11 +3,12 @@
   margin: 0;
   background-color: var(--color-surface);
   color: var(--color-on-surface);
-  font-family: var(--font-inter), system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: 0.875rem;
   line-height: 1.6;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.011em;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .body :global(::selection) {

@@ -19,15 +19,16 @@ import MobileBottomNav from "@/components/atomic/organisms/MobileBottomNav/Mobil
 import HeroSection from "@/components/sections/HeroSection/HeroSection";
 import LandingMarketing from "@/components/sections/LandingMarketing/LandingMarketing";
 import LandingFooter from "@/components/sections/LandingFooter/LandingFooter";
+import QualityScoreModal from "@/components/atomic/organisms/WorkspaceQualityScore/QualityScoreModal";
 import shell from "./WorkspaceShell.module.css";
 
 export default function WorkspaceShell() {
   const { t } = useLanguage();
   const endpoints = useWorkspaceStore((s) => s.endpoints);
   const specUrlInput = useWorkspaceStore((s) => s.specUrlInput);
-  const { parseUrl, parseFile, isLoading, error } = useSwaggerParser();
+  const { parseUrl, isLoading, error } = useSwaggerParser();
 
-  const hasWorkspace = endpoints.length > 0;
+  const workspaceVisible = endpoints.length > 0;
   const focusMode = useWorkspaceStore((s) => s.focusMode);
 
   const onForge = useCallback(() => {
@@ -38,22 +39,22 @@ export default function WorkspaceShell() {
     () =>
       [
         shell.main,
-        hasWorkspace ? shell.withWorkspaceMobile : shell.mainLanding,
-        hasWorkspace && focusMode ? shell.mainFocus : "",
+        workspaceVisible ? shell.withWorkspaceMobile : shell.mainLanding,
+        workspaceVisible && focusMode ? shell.mainFocus : "",
       ]
         .filter(Boolean)
         .join(" "),
-    [hasWorkspace, focusMode],
+    [workspaceVisible, focusMode],
   );
 
   return (
     <div
-      className={`${shell.shell} ${focusMode && hasWorkspace ? shell.focusMode : ""}`}
+      className={`${shell.shell} ${focusMode && workspaceVisible ? shell.focusMode : ""}`}
     >
-      {hasWorkspace ? (
+      {workspaceVisible ? (
         <WorkspaceHeader
           t={t}
-          hasWorkspace={hasWorkspace}
+          hasWorkspace={workspaceVisible}
           isParsing={isLoading}
           parseError={error}
           onParse={onForge}
@@ -61,16 +62,15 @@ export default function WorkspaceShell() {
       ) : (
         <LandingHeader t={t} />
       )}
-      <WorkspaceSidebar t={t} hasWorkspace={hasWorkspace} />
+      <WorkspaceSidebar t={t} hasWorkspace={workspaceVisible} />
       <main className={mainClass}>
-        {!hasWorkspace ? (
+        {!workspaceVisible ? (
           <>
             <HeroSection
               t={t}
               isLoading={isLoading}
               error={error}
               onForge={onForge}
-              onParseFile={(file) => void parseFile(file)}
             />
             <LandingMarketing
               t={t}
@@ -90,10 +90,11 @@ export default function WorkspaceShell() {
           </div>
         )}
       </main>
-      {hasWorkspace && !focusMode ? (
-        <MobileBottomNav t={t} hasWorkspace={hasWorkspace} />
+      {workspaceVisible ? <QualityScoreModal t={t} /> : null}
+      {workspaceVisible && !focusMode ? (
+        <MobileBottomNav t={t} hasWorkspace={workspaceVisible} />
       ) : null}
-      {hasWorkspace ? <WorkspaceFooter t={t} hasWorkspace /> : null}
+      {workspaceVisible ? <WorkspaceFooter t={t} hasWorkspace /> : null}
     </div>
   );
 }

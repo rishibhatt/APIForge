@@ -1,20 +1,20 @@
 import type { Metadata } from "next";
-import { Inter, Space_Mono } from "next/font/google";
+import { JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import { AppThemeProvider } from "@/components/providers/AppThemeProvider";
 import { LanguageProvider } from "@/context/LanguageContext";
 import bodyStyles from "./layout.module.css";
 import "./globals.css";
 
-const inter = Inter({
+const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-sans",
   weight: ["400", "500", "600", "700", "800"],
 });
 
-const spaceMono = Space_Mono({
+const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
-  variable: "--font-space-mono",
-  weight: ["400", "700"],
+  variable: "--font-jetbrains-mono",
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -29,10 +29,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${inter.variable} ${spaceMono.variable} ${bodyStyles.body}`}
-      >
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${plusJakarta.variable} ${jetbrainsMono.variable}`}
+    >
+      <body className={bodyStyles.body}>
         <AppThemeProvider>
           <LanguageProvider>{children}</LanguageProvider>
         </AppThemeProvider>

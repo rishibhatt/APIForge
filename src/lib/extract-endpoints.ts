@@ -34,6 +34,8 @@ export function extractEndpointsFromSpec(doc: Record<string, unknown>): Endpoint
         method: lower.toUpperCase(),
         path,
         summary: typeof op.summary === "string" ? op.summary : undefined,
+        description:
+          typeof op.description === "string" ? op.description : undefined,
         tags: Array.isArray(op.tags)
           ? op.tags.filter((t): t is string => typeof t === "string")
           : undefined,

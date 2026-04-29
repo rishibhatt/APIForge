@@ -25,7 +25,11 @@ export default function LandingMarketing({
 
   return (
     <>
-      <section className={styles.section} id="what-apiforge-does" aria-labelledby="landing-what-heading">
+      <section
+        className={styles.section}
+        id="what-apiforge-does"
+        aria-labelledby="landing-what-heading"
+      >
         <div className={styles.inner}>
           <p className={styles.eyebrow}>{t("landing.marketing.whatEyebrow")}</p>
           <h2 id="landing-what-heading" className={styles.title}>
@@ -35,9 +39,9 @@ export default function LandingMarketing({
           <div className={styles.grid3}>
             {(
               [
-                ["bolt", "landing.marketing.card1Title", "landing.marketing.card1Body"],
-                ["code", "landing.marketing.card2Title", "landing.marketing.card2Body"],
-                ["send", "landing.marketing.card3Title", "landing.marketing.card3Body"],
+                ["api", "landing.marketing.card1Title", "landing.marketing.card1Body"],
+                ["code_blocks", "landing.marketing.card2Title", "landing.marketing.card2Body"],
+                ["public", "landing.marketing.card3Title", "landing.marketing.card3Body"],
               ] as const
             ).map(([icon, titleKey, bodyKey]) => (
               <article key={titleKey} className={styles.card}>
@@ -94,38 +98,52 @@ export default function LandingMarketing({
         </div>
       </section>
 
-      <section className={styles.section} id="how-it-works" aria-labelledby="landing-steps-heading">
+      <section
+        className={`${styles.section} ${styles.sectionSteps}`}
+        id="how-it-works"
+        aria-labelledby="landing-steps-heading"
+      >
         <div className={styles.inner}>
-          <p className={styles.eyebrow}>{t("landing.marketing.stepsEyebrow")}</p>
-          <h2 id="landing-steps-heading" className={styles.title}>
-            {t("landing.marketing.stepsTitle")}
-          </h2>
-          <p className={styles.subtitle}>{t("landing.marketing.stepsSubtitle")}</p>
-          <div className={styles.steps}>
-            {(
-              [
-                ["1", "link", "landing.marketing.step1Title", "landing.marketing.step1Body"],
-                ["2", "explore", "landing.marketing.step2Title", "landing.marketing.step2Body"],
-                ["3", "terminal", "landing.marketing.step3Title", "landing.marketing.step3Body"],
-                ["4", "bolt", "landing.marketing.step4Title", "landing.marketing.step4Body"],
-              ] as const
-            ).map(([num, icon, titleKey, bodyKey]) => (
-              <article key={num} className={styles.stepCard}>
-                <div className={styles.stepNum}>{num}</div>
-                <div className={styles.stepIcon}>
-                  <MaterialIcon name={icon} size="md" />
-                </div>
-                <h3 className={styles.stepTitle}>{t(titleKey)}</h3>
-                <p className={styles.stepBody}>{t(bodyKey)}</p>
-              </article>
-            ))}
+          <div className={styles.stepsIntro}>
+            <p className={styles.eyebrow}>{t("landing.marketing.stepsEyebrow")}</p>
+            <h2 id="landing-steps-heading" className={styles.title}>
+              {t("landing.marketing.stepsTitle")}
+            </h2>
+            <p className={styles.subtitle}>{t("landing.marketing.stepsSubtitle")}</p>
+          </div>
+          <div className={styles.stepsShell}>
+            <div className={styles.stepsRail} aria-hidden />
+            <div className={styles.steps}>
+              {(
+                [
+                  ["1", "dataset_linked", "landing.marketing.step1Title", "landing.marketing.step1Body"],
+                  ["2", "hub", "landing.marketing.step2Title", "landing.marketing.step2Body"],
+                  ["3", "integration_instructions", "landing.marketing.step3Title", "landing.marketing.step3Body"],
+                  ["4", "network_ping", "landing.marketing.step4Title", "landing.marketing.step4Body"],
+                ] as const
+              ).map(([num, icon, titleKey, bodyKey]) => (
+                <article key={num} className={styles.stepCard}>
+                  <div className={styles.stepNum}>{num}</div>
+                  <div className={styles.stepIcon}>
+                    <MaterialIcon name={icon} size="md" />
+                  </div>
+                  <h3 className={styles.stepTitle}>{t(titleKey)}</h3>
+                  <p className={styles.stepBody}>{t(bodyKey)}</p>
+                </article>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
-      <section className={`${styles.section} ${styles.sectionAlt}`} id="playground" aria-labelledby="landing-play-heading">
+      <section
+        className={`${styles.section} ${styles.sectionAlt} ${styles.sectionPlay}`}
+        id="playground"
+        aria-labelledby="landing-play-heading"
+      >
         <div className={styles.inner}>
           <div className={styles.playgroundCard}>
+            <div className={styles.playgroundMesh} aria-hidden />
             <div className={styles.playgroundContent}>
               <p className={styles.eyebrow}>{t("landing.marketing.playEyebrow")}</p>
               <h2 id="landing-play-heading" className={styles.title}>
@@ -161,7 +179,7 @@ export default function LandingMarketing({
                   >
                     {isLoading ? t("common.loading") : t("landing.parseCta")}
                     {!isLoading ? (
-                      <MaterialIcon name="auto_awesome" className={styles.parseIcon} size="sm" />
+                      <MaterialIcon name="rocket_launch" className={styles.parseIcon} size="sm" />
                     ) : null}
                   </button>
                 </div>
@@ -169,26 +187,59 @@ export default function LandingMarketing({
               {error ? <p className={styles.inlineError}>{error}</p> : null}
             </div>
             <div className={styles.playgroundVisual} aria-hidden>
-              <div className={styles.cube} />
+              <div className={styles.specPreview}>
+                <div className={styles.specPreviewChrome}>
+                  <span className={styles.specChromeDot} />
+                  <span className={styles.specChromeDot} />
+                  <span className={styles.specChromeDot} />
+                  <span className={styles.specFileName}>openapi.json</span>
+                </div>
+                <ul className={styles.specOpList}>
+                  <li className={styles.specOp}>
+                    <span className={styles.methodGet}>GET</span>
+                    <span className={styles.specPath}>/users</span>
+                  </li>
+                  <li className={styles.specOp}>
+                    <span className={styles.methodPost}>POST</span>
+                    <span className={styles.specPath}>/orders</span>
+                  </li>
+                  <li className={styles.specOp}>
+                    <span className={styles.methodGet}>GET</span>
+                    <span className={styles.specPath}>/orders/{"{"}id{"}"}</span>
+                  </li>
+                </ul>
+                <div className={styles.specPreviewMeta}>
+                  <span className={styles.specVer}>OpenAPI 3.0</span>
+                  <span className={styles.specSep} />
+                  <span className={styles.specHint}>parsed</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section className={styles.section} id="why-apiforge" aria-labelledby="landing-why-heading">
+      <section
+        className={`${styles.section} ${styles.sectionWhy}`}
+        id="why-apiforge"
+        aria-labelledby="landing-why-heading"
+      >
+        <div className={styles.whyBackdrop} aria-hidden />
         <div className={styles.inner}>
-          <p className={styles.eyebrow}>{t("landing.marketing.whyEyebrow")}</p>
-          <h2 id="landing-why-heading" className={styles.title}>
-            {t("landing.marketing.whyTitle")}
-          </h2>
-          <p className={styles.subtitle}>{t("landing.marketing.whySubtitle")}</p>
+          <div className={styles.whyIntro}>
+            <p className={styles.eyebrow}>{t("landing.marketing.whyEyebrow")}</p>
+            <h2 id="landing-why-heading" className={styles.title}>
+              {t("landing.marketing.whyTitle")}
+            </h2>
+            <p className={styles.subtitle}>{t("landing.marketing.whySubtitle")}</p>
+          </div>
           <div className={styles.grid4}>
             {(
               [
-                ["rocket_launch", "landing.marketing.why1Title", "landing.marketing.why1Body"],
-                ["bolt", "landing.marketing.why2Title", "landing.marketing.why2Body"],
-                ["code_blocks", "landing.marketing.why3Title", "landing.marketing.why3Body"],
-                ["auto_awesome", "landing.marketing.why4Title", "landing.marketing.why4Body"],
+                ["web_asset", "landing.marketing.why1Title", "landing.marketing.why1Body"],
+                ["memory", "landing.marketing.why2Title", "landing.marketing.why2Body"],
+                ["developer_board", "landing.marketing.why3Title", "landing.marketing.why3Body"],
+                ["support_agent", "landing.marketing.why4Title", "landing.marketing.why4Body"],
               ] as const
             ).map(([icon, titleKey, bodyKey]) => (
               <article key={titleKey} className={styles.whyCard}>

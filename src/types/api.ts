@@ -19,6 +19,8 @@ export interface Endpoint {
   method: string;
   path: string;
   summary?: string;
+  /** OpenAPI `description` for the operation (when present). */
+  description?: string;
   tags?: string[];
   requestBody?: unknown;
   responses?: unknown;

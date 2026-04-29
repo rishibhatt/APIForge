@@ -1,0 +1,296 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.previewNote {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-on-surface-muted);
+}
+
+.empty {
+  margin: 0;
+  padding: var(--space-6);
+  text-align: center;
+  color: var(--color-on-surface-muted);
+  border-radius: var(--radius-lg);
+  border: 1px dashed color-mix(in srgb, var(--color-on-surface) 14%, transparent);
+}
+
+.tableScroll {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: var(--radius-lg);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 20%, transparent);
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--color-primary-container) 10%, var(--color-surface-container-lowest)) 0%,
+    color-mix(in srgb, var(--color-surface-container) 92%, transparent) 100%
+  );
+  box-shadow: var(--shadow-ambient);
+}
+
+.table {
+  width: 100%;
+  min-width: 640px;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.thMethod,
+.thPath,
+.thConf,
+.thExpand {
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-on-surface-variant);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-on-surface) 9%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--color-surface-container-low) 70%,
+    transparent
+  );
+}
+
+.thExpand {
+  width: 48px;
+  text-align: center;
+}
+
+.row {
+  border-bottom: 1px solid color-mix(in srgb, var(--color-on-surface) 6%, transparent);
+  transition: background 0.2s ease;
+}
+
+.row:not(.rowLocked):hover {
+  background: color-mix(in srgb, var(--color-on-surface) 4%, transparent);
+}
+
+.rowOpen {
+  background: color-mix(
+    in srgb,
+    var(--color-primary-container) 6%,
+    var(--color-surface-container-lowest)
+  );
+}
+
+.rowLocked {
+  filter: blur(5px);
+  user-select: none;
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+.tdMethod,
+.tdOriginal,
+.tdFixed,
+.tdConf,
+.tdExpand {
+  padding: var(--space-3) var(--space-4);
+  vertical-align: middle;
+}
+
+.pathMuted {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-on-surface-subtle);
+  word-break: break-all;
+}
+
+.pathHighlight {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: color-mix(
+    in srgb,
+    var(--color-primary-container) 55%,
+    var(--color-on-surface)
+  );
+  word-break: break-all;
+}
+
+.tdConf {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.confBadge {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-on-surface);
+}
+
+.impact {
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 9999px;
+}
+
+.impactHigh {
+  color: var(--color-method-put-patch);
+  border: 1px solid color-mix(in srgb, var(--color-method-put-patch) 35%, transparent);
+  background: color-mix(in srgb, var(--color-method-put-patch) 10%, transparent);
+}
+
+.impactMed {
+  color: var(--color-text-accent);
+  border: 1px solid color-mix(in srgb, var(--color-primary-container) 30%, transparent);
+  background: color-mix(in srgb, var(--color-primary-container) 8%, transparent);
+}
+
+.impactLow {
+  color: var(--color-on-surface-variant);
+  border: 1px solid color-mix(in srgb, var(--color-on-surface) 12%, transparent);
+}
+
+.expandBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-on-surface) 6%, transparent);
+  color: var(--color-on-surface-muted);
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.15s ease;
+}
+
+.expandBtn:hover {
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+  color: var(--color-on-surface);
+  transform: scale(1.05);
+}
+
+.expandPlaceholder {
+  display: inline-block;
+  width: 36px;
+  height: 36px;
+}
+
+.detailRow {
+  border-bottom: 1px solid color-mix(in srgb, var(--color-on-surface) 6%, transparent);
+}
+
+.detailCell {
+  padding: 0 var(--space-4) var(--space-4);
+  background: color-mix(in srgb, var(--color-surface-container-low) 88%, transparent);
+}
+
+.detailCard {
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--color-on-surface) 8%, transparent);
+  background: var(--color-surface-container-lowest);
+}
+
+.reason {
+  margin: 0 0 var(--space-3);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-on-surface-muted);
+}
+
+.changeList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.changeItem {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: 0.8125rem;
+}
+
+.chTag {
+  flex-shrink: 0;
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.chRemoved {
+  color: var(--color-error-surface-text);
+  background: var(--color-error-surface-bg);
+  border: 1px solid var(--color-error-surface-border);
+}
+
+.chAdded {
+  color: var(--color-method-get);
+  background: color-mix(in srgb, var(--color-method-get) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-method-get) 28%, transparent);
+}
+
+.chModified {
+  color: var(--color-method-put-patch);
+  background: color-mix(in srgb, var(--color-method-put-patch) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-method-put-patch) 28%, transparent);
+}
+
+.chFrom,
+.chTo {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  word-break: break-all;
+  color: var(--color-on-surface-muted);
+}
+
+.chTo {
+  color: var(--color-on-surface);
+}
+
+.chArrow {
+  color: var(--color-on-surface-variant);
+}
+
+.noChanges {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-on-surface-subtle);
+}
+
+.lockBanner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-on-surface-muted);
+  border: 1px dashed color-mix(in srgb, var(--color-primary) 24%, transparent);
+  background: color-mix(in srgb, var(--color-primary-container) 6%, transparent);
+}
+
+@media (max-width: 700px) {
+  .table {
+    min-width: 520px;
+  }
+}

@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef } from "react";
 import type { TranslateFn } from "@/context/LanguageContext";
 import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
+import LandingMarquee from "@/components/sections/LandingMarquee/LandingMarquee";
 import { useWorkspaceStore } from "@/store/workspaceStore";
 import styles from "./HeroSection.module.css";
 
@@ -11,7 +11,6 @@ export interface HeroSectionProps {
   isLoading: boolean;
   error: string | null;
   onForge: () => void;
-  onParseFile: (file: File) => void;
 }
 
 export default function HeroSection({
@@ -19,21 +18,13 @@ export default function HeroSection({
   isLoading,
   error,
   onForge,
-  onParseFile,
 }: HeroSectionProps) {
   const specUrlInput = useWorkspaceStore((s) => s.specUrlInput);
   const setSpecUrlInput = useWorkspaceStore((s) => s.setSpecUrlInput);
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) onParseFile(file);
-    e.target.value = "";
-  };
 
   return (
     <section className={styles.hero} id="parse-api">
-      <div className={styles.heroGradient} aria-hidden />
+      <div className={styles.heroMesh} aria-hidden />
       <div className={styles.gridSubtle} aria-hidden />
 
       <div className={styles.inner}>
@@ -44,7 +35,6 @@ export default function HeroSection({
 
         <h1 className={styles.title}>
           <span className={styles.titleLine}>{t("landing.titleLine1")}</span>
-          <br />
           <span className={styles.titleGradient}>{t("landing.titleLine2")}</span>
         </h1>
 
@@ -59,7 +49,7 @@ export default function HeroSection({
                 size="md"
               />
               <label htmlFor="landing-forge-url" className="srOnly">
-                {t("hero.inputPlaceholder")}
+                {t("landing.inputPlaceholder")}
               </label>
               <input
                 id="landing-forge-url"
@@ -92,28 +82,6 @@ export default function HeroSection({
         {error ? <p className={styles.error}>{error}</p> : null}
 
         <div className={styles.supporting}>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".json,.yaml,.yml,application/json,text/yaml"
-            className="srOnly"
-            aria-label={t("landing.uploadJson")}
-            onChange={onFileChange}
-          />
-          <button
-            type="button"
-            className={`${styles.uploadBtn} focusRing`}
-            onClick={() => fileRef.current?.click()}
-            disabled={isLoading}
-          >
-            <MaterialIcon
-              name="upload_file"
-              className={styles.uploadIcon}
-              size="md"
-            />
-            <span>{t("landing.uploadJson")}</span>
-          </button>
-
           <div className={styles.supportsRow}>
             <span className={styles.supportsLabel}>{t("landing.supports")}</span>
             <div className={styles.supportsTags}>
@@ -124,25 +92,7 @@ export default function HeroSection({
         </div>
       </div>
 
-      <div className={styles.decorLeft} aria-hidden>
-        <div className={styles.gaugeBlock}>
-          <span className={styles.gaugeLabel}>{t("landing.latency")}</span>
-          <div className={styles.gaugeTrack}>
-            <div className={styles.gaugeFillLatency} />
-          </div>
-        </div>
-        <div className={styles.gaugeBlock}>
-          <span className={styles.gaugeLabel}>{t("landing.throughput")}</span>
-          <div className={styles.gaugeTrack}>
-            <div className={styles.gaugeFillThroughput} />
-          </div>
-        </div>
-      </div>
-
-      <div className={styles.decorRight} aria-hidden>
-        <div className={styles.uptimeValue}>{t("landing.uptimeValue")}</div>
-        <div className={styles.uptimeLabel}>{t("landing.uptimeLabel")}</div>
-      </div>
+      <LandingMarquee t={t} className={styles.heroMarquee} />
     </section>
   );
 }

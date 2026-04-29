@@ -1,0 +1,111 @@
+.marqueeBand {
+  position: relative;
+  width: 100%;
+  border-top: 1px solid color-mix(in srgb, var(--color-on-surface) 6%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-on-surface) 6%, transparent);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-surface-container-low) 100%, transparent) 0%,
+    color-mix(in srgb, var(--color-primary-container) 8%, var(--color-surface)) 50%,
+    color-mix(in srgb, var(--color-surface-container-low) 100%, transparent) 100%
+  );
+  padding: 0.65rem 0;
+}
+
+.marqueeViewport {
+  overflow: hidden;
+  width: 100%;
+  mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000 8%,
+    #000 92%,
+    transparent
+  );
+}
+
+.marqueeFadeLeft,
+.marqueeFadeRight {
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+  width: 48px;
+}
+
+.marqueeFadeLeft {
+  left: 0;
+  background: linear-gradient(
+    90deg,
+    var(--color-surface) 0%,
+    transparent 100%
+  );
+}
+
+.marqueeFadeRight {
+  right: 0;
+  background: linear-gradient(
+    270deg,
+    var(--color-surface) 0%,
+    transparent 100%
+  );
+}
+
+.marqueeTrack {
+  display: flex;
+  width: max-content;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.75rem;
+  animation: marqueeX 32s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marqueeTrack {
+    animation: none;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    max-width: 70rem;
+    margin: 0 auto;
+  }
+}
+
+@keyframes marqueeX {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.marqueeChip {
+  flex-shrink: 0;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 24%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--color-surface-container) 90%,
+    var(--color-primary-container) 10%
+  );
+  padding: 0.35rem 0.9rem;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-on-surface-muted);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-on-surface) 5%, transparent) inset;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.marqueeChip:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 45%, transparent);
+  color: var(--color-primary-container);
+  transform: translateY(-1px);
+}

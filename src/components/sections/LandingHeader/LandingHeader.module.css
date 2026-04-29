@@ -29,11 +29,41 @@
   }
 }
 
+.headerMinimal {
+  grid-template-columns: auto 1fr auto;
+}
+
+.navSpacer {
+  display: block;
+  min-width: 0;
+}
+
 .left {
   display: flex;
   min-width: 0;
   align-items: center;
   gap: var(--space-3);
+}
+
+.homeLink {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+}
+
+.homeLinkInner {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.homeLink:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .brandLogo {
@@ -105,31 +135,13 @@
   }
 }
 
-.openApp {
-  display: none;
-  align-items: center;
-  justify-content: center;
-  padding: 6px 12px;
-  border-radius: var(--radius-sm);
-  border: none;
-  background: var(--color-cta-fill);
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  text-decoration: none;
-  color: var(--color-on-primary);
-  box-shadow: var(--shadow-ambient);
-  transition: filter 0.15s ease;
-}
+@media (max-width: 1100px) {
+  .navList {
+    gap: var(--space-1) var(--space-2);
+  }
 
-.openApp:hover {
-  filter: brightness(1.06);
-}
-
-@media (min-width: 520px) {
-  .openApp {
-    display: inline-flex;
+  .navLink {
+    font-size: 0.625rem;
+    letter-spacing: 0.06em;
   }
 }

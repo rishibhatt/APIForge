@@ -15,6 +15,7 @@ import EditorChrome from "@/components/atomic/molecules/EditorChrome/EditorChrom
 import HighlightedCode from "@/components/atomic/molecules/HighlightedCode/HighlightedCode";
 import SchemaInsightPanel from "@/components/atomic/organisms/SchemaInsightPanel/SchemaInsightPanel";
 import WorkspaceAiChatDock from "@/components/atomic/organisms/WorkspaceAiChatDock/WorkspaceAiChatDock";
+import QualityScoreTeaser from "@/components/atomic/organisms/WorkspaceQualityScore/QualityScoreTeaser";
 import {
   buildWorkspaceAssistantApiContext,
   type WorkspaceAssistantApiContext,
@@ -331,6 +332,7 @@ export default function WorkspaceCodePanel({ t }: WorkspaceCodePanelProps) {
       id="workspace-code"
       className={`${styles.wrap} ${focusMode ? styles.wrapFocus : ""}`}
     >
+      {endpoints.length > 0 ? <QualityScoreTeaser t={t} /> : null}
       {activeEndpoint ? (
         <div className={styles.endpointSummary}>
           <EndpointStrip
