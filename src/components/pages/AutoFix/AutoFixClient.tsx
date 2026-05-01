@@ -9,7 +9,6 @@ import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
 import { readAnalysisPayload } from "@/lib/analysis-session";
 import { generateFixes } from "@/lib/fixEngine";
 import type { Endpoint } from "@/lib/fixEngine";
-import { AUTO_FIX_FREE_PREVIEW } from "@/lib/auto-fix-preview";
 import { useLanguage } from "@/hooks/useLanguage";
 import styles from "./AutoFixPage.module.css";
 
@@ -29,23 +28,35 @@ export default function AutoFixClient({ id }: { id: string }) {
 
   const fixes = useMemo(() => generateFixes(endpoints), [endpoints]);
 
-  const exportableFixes = useMemo(() => {
-    if (fixes.length <= AUTO_FIX_FREE_PREVIEW) return fixes;
-    return fixes.slice(0, AUTO_FIX_FREE_PREVIEW);
+  const copyAll = useCallback(() => {
+    const text = fixes
+      .map((f) => {
+        const from = `${f.originalMethod} ${f.original}`;
+        const to = `${f.method} ${f.fixed}`;
+        if (from === to) return to;
+        return `${from}\n→ ${to}`;
+      })
+      .join("\n\n");
+    void navigator.clipboard.writeText(text);
   }, [fixes]);
 
-  const copyAll = useCallback(() => {
-    const text = exportableFixes
-      .map((f) => `${f.method} ${f.fixed}`)
-      .join("\n");
-    void navigator.clipboard.writeText(text);
-  }, [exportableFixes]);
-
   const exportJson = useCallback(() => {
-    const data = exportableFixes.map((f) => ({
-      original: f.original,
-      fixed: f.fixed,
+    const data = fixes.map((f) => ({
+      original: `${f.originalMethod} ${f.original}`,
+      fixed: `${f.method} ${f.fixed}`,
+      originalPath: f.original,
+      fixedPath: f.fixed,
+      originalMethod: f.originalMethod,
       method: f.method,
+      methodChanged: f.methodChanged,
+      restCompliant: f.restCompliant,
+      scoreBefore: f.scoreBefore,
+      scoreAfter: f.scoreAfter,
+      improvements: f.improvements,
+      changes: f.changes,
+      confidence: f.confidence,
+      impact: f.impact,
+      reason: f.reason,
     }));
     const blob = new Blob([JSON.stringify(data, null, 2)], {
       type: "application/json",
@@ -56,7 +67,7 @@ export default function AutoFixClient({ id }: { id: string }) {
     a.download = `apiforge-auto-fix-${id.slice(0, 8)}.json`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [exportableFixes, id]);
+  }, [fixes, id]);
 
   const onBackAnalysis = useCallback(() => {
     router.push(`/analysis/${id}`);
