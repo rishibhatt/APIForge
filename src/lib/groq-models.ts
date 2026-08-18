@@ -1,11 +1,11 @@
 /** Primary model (higher quality, heavier quota use on free tier). */
-export const DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile";
+export const DEFAULT_GROQ_MODEL = "qwen/qwen3.6-27b";
 
 /**
  * Fallback when primary hits 429 / daily limits — much cheaper on TPD.
  * Override with GROQ_MODEL_FALLBACK in .env
  */
-export const DEFAULT_GROQ_FALLBACK_MODEL = "llama-3.1-8b-instant";
+export const DEFAULT_GROQ_FALLBACK_MODEL = "qwen/qwen3.6-27b";
 
 export function resolveGroqModels(): { primary: string; fallback: string } {
   const primary =
