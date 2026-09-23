@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, useEffect } from "react";
 import type {
   Endpoint,
   GenerationScope,
@@ -13,7 +13,7 @@ import {
   getGenerationCache,
   setGenerationCache,
 } from "@/lib/generation-cache";
-import { parseUsageFromResponseHeaders } from "@/lib/groq-token-usage";
+import { parseAIMetadataFromHeaders } from "@/lib/groq-token-usage";
 import { useWorkspaceStore } from "@/store/workspaceStore";
 
 export type GenerateOptions = {
@@ -27,13 +27,35 @@ export type GenerateOptions = {
 export function useGroqStream() {
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [lastLatencyMs, setLastLatencyMs] = useState<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
-  /** Prevents a superseded (aborted) request from clearing loading / wiping state. */
   const genIdRef = useRef(0);
   const setLastGlobal = useWorkspaceStore((s) => s.setLastGenerationMs);
   const setLastGroqUsage = useWorkspaceStore((s) => s.setLastGroqUsage);
+  const setLastAiMeta = useWorkspaceStore((s) => s.setLastAiMeta);
+
+  // Progressive status timer: if request takes > 1.2s, display informative technical feedback
+  useEffect(() => {
+    let t1: NodeJS.Timeout;
+    let t2: NodeJS.Timeout;
+    if (loading) {
+      setStatusMessage("Dispatching to AI Gateway...");
+      t1 = setTimeout(() => {
+        setStatusMessage("Optimizing prompt with high-speed LPU model...");
+      }, 1200);
+      t2 = setTimeout(() => {
+        setStatusMessage("Routing through resilient fallback chain...");
+      }, 3500);
+    } else {
+      setStatusMessage(null);
+    }
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [loading]);
 
   const generate = useCallback(
     async (
@@ -59,7 +81,6 @@ export function useGroqStream() {
           setResult(hit);
           setError(null);
           setLoading(false);
-          /* Cached generations have no usage headers */
           return;
         }
       } else {
@@ -113,7 +134,8 @@ export function useGroqStream() {
           throw new Error(msg);
         }
 
-        const usageHdr = parseUsageFromResponseHeaders(res.headers);
+        const meta = parseAIMetadataFromHeaders(res.headers);
+        setLastAiMeta(meta);
 
         const reader = res.body?.getReader();
         if (!reader) throw new Error("No response body");
@@ -135,7 +157,7 @@ export function useGroqStream() {
           const ms = Math.round(performance.now() - t0);
           setLastLatencyMs(ms);
           setLastGlobal(ms);
-          setLastGroqUsage(usageHdr);
+          setLastGroqUsage(meta.usage);
         }
       } catch (e) {
         if ((e as Error).name === "AbortError") return;
@@ -150,12 +172,13 @@ export function useGroqStream() {
         }
       }
     },
-    [setLastGlobal, setLastGroqUsage],
+    [setLastGlobal, setLastGroqUsage, setLastAiMeta],
   );
 
   return {
     result,
     loading,
+    statusMessage,
     error,
     lastLatencyMs,
     generate,

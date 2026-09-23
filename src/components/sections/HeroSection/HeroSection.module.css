@@ -2,17 +2,20 @@
   position: relative;
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  align-items: center;
   width: 100%;
-  min-height: 0;
+  min-height: calc(85vh - var(--header-h, 56px));
   box-sizing: border-box;
   overflow: hidden;
-  padding: var(--space-5) var(--space-4) var(--space-3);
+  padding: 64px var(--space-4) 40px;
   scroll-margin-top: calc(var(--header-h) + var(--space-2));
 }
 
 @media (min-width: 768px) {
   .hero {
-    padding: var(--space-6) var(--space-6) var(--space-4);
+    min-height: max(680px, calc(88vh - var(--header-h, 56px)));
+    padding: 88px var(--space-6) 52px;
   }
 }
 
@@ -21,7 +24,7 @@
   z-index: 1;
   align-self: stretch;
   width: 100%;
-  margin-top: var(--space-6);
+  margin-top: 56px;
 }
 
 .heroMesh {
@@ -84,18 +87,19 @@
   z-index: 1;
   display: flex;
   width: 100%;
-  max-width: 48rem;
+  max-width: 52rem;
   flex-direction: column;
   align-items: center;
   align-self: center;
   text-align: center;
+  margin: auto 0;
 }
 
 .badge {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  margin-bottom: var(--space-5);
+  margin-bottom: 28px;
   border-radius: 9999px;
   border: var(--glass-border);
   background: color-mix(
@@ -103,7 +107,7 @@
     var(--color-surface-container-highest) 40%,
     transparent
   );
-  padding: 6px 14px;
+  padding: 7px 16px;
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   animation: heroFadeUp 0.65s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both;
@@ -135,12 +139,12 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.06em;
-  margin: 0 0 var(--space-5);
+  gap: 0.1em;
+  margin: 0 0 24px;
   font-family: var(--font-display);
-  font-size: clamp(2.35rem, 9vw, 4.25rem);
+  font-size: clamp(2.35rem, 8.5vw, 4.25rem);
   font-weight: 900;
-  line-height: 1.02;
+  line-height: 1.05;
   letter-spacing: -0.05em;
   color: var(--color-on-surface);
   animation: heroFadeUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
@@ -180,21 +184,21 @@
 }
 
 .subtitle {
-  margin: 0 auto var(--space-8);
-  max-width: 36rem;
-  font-size: clamp(1rem, 2.6vw, 1.125rem);
+  margin: 0 auto 36px;
+  max-width: 38rem;
+  font-size: clamp(1rem, 2.5vw, 1.15rem);
   font-weight: 500;
-  line-height: 1.62;
+  line-height: 1.68;
   color: var(--color-on-surface-variant);
 }
 
 .inputCanvas {
   width: 100%;
-  max-width: 42rem;
+  max-width: 44rem;
   border-radius: var(--radius-md);
   border: 1px solid color-mix(in srgb, var(--color-outline-variant) 10%, transparent);
   background: var(--color-surface-container);
-  padding: var(--space-2);
+  padding: 8px;
   box-shadow: var(--shadow-float);
   transition:
     box-shadow 0.3s ease,

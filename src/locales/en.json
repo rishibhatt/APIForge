@@ -476,5 +476,33 @@
     "explainAI": "Explain with AI",
     "corsHint": "If the browser blocks the request (CORS), run the same call from your backend or disable CORS for local testing.",
     "runError": "Request failed"
+  },
+  "support": {
+    "floatingCta": "Support Project ☕",
+    "floatingBadge": "Free & Open",
+    "sectionEyebrow": "Back the Vision",
+    "sectionStatusBadge": "Current Status: Running on Free AI Models",
+    "sectionTitle": "Help Us Unlock Paid Frontier Models for Everyone",
+    "sectionSubtitle": "APIForge currently operates entirely on community free-tier models. While great for basic workflows, free models face strict rate limits and reduced reasoning depth. Your funding directly sponsors paid flagship models (Claude 3.5 Sonnet, GPT-4o, DeepSeek R1 Pro) to supercharge result accuracy and unlock powerful new features for the entire community.",
+    "card1Title": "Higher Accuracy & Paid Frontier LLMs",
+    "card1Body": "Currently, we rely on free models that can occasionally hallucinate or truncate complex schemas. Your support funds paid Claude 3.5 Sonnet & GPT-4o keys for unmatched reasoning precision across massive APIs.",
+    "card2Title": "Unlock Advanced Features & Deep Tests",
+    "card2Body": "Paid models will unlock new capabilities: comprehensive edge-case mock generation, automated schema breaking-change analysis, and multi-file contract refactoring.",
+    "card3Title": "100% Free Core Developer Workbench",
+    "card3Body": "All core developer tools—the interactive OpenAPI explorer, live request runner, and schema validation—will remain completely free, public, and open-source forever.",
+    "ctaButton": "Buy Me a Coffee / Support via UPI ☕",
+    "modalTitle": "Support APIForge",
+    "modalSubtitle": "Fund paid frontier AI models & enhance accuracy for all developers",
+    "upiTab": "UPI (Instant / India)",
+    "globalTab": "Buy Me a Coffee / Cards",
+    "upiCardTitle": "Instant UPI Transfer",
+    "upiCardSubtitle": "Scan with any UPI app (GPay, PhonePe, Paytm, Cred, BHIM)",
+    "upiIdLabel": "UPI VPA ID",
+    "copyUpi": "Copy UPI ID",
+    "copied": "Copied to Clipboard! 🎉",
+    "openUpiApp": "Pay via UPI App",
+    "coffeeCta": "Buy Me a Coffee",
+    "githubSponsors": "GitHub Sponsors",
+    "backerThankYou": "Every contribution directly funds paid model API tokens, compute hosting, and new open-source capabilities. Thank you for empowering the developer community!"
   }
 }

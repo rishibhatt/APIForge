@@ -17,11 +17,11 @@ export interface AppLogoProps {
 }
 
 export default function AppLogo({
-  size = 28,
-  maxWidth = 120,
+  size = 42,
+  maxWidth = 180,
   className = "",
   priority = false,
-  quality = 92,
+  quality = 95,
 }: AppLogoProps) {
   return (
     <span
@@ -36,12 +36,12 @@ export default function AppLogo({
       <Image
         src={APP_LOGO_PATH}
         alt=""
-        width={Math.round(size * 1.15)}
+        width={size}
         height={size}
         className={styles.img}
         priority={priority}
         quality={quality}
-        sizes={`${Math.round(size * 1.15)}px`}
+        sizes={`${size}px`}
       />
     </span>
   );

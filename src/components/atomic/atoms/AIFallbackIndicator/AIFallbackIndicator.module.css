@@ -1,0 +1,217 @@
+.container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono, monospace);
+  user-select: none;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: help;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: var(--color-emerald, #10b981);
+}
+
+.badge:hover {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.45);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+}
+
+.icon {
+  font-size: 10px;
+  animation: pulseIcon 2s infinite ease-in-out;
+}
+
+@keyframes pulseIcon {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.7;
+  }
+}
+
+.divider {
+  opacity: 0.4;
+  font-size: 9px;
+}
+
+.modelName {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.providerName {
+  opacity: 0.85;
+}
+
+.fallbackState .badge {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: #f59e0b;
+}
+
+.fallbackState .badge:hover {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: rgba(245, 158, 11, 0.55);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+}
+
+.fallbackPill {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  font-weight: 700;
+}
+
+.loadingState {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  color: #60a5fa;
+  font-size: 11px;
+}
+
+.spinner {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(96, 165, 250, 0.2);
+  border-top-color: #60a5fa;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loadingText {
+  letter-spacing: 0.02em;
+  animation: shimmer 1.5s infinite ease-in-out;
+}
+
+@keyframes shimmer {
+  0%, 100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  width: 280px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(18, 18, 24, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 1px rgba(255, 255, 255, 0.2);
+  z-index: 100;
+  animation: tooltipFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.tooltipHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.tooltipTitle {
+  font-size: 11px;
+  font-weight: 600;
+  color: #f3f4f6;
+}
+
+.tooltipLatency {
+  font-size: 10px;
+  color: #10b981;
+  font-weight: 600;
+}
+
+.tooltipBody {
+  margin: 0 0 8px 0;
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: #9ca3af;
+  font-family: inherit;
+}
+
+.tooltipFooter {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 5px;
+}
+
+.modelDetail {
+  font-size: 9.5px;
+  color: #6b7280;
+  word-break: break-all;
+}
+
+/* Light Theme Overrides */
+:global(.light) .tooltip {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(0, 0, 0, 0.12);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12), 0 0 1px rgba(0, 0, 0, 0.15);
+}
+
+:global(.light) .tooltipTitle {
+  color: #111827;
+}
+
+:global(.light) .tooltipBody {
+  color: #4b5563;
+}
+
+:global(.light) .tooltipFooter {
+  border-top-color: rgba(0, 0, 0, 0.08);
+}
+
+:global(.light) .modelDetail {
+  color: #6b7280;
+}
+
+:global(.light) .fallbackPill {
+  background: rgba(245, 158, 11, 0.15);
+  color: #b45309;
+}

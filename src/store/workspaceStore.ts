@@ -5,7 +5,7 @@ import {
   getScopeLabel as computeScopeLabel,
   primaryTag,
 } from "@/lib/endpoint-groups";
-import type { GroqTokenUsage } from "@/lib/groq-token-usage";
+import type { AIMetadata, AITokenUsage, GroqTokenUsage } from "@/lib/groq-token-usage";
 import type { Endpoint } from "@/types/api";
 import type { GenerationScope, OutputTab } from "@/types/api";
 
@@ -28,8 +28,18 @@ export interface WorkspaceState {
   generationScope: GenerationScope;
   parseError: string | null;
   lastGenerationMs: number | null;
-  /** Last Groq call token usage (from response headers), if reported by the SDK */
+  /** Last AI call token usage (from response headers) */
+  lastAiUsage: AITokenUsage | null;
+  /** Backward-compatible alias for lastAiUsage */
   lastGroqUsage: GroqTokenUsage | null;
+  /** Last model name used to answer request */
+  lastAiModel: string | null;
+  /** Last provider used */
+  lastAiProvider: string | null;
+  /** Whether automatic model/provider fallback occurred */
+  lastAiFallbackUsed: boolean;
+  /** Models attempted in fallback chain */
+  lastAiAttempts: string[];
   /** Spec metadata from last successful parse */
   specTitle: string | null;
   specVersion: string | null;
@@ -51,7 +61,11 @@ export interface WorkspaceState {
   toggleFocusMode: () => void;
   qualityScoreModalOpen: boolean;
   setQualityScoreModalOpen: (v: boolean) => void;
-  /** OpenAPI tag key for middle column endpoint list (e.g. \"Auth\") */
+  /** Buy me a coffee / Support modal */
+  supportModalOpen: boolean;
+  setSupportModalOpen: (v: boolean) => void;
+  toggleSupportModal: () => void;
+  /** OpenAPI tag key for middle column endpoint list (e.g. "Auth") */
   selectedCollectionTag: string | null;
   setSelectedCollectionTag: (tag: string | null) => void;
   setEndpoints: (
@@ -64,7 +78,9 @@ export interface WorkspaceState {
   setGenerationScope: (s: GenerationScope) => void;
   setParseError: (msg: string | null) => void;
   setLastGenerationMs: (ms: number | null) => void;
+  setLastAiUsage: (u: AITokenUsage | null) => void;
   setLastGroqUsage: (u: GroqTokenUsage | null) => void;
+  setLastAiMeta: (meta: Partial<AIMetadata>) => void;
   setSpecMeta: (title: string | null, version: string | null) => void;
   setSpecUrlInput: (s: string) => void;
   setWorkspaceDefaultBearer: (s: string) => void;
@@ -82,7 +98,12 @@ const initial = {
   generationScope: "endpoint" as GenerationScope,
   parseError: null as string | null,
   lastGenerationMs: null as number | null,
+  lastAiUsage: null as AITokenUsage | null,
   lastGroqUsage: null as GroqTokenUsage | null,
+  lastAiModel: null as string | null,
+  lastAiProvider: null as string | null,
+  lastAiFallbackUsed: false,
+  lastAiAttempts: [] as string[],
   specTitle: null as string | null,
   specVersion: null as string | null,
   specServerUrls: [] as string[],
@@ -94,6 +115,7 @@ const initial = {
   mobileSidebarOpen: false,
   focusMode: false,
   qualityScoreModalOpen: false,
+  supportModalOpen: false,
   selectedCollectionTag: null as string | null,
 };
 
@@ -148,7 +170,19 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   setGenerationScope: (generationScope) => set({ generationScope }),
   setParseError: (parseError) => set({ parseError }),
   setLastGenerationMs: (lastGenerationMs) => set({ lastGenerationMs }),
-  setLastGroqUsage: (lastGroqUsage) => set({ lastGroqUsage }),
+  setLastAiUsage: (usage) => set({ lastAiUsage: usage, lastGroqUsage: usage }),
+  setLastGroqUsage: (lastGroqUsage) =>
+    set({ lastAiUsage: lastGroqUsage, lastGroqUsage }),
+  setLastAiMeta: (meta) =>
+    set((s) => ({
+      lastAiUsage: meta.usage !== undefined ? meta.usage : s.lastAiUsage,
+      lastGroqUsage: meta.usage !== undefined ? meta.usage : s.lastGroqUsage,
+      lastAiModel: meta.model !== undefined ? meta.model : s.lastAiModel,
+      lastAiProvider: meta.provider !== undefined ? meta.provider : s.lastAiProvider,
+      lastAiFallbackUsed:
+        meta.fallbackUsed !== undefined ? meta.fallbackUsed : s.lastAiFallbackUsed,
+      lastAiAttempts: meta.attempts !== undefined ? meta.attempts : s.lastAiAttempts,
+    })),
   setSpecMeta: (specTitle, specVersion) => set({ specTitle, specVersion }),
   setSpecUrlInput: (specUrlInput) => set({ specUrlInput }),
   setWorkspaceDefaultBearer: (workspaceDefaultBearer) =>
@@ -167,11 +201,14 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   toggleFocusMode: () => set((s) => ({ focusMode: !s.focusMode })),
   setQualityScoreModalOpen: (qualityScoreModalOpen) =>
     set({ qualityScoreModalOpen }),
+  setSupportModalOpen: (supportModalOpen) => set({ supportModalOpen }),
+  toggleSupportModal: () => set((s) => ({ supportModalOpen: !s.supportModalOpen })),
   clearWorkspace: () =>
     set({
       ...initial,
       focusMode: false,
       qualityScoreModalOpen: false,
+      supportModalOpen: false,
       selectedCollectionTag: null,
     }),
 }));

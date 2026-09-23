@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import { AppThemeProvider } from "@/components/providers/AppThemeProvider";
 import { LanguageProvider } from "@/context/LanguageContext";
@@ -17,10 +17,94 @@ const jetbrainsMono = JetBrains_Mono({
   weight: ["400", "500", "600", "700"],
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://apiforge.dev";
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#0c0814" },
+    { media: "(prefers-color-scheme: light)", color: "#f5f3f8" },
+  ],
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
+
 export const metadata: Metadata = {
-  title: "ApiForge | Forge your API workspace",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "APIForge — AI-Powered OpenAPI & Swagger Workspace",
+    template: "%s | APIForge",
+  },
   description:
-    "Parse OpenAPI and Swagger specs, explore endpoints, and generate TypeScript, AI prompts, and API tests with Groq.",
+    "Parse OpenAPI & Swagger specifications, audit API quality scores, auto-fix schemas, generate TypeScript SDKs, and build automated test suites with instant AI intelligence.",
+  applicationName: "APIForge",
+  authors: [{ name: "Rishi Bhatt", url: "https://github.com/rishibhatt" }],
+  creator: "Rishi Bhatt",
+  publisher: "APIForge",
+  keywords: [
+    "OpenAPI",
+    "Swagger",
+    "OpenAPI 3.0",
+    "Swagger Parser",
+    "API Quality Score",
+    "API Linter",
+    "TypeScript SDK Generator",
+    "API Mock Server",
+    "AI Schema Auto-Fix",
+    "REST API Tools",
+    "Developer Tools",
+    "Groq AI",
+  ],
+  category: "Developer Tools",
+  alternates: {
+    canonical: "/",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    nocache: false,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: siteUrl,
+    siteName: "APIForge",
+    title: "APIForge — AI-Powered OpenAPI & Swagger Workspace",
+    description:
+      "Transform raw API specifications into interactive workspaces, instant TypeScript clients, automated test suites, and AI-powered quality audits.",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "APIForge — AI-Powered OpenAPI & Swagger Workspace",
+        type: "image/png",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "APIForge — AI-Powered OpenAPI & Swagger Workspace",
+    description:
+      "Transform raw API specifications into interactive workspaces, instant TypeScript clients, automated test suites, and AI-powered quality audits.",
+    creator: "@rishibhatt",
+    images: ["/twitter-image"],
+  },
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/icon.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: [{ url: "/icon.png", sizes: "180x180", type: "image/png" }],
+  },
+  manifest: "/manifest.webmanifest",
 };
 
 export default function RootLayout({

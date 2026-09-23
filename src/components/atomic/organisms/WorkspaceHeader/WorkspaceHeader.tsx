@@ -75,7 +75,7 @@ export default function WorkspaceHeader({
         >
           <MaterialIcon name="menu" size="md" />
         </button>
-        <AppLogo size={32} maxWidth={120} className={styles.brandLogo} />
+        <AppLogo size={56} maxWidth={180} className={styles.brandLogo} />
         <span className={styles.brand} aria-label={t("common.appName")}>
           {t("common.appName")}
         </span>

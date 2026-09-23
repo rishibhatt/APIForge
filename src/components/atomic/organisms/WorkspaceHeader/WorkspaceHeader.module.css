@@ -36,13 +36,14 @@
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: var(--space-2);
+  gap: 10px;
   grid-area: left;
   justify-self: start;
 }
 
 .brandLogo {
   flex-shrink: 0;
+  filter: drop-shadow(0 2px 8px rgba(160, 120, 255, 0.35));
 }
 
 .center {
@@ -149,12 +150,23 @@
 }
 
 .brand {
-  font-family: var(--font-display);
-  font-size: 1.125rem;
+  font-family: var(--font-display, var(--font-sans, system-ui, sans-serif));
+  font-size: 1.15rem;
   font-weight: 900;
-  letter-spacing: -0.04em;
-  color: var(--color-on-surface);
+  letter-spacing: -0.035em;
+  background: linear-gradient(135deg, #ffffff 10%, #d0bcff 55%, #a078ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   white-space: nowrap;
+  display: inline-block;
+}
+
+:global(.light) .brand {
+  background: linear-gradient(135deg, #2e1065 0%, #6d28d9 55%, #7c4dc4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .right {

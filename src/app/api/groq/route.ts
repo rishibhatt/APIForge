@@ -1,4 +1,3 @@
-import { createGroq } from "@ai-sdk/groq";
 import type {
   Endpoint,
   GenerationScope,
@@ -6,10 +5,9 @@ import type {
   IdePromptScope,
 } from "@/types/api";
 import { buildGroqPrompt } from "@/lib/groq-prompts";
-import { generateGroqTextBuffered } from "@/lib/groq-generate-buffered";
-import { isGroqRateLimitError } from "@/lib/groq-errors";
-import { applyUsageHeaders } from "@/lib/groq-token-usage";
-import { resolveGroqModels } from "@/lib/groq-models";
+import { ai } from "@/lib/ai/service";
+import { getAIErrorMessage, isAIRateLimitError } from "@/lib/ai/errors";
+import { applyAIResponseHeaders } from "@/lib/groq-token-usage";
 import {
   isEndpoint,
   isEndpointArray,
@@ -25,14 +23,6 @@ function isGroqStreamTab(v: unknown): v is GroqStreamTab {
 }
 
 export async function POST(req: Request) {
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) {
-    return Response.json(
-      { error: "GROQ_API_KEY is not configured" },
-      { status: 500 },
-    );
-  }
-
   let body: unknown;
   try {
     body = await req.json();
@@ -91,33 +81,37 @@ export async function POST(req: Request) {
     scoped: scopedList,
     scope,
   });
-  const groq = createGroq({ apiKey });
-  const { primary: primaryModel, fallback } = resolveGroqModels();
 
   try {
-    const { text, usage } = await generateGroqTextBuffered({
-      model: groq(primaryModel),
-      fallbackModel: groq(fallback),
+    const res = await ai.generate({
+      capability: "general",
       prompt,
       temperature: raw.type === "prompt" ? 0.35 : 0.2,
       maxOutputTokens: raw.type === "prompt" ? 3072 : 2560,
       maxRetries: 1,
+      signal: req.signal,
     });
 
     const headers = new Headers({
       "Content-Type": "text/plain; charset=utf-8",
       "Cache-Control": "no-store",
     });
-    applyUsageHeaders(headers, usage);
+    applyAIResponseHeaders(headers, {
+      usage: res.usage,
+      model: res.model,
+      provider: res.provider,
+      fallbackUsed: res.fallbackUsed,
+      attemptedModels: res.attemptedModels,
+    });
 
-    return new Response(text, {
+    return new Response(res.text, {
       status: 200,
       headers,
     });
   } catch (e) {
-    const status = isGroqRateLimitError(e) ? 429 : 502;
+    const status = isAIRateLimitError(e) ? 429 : 502;
     return Response.json(
-      { error: e instanceof Error ? e.message : "Generation failed" },
+      { error: getAIErrorMessage(e) },
       { status },
     );
   }

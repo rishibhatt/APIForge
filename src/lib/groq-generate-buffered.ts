@@ -1,24 +1,19 @@
-import { generateText } from "ai";
-import { groqErrorMessage, isGroqRateLimitError } from "@/lib/groq-errors";
-import {
-  type GroqTokenUsage,
-  usageFromGenerateTextResult,
-} from "@/lib/groq-token-usage";
-
-type ChatModel = Parameters<typeof generateText>[0]["model"];
+import { ai } from "./ai/service";
+import { groqErrorMessage } from "./groq-errors";
+import type { GroqTokenUsage } from "./groq-token-usage";
 
 export type BufferedGroqParams = {
-  model: ChatModel;
-  fallbackModel: ChatModel;
+  model?: unknown;
+  fallbackModel?: unknown;
   prompt: string;
   system?: string;
-  temperature: number;
-  maxOutputTokens: number;
+  temperature?: number;
+  maxOutputTokens?: number;
   maxRetries?: number;
 };
 
 /**
- * Non-streaming Groq call with automatic fallback model on rate limit (429 / TPD).
+ * Non-streaming AI call with automatic fallback model on rate limit / downtime (backward-compatible bridge).
  */
 export async function generateGroqTextBuffered(
   params: BufferedGroqParams,
@@ -27,58 +22,22 @@ export async function generateGroqTextBuffered(
   usedFallback: boolean;
   usage?: GroqTokenUsage;
 }> {
-  const {
-    model,
-    fallbackModel,
-    prompt,
-    system,
-    temperature,
-    maxOutputTokens,
-    maxRetries = 1,
-  } = params;
-
-  const run = (m: ChatModel) =>
-    generateText({
-      model: m,
-      ...(system ? { system } : {}),
-      prompt,
-      temperature,
-      maxOutputTokens,
-      maxRetries,
+  try {
+    const res = await ai.generate({
+      capability: "general",
+      prompt: params.prompt,
+      system: params.system,
+      temperature: params.temperature ?? 0.2,
+      maxOutputTokens: params.maxOutputTokens ?? 2560,
+      maxRetries: params.maxRetries ?? 1,
     });
 
-  try {
-    const r = await run(model);
-    const text = r.text?.trim() ?? "";
-    if (!text) {
-      throw new Error(
-        "The model returned empty text. Try again or set GROQ_MODEL to a smaller model.",
-      );
-    }
     return {
-      text,
-      usedFallback: false,
-      usage: usageFromGenerateTextResult(r),
+      text: res.text,
+      usedFallback: res.fallbackUsed,
+      usage: res.usage,
     };
-  } catch (e) {
-    if (!isGroqRateLimitError(e)) {
-      throw new Error(groqErrorMessage(e));
-    }
-    try {
-      const r = await run(fallbackModel);
-      const text = r.text?.trim() ?? "";
-      if (!text) {
-        throw new Error(groqErrorMessage(e));
-      }
-      return {
-        text,
-        usedFallback: true,
-        usage: usageFromGenerateTextResult(r),
-      };
-    } catch (e2) {
-      throw new Error(
-        `${groqErrorMessage(e2)}\n\nIf you are on Groq free tier: daily token limits are low on large models. Set GROQ_MODEL=llama-3.1-8b-instant or wait for the reset time shown above.`,
-      );
-    }
+  } catch (err) {
+    throw new Error(groqErrorMessage(err));
   }
 }

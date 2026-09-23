@@ -1,0 +1,496 @@
+.section {
+  position: relative;
+  padding: 80px 24px;
+  background: linear-gradient(180deg, #090a0f 0%, #0d0e17 50%, #090a0f 100%);
+  border-top: 1px solid rgba(245, 158, 11, 0.15);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+
+.meshGlow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 700px;
+  height: 400px;
+  background: radial-gradient(ellipse at center, rgba(245, 158, 11, 0.08) 0%, rgba(16, 185, 129, 0.04) 50%, transparent 70%);
+  pointer-events: none;
+  filter: blur(60px);
+}
+
+.inner {
+  position: relative;
+  max-width: 72rem;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 46rem;
+  margin: 0 auto;
+}
+
+.eyebrowBadgeGroup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.eyebrowBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #60a5fa;
+  box-shadow: 0 0 8px #3b82f6;
+  animation: pulseBeat 2s infinite ease-in-out;
+}
+
+.statusText {
+  font-size: 12px;
+  font-weight: 600;
+  color: #93c5fd;
+  letter-spacing: 0.02em;
+}
+
+.pulsingHeart {
+  font-size: 14px;
+  animation: pulseBeat 1.8s infinite ease-in-out;
+}
+
+@keyframes pulseBeat {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+}
+
+.eyebrowText {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #fbbf24;
+}
+
+.title {
+  margin: 0 0 16px;
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1.25;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #ffffff 40%, #e2e8f0 70%, #fbbf24 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #9ca3af;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 28px 24px;
+  border-radius: 18px;
+  background: rgba(18, 20, 29, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  background: rgba(22, 25, 36, 0.85);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
+}
+
+.cardFrontier:hover {
+  border-color: rgba(168, 85, 247, 0.4);
+}
+
+.cardSpeed:hover {
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.cardFree:hover {
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.iconWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+}
+
+.iconPurple {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.iconGold {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.iconEmerald {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.tagBadge,
+.tagBadgeGold,
+.tagBadgeEmerald {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tagBadge {
+  background: rgba(168, 85, 247, 0.12);
+  color: #d8b4fe;
+  border: 1px solid rgba(168, 85, 247, 0.25);
+}
+
+.tagBadgeGold {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fcd34d;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.tagBadgeEmerald {
+  background: rgba(16, 185, 129, 0.12);
+  color: #6ee7b7;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.cardTitle {
+  margin: 0 0 10px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #f3f4f6;
+  letter-spacing: -0.01em;
+}
+
+.cardBody {
+  margin: 0 0 20px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #9ca3af;
+  flex: 1;
+}
+
+.modelChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.modelChip {
+  font-size: 11px;
+  font-family: var(--font-mono, monospace);
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.actionRow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-top: 10px;
+}
+
+.btnGroup {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.supportCtaBtn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 26px;
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+.supportCtaBtnGold {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  border: 1px solid rgba(251, 191, 36, 0.5);
+  color: #111827;
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.35);
+}
+
+.supportCtaBtnGold:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 12px 32px rgba(245, 158, 11, 0.5);
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+}
+
+.supportCtaBtnEmerald {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #34d399;
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.15);
+}
+
+.supportCtaBtnEmerald:hover {
+  transform: translateY(-2px) scale(1.02);
+  background: rgba(16, 185, 129, 0.22);
+  border-color: rgba(16, 185, 129, 0.65);
+  color: #ffffff;
+  box-shadow: 0 12px 32px rgba(16, 185, 129, 0.25);
+}
+
+.btnGlow {
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.4), transparent);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.supportCtaBtn:hover .btnGlow {
+  opacity: 1;
+}
+
+.coffeeCup {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.btnText {
+  letter-spacing: -0.01em;
+}
+
+.bmacBadgeLink {
+  display: inline-flex;
+  align-items: center;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.bmacBadgeLink:hover {
+  transform: translateY(-2px) scale(1.03);
+  filter: drop-shadow(0 6px 16px rgba(255, 221, 0, 0.35));
+}
+
+.bmacBadgeImg {
+  display: block;
+  height: 48px;
+  width: auto;
+  border-radius: 8px;
+}
+
+.upiQuickHint {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.upiBadge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #10b981;
+  color: #064e3b;
+}
+
+.hintCode {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  font-weight: 600;
+  color: #fbbf24;
+}
+
+.hintSep {
+  color: #4b5563;
+  font-size: 10px;
+}
+
+.hintText {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+@media (max-width: 960px) {
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .title {
+    font-size: 26px;
+  }
+  .btnGroup {
+    flex-direction: column;
+    width: 100%;
+  }
+  .supportCtaBtn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Light Theme Overrides */
+:global(.light) .section {
+  background: linear-gradient(180deg, #f5f3f8 0%, #ebe6f0 50%, #f5f3f8 100%);
+  border-top: 1px solid rgba(245, 158, 11, 0.25);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+:global(.light) .meshGlow {
+  background: radial-gradient(ellipse at center, rgba(245, 158, 11, 0.12) 0%, rgba(16, 185, 129, 0.08) 50%, transparent 70%);
+}
+
+:global(.light) .title {
+  background: linear-gradient(135deg, #1a1520 40%, #4a4356 70%, #d97706 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+:global(.light) .subtitle {
+  color: #4b5563;
+}
+
+:global(.light) .eyebrowBadge {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+:global(.light) .statusBadge {
+  background: rgba(37, 99, 235, 0.08);
+  border-color: rgba(37, 99, 235, 0.25);
+}
+
+:global(.light) .statusText {
+  color: #1d4ed8;
+}
+
+:global(.light) .card {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+:global(.light) .card:hover {
+  background: #ffffff;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.08);
+}
+
+:global(.light) .cardTitle {
+  color: #1a1520;
+}
+
+:global(.light) .cardBody {
+  color: #4b5563;
+}
+
+:global(.light) .modelChip {
+  background: rgba(0, 0, 0, 0.04);
+  color: #374151;
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+:global(.light) .supportCtaBtnEmerald {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.5);
+  color: #065f46;
+}
+
+:global(.light) .supportCtaBtnEmerald:hover {
+  background: rgba(16, 185, 129, 0.18);
+  color: #047857;
+}
+
+:global(.light) .upiQuickHint {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+:global(.light) .hintCode {
+  color: #b45309;
+}
+
+:global(.light) .hintText {
+  color: #4b5563;
+}

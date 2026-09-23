@@ -33,14 +33,14 @@ export default function LandingHeader({ t, minimal = false }: LandingHeaderProps
             aria-label={t("qualityScore.analysis.homeLinkLabel")}
           >
             <span className={styles.homeLinkInner} aria-hidden>
-              <AppLogo size={56} maxWidth={280} priority className={styles.brandLogo} />
+              <AppLogo size={66} maxWidth={200} priority className={styles.brandLogo} />
               <span className={styles.brand}>{t("common.appName")}</span>
             </span>
           </Link>
         ) : (
           <Link href="/" className={styles.homeLink} aria-label={t("landing.navHomeAria")}>
             <span className={styles.homeLinkInner}>
-              <AppLogo size={56} maxWidth={280} priority className={styles.brandLogo} />
+              <AppLogo size={66} maxWidth={200} priority className={styles.brandLogo} />
               <span className={styles.brand}>{t("common.appName")}</span>
             </span>
           </Link>

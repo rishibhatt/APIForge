@@ -1,7 +1,5 @@
-import { createGroq } from "@ai-sdk/groq";
-import { streamText } from "ai";
-import { groqErrorMessage, isGroqRateLimitError } from "@/lib/groq-errors";
-import { resolveGroqModels } from "@/lib/groq-models";
+import { ai } from "@/lib/ai/service";
+import { getAIErrorMessage, isAIRateLimitError } from "@/lib/ai/errors";
 import { isWorkspaceAssistantAiContext } from "@/lib/workspace-assistant-context";
 import {
   WORKSPACE_ASSISTANT_SYSTEM,
@@ -14,14 +12,6 @@ export const runtime = "nodejs";
 export const maxDuration = 120;
 
 export async function POST(req: Request) {
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) {
-    return Response.json(
-      { error: "GROQ_API_KEY is not configured" },
-      { status: 500 },
-    );
-  }
-
   let body: unknown;
   try {
     body = await req.json();
@@ -57,29 +47,27 @@ export async function POST(req: Request) {
     : "general";
 
   const userPrompt = buildAssistantUserPrompt(userQuery, aiContext, promptKind);
-  const groq = createGroq({ apiKey });
-  const { primary } = resolveGroqModels();
 
   try {
-    const result = streamText({
-      model: groq(primary),
+    const stream = await ai.stream({
+      capability: "assistant",
       system: WORKSPACE_ASSISTANT_SYSTEM,
       prompt: userPrompt,
       temperature: 0.15,
       maxOutputTokens: 3072,
-      maxRetries: 1,
-      abortSignal: req.signal,
+      signal: req.signal,
     });
 
-    return result.toTextStreamResponse({
+    return new Response(stream, {
       headers: {
+        "Content-Type": "text/plain; charset=utf-8",
         "Cache-Control": "no-store",
       },
     });
   } catch (e) {
-    const status = isGroqRateLimitError(e) ? 429 : 502;
+    const status = isAIRateLimitError(e) ? 429 : 502;
     return Response.json(
-      { error: groqErrorMessage(e) },
+      { error: getAIErrorMessage(e) },
       { status },
     );
   }

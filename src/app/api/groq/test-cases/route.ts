@@ -1,9 +1,7 @@
-import { createGroq } from "@ai-sdk/groq";
 import { buildTestCasesPrompt } from "@/lib/groq-prompts";
-import { generateGroqTextBuffered } from "@/lib/groq-generate-buffered";
-import { isGroqRateLimitError } from "@/lib/groq-errors";
-import { applyUsageHeaders } from "@/lib/groq-token-usage";
-import { resolveGroqModels } from "@/lib/groq-models";
+import { ai } from "@/lib/ai/service";
+import { getAIErrorMessage, isAIRateLimitError } from "@/lib/ai/errors";
+import { applyAIResponseHeaders } from "@/lib/groq-token-usage";
 import { parseTestCasesFromModelText } from "@/lib/parse-test-cases-json";
 import type { Endpoint, GenerationScope } from "@/types/api";
 import {
@@ -16,14 +14,6 @@ export const runtime = "nodejs";
 export const maxDuration = 120;
 
 export async function POST(req: Request) {
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) {
-    return Response.json(
-      { error: "GROQ_API_KEY is not configured" },
-      { status: 500 },
-    );
-  }
-
   let body: unknown;
   try {
     body = await req.json();
@@ -69,29 +59,32 @@ export async function POST(req: Request) {
     active,
     userInstruction || undefined,
   );
-  const groq = createGroq({ apiKey });
-  const { primary, fallback } = resolveGroqModels();
 
   try {
-    const { text, usage } = await generateGroqTextBuffered({
-      model: groq(primary),
-      fallbackModel: groq(fallback),
-      system:
-        'You are a QA engineer. Reply with ONLY one valid JSON array (RFC 8259). No markdown fences or commentary. Every string must escape " and \\\\; no raw newlines inside strings; no trailing commas. Each array item MUST include string fields id, type (only "valid", "invalid", or "edge"), description, reason; number field expectedStatus; and key payload (object or null).',
-      prompt,
-      temperature: 0.15,
-      /** Keep output moderate — large completions add to TPM on some tiers. */
-      maxOutputTokens: 4096,
-      maxRetries: 1,
-    });
+    const res = await ai.generateJSON(
+      {
+        capability: "structured",
+        system:
+          'You are a QA engineer. Reply with ONLY one valid JSON array (RFC 8259). No markdown fences or commentary. Every string must escape " and \\\\; no raw newlines inside strings; no trailing commas. Each array item MUST include string fields id, type (only "valid", "invalid", or "edge"), description, reason; number field expectedStatus; and key payload (object or null).',
+        prompt,
+        temperature: 0.15,
+        maxOutputTokens: 4096,
+        signal: req.signal,
+      },
+      (txt) => parseTestCasesFromModelText(txt as string),
+    );
 
-    const testCases = parseTestCasesFromModelText(text);
     const headers = new Headers({ "Content-Type": "application/json; charset=utf-8" });
-    applyUsageHeaders(headers, usage);
-    return new Response(JSON.stringify({ testCases }), { status: 200, headers });
+    applyAIResponseHeaders(headers, {
+      usage: res.usage,
+      model: res.model,
+      provider: res.provider,
+      fallbackUsed: res.fallbackUsed,
+    });
+    return new Response(JSON.stringify({ testCases: res.data }), { status: 200, headers });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "Generation failed";
-    const status = isGroqRateLimitError(e) ? 429 : 422;
+    const msg = getAIErrorMessage(e);
+    const status = isAIRateLimitError(e) ? 429 : 422;
     const hint =
       msg.includes("No output") ||
       msg.includes("No content") ||

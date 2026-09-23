@@ -5,6 +5,7 @@ import type { TranslateFn } from "@/context/LanguageContext";
 import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
 import { LANDING_SHOWCASE_IMAGE_PATH } from "@/constants/assets";
 import { useWorkspaceStore } from "@/store/workspaceStore";
+import SupportSection from "./SupportSection";
 import styles from "./LandingMarketing.module.css";
 
 export interface LandingMarketingProps {
@@ -218,6 +219,8 @@ export default function LandingMarketing({
           </div>
         </div>
       </section>
+
+      <SupportSection t={t} />
 
       <section
         className={`${styles.section} ${styles.sectionWhy}`}

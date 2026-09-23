@@ -1,6 +1,7 @@
-export type GroqStreamTab = "typescript" | "prompt";
+export type AIStreamTab = "typescript" | "prompt";
+export type GroqStreamTab = AIStreamTab;
 
-export type OutputTab = GroqStreamTab | "runApi";
+export type OutputTab = AIStreamTab | "runApi";
 
 /** What to include when generating Types / AI prompt / tests. */
 export type GenerationScope = "endpoint" | "collection" | "api";
@@ -48,6 +49,10 @@ export interface TestCase {
   reason: string;
 }
 
-export function isGroqStreamTab(tab: OutputTab): tab is GroqStreamTab {
+export function isAIStreamTab(tab: OutputTab): tab is AIStreamTab {
   return tab === "typescript" || tab === "prompt";
+}
+
+export function isGroqStreamTab(tab: OutputTab): tab is GroqStreamTab {
+  return isAIStreamTab(tab);
 }

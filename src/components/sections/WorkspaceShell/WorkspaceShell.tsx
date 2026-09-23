@@ -20,6 +20,8 @@ import HeroSection from "@/components/sections/HeroSection/HeroSection";
 import LandingMarketing from "@/components/sections/LandingMarketing/LandingMarketing";
 import LandingFooter from "@/components/sections/LandingFooter/LandingFooter";
 import QualityScoreModal from "@/components/atomic/organisms/WorkspaceQualityScore/QualityScoreModal";
+import FloatingSupportButton from "@/components/atomic/atoms/FloatingSupportButton/FloatingSupportButton";
+import SupportModal from "@/components/atomic/organisms/SupportModal/SupportModal";
 import shell from "./WorkspaceShell.module.css";
 
 export default function WorkspaceShell() {
@@ -91,6 +93,8 @@ export default function WorkspaceShell() {
         )}
       </main>
       {workspaceVisible ? <QualityScoreModal t={t} /> : null}
+      {!workspaceVisible ? <FloatingSupportButton t={t} /> : null}
+      <SupportModal t={t} />
       {workspaceVisible && !focusMode ? (
         <MobileBottomNav t={t} hasWorkspace={workspaceVisible} />
       ) : null}

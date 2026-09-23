@@ -2,6 +2,7 @@
 
 import type { TranslateFn } from "@/context/LanguageContext";
 import { useWorkspaceStore } from "@/store/workspaceStore";
+import AIFallbackIndicator from "@/components/atomic/atoms/AIFallbackIndicator/AIFallbackIndicator";
 import styles from "./WorkspaceFooter.module.css";
 
 interface WorkspaceFooterProps {
@@ -34,6 +35,7 @@ export default function WorkspaceFooter({ t, hasWorkspace }: WorkspaceFooterProp
         </div>
       </div>
       <div className={styles.right}>
+        <AIFallbackIndicator />
         {lastMs != null ? (
           <span className={styles.genTime}>
             {t("footer.generationTime", { ms: lastMs })}

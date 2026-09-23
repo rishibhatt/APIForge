@@ -24,6 +24,7 @@ import RunApiPanel from "@/components/atomic/organisms/WorkspaceCodePanel/RunApi
 import { useGroqStream } from "@/hooks/useGroqStream";
 import { getScopedEndpoints, getScopeLabel } from "@/lib/endpoint-groups";
 import { useWorkspaceStore } from "@/store/workspaceStore";
+import AIFallbackIndicator from "@/components/atomic/atoms/AIFallbackIndicator/AIFallbackIndicator";
 import type { GenerationScope, GroqStreamTab, OutputTab } from "@/types/api";
 import styles from "./WorkspaceCodePanel.module.css";
 
@@ -89,7 +90,8 @@ export default function WorkspaceCodePanel({ t }: WorkspaceCodePanelProps) {
   const generationScope = useWorkspaceStore((s) => s.generationScope);
   const setGenerationScope = useWorkspaceStore((s) => s.setGenerationScope);
 
-  const { result, loading, error, generate, lastLatencyMs } = useGroqStream();
+  const { result, loading, error, generate, lastLatencyMs, statusMessage } =
+    useGroqStream();
   const lastGroqUsage = useWorkspaceStore((s) => s.lastGroqUsage);
   const focusMode = useWorkspaceStore((s) => s.focusMode);
   const specTitle = useWorkspaceStore((s) => s.specTitle);
@@ -442,23 +444,28 @@ export default function WorkspaceCodePanel({ t }: WorkspaceCodePanelProps) {
 
           {showCodeBody ? (
             <div className={styles.footer}>
-              <span className={styles.stats}>
-                {loading
-                  ? `${t("workspace.stats", { lines, chars })} · ${t("common.streaming")}`
-                  : t("workspace.stats", { lines, chars })}
-              </span>
-              {lastLatencyMs != null ? (
-                <span className={styles.latency}>
-                  {t("footer.latency", { ms: lastLatencyMs })}
+              <div className="flex items-center gap-3">
+                <span className={styles.stats}>
+                  {loading
+                    ? `${t("workspace.stats", { lines, chars })} · ${t("common.streaming")}`
+                    : t("workspace.stats", { lines, chars })}
                 </span>
-              ) : null}
-              {lastGroqUsage != null && lastGroqUsage.totalTokens > 0 ? (
-                <span className={styles.tokens} title={t("footer.tokensTitle")}>
-                  {t("footer.tokensShort", {
-                    total: lastGroqUsage.totalTokens,
-                  })}
-                </span>
-              ) : null}
+                <AIFallbackIndicator loading={loading} statusMessage={statusMessage} />
+              </div>
+              <div className="flex items-center gap-3">
+                {lastLatencyMs != null ? (
+                  <span className={styles.latency}>
+                    {t("footer.latency", { ms: lastLatencyMs })}
+                  </span>
+                ) : null}
+                {lastGroqUsage != null && lastGroqUsage.totalTokens > 0 ? (
+                  <span className={styles.tokens} title={t("footer.tokensTitle")}>
+                    {t("footer.tokensShort", {
+                      total: lastGroqUsage.totalTokens,
+                    })}
+                  </span>
+                ) : null}
+              </div>
             </div>
           ) : null}
         </div>

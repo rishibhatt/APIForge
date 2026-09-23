@@ -6,6 +6,7 @@ import styles from "./LandingFooter.module.css";
 const LINKEDIN_HREF =
   "https://www.linkedin.com/in/rishab-bhatt-7ba7111ab/";
 const X_HREF = "https://x.com/Rishi_o07";
+const GITHUB_REPO_HREF = "https://github.com/rishibhatt/APIForge";
 
 export interface LandingFooterProps {
   t: TranslateFn;
@@ -22,6 +23,17 @@ export default function LandingFooter({ t }: LandingFooterProps) {
           ·
         </span>
         <span>{t("landing.footer.madeBy")}</span>
+        <span className={styles.sep} aria-hidden>
+          ·
+        </span>
+        <a
+          className={styles.link}
+          href={GITHUB_REPO_HREF}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Repository
+        </a>
         <span className={styles.sep} aria-hidden>
           ·
         </span>

@@ -1,8 +1,6 @@
-import { createGroq } from "@ai-sdk/groq";
-import { generateGroqTextBuffered } from "@/lib/groq-generate-buffered";
-import { isGroqRateLimitError } from "@/lib/groq-errors";
-import { resolveGroqModels } from "@/lib/groq-models";
-import { applyUsageHeaders } from "@/lib/groq-token-usage";
+import { ai } from "@/lib/ai/service";
+import { getAIErrorMessage, isAIRateLimitError } from "@/lib/ai/errors";
+import { applyAIResponseHeaders } from "@/lib/groq-token-usage";
 import type { SchemaValidationIssue } from "@/lib/validate-response-against-schema";
 
 export const runtime = "nodejs";
@@ -20,14 +18,6 @@ function isIssues(v: unknown): v is SchemaValidationIssue[] {
 }
 
 export async function POST(req: Request) {
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) {
-    return Response.json(
-      { error: "GROQ_API_KEY is not configured" },
-      { status: 500 },
-    );
-  }
-
   let body: unknown;
   try {
     body = await req.json();
@@ -71,30 +61,33 @@ ${responsePreview || "(empty)"}
 
 Write a short, practical explanation for a backend developer: what likely went wrong, how it relates to the OpenAPI schema, and the next debugging steps. Plain text only, under 12 sentences.`;
 
-  const groq = createGroq({ apiKey });
-  const { primary, fallback } = resolveGroqModels();
-
   try {
-    const { text, usage } = await generateGroqTextBuffered({
-      model: groq(primary),
-      fallbackModel: groq(fallback),
+    const res = await ai.generate({
+      capability: "general",
       system:
         "You are a senior API engineer. Reply with plain text only — no markdown fences.",
       prompt,
       temperature: 0.25,
       maxOutputTokens: 768,
       maxRetries: 1,
+      signal: req.signal,
     });
 
     const headers = new Headers({ "Content-Type": "application/json; charset=utf-8" });
-    applyUsageHeaders(headers, usage);
-    return new Response(JSON.stringify({ explanation: text }), {
+    applyAIResponseHeaders(headers, {
+      usage: res.usage,
+      model: res.model,
+      provider: res.provider,
+      fallbackUsed: res.fallbackUsed,
+      attemptedModels: res.attemptedModels,
+    });
+    return new Response(JSON.stringify({ explanation: res.text }), {
       status: 200,
       headers,
     });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "Generation failed";
-    const status = isGroqRateLimitError(e) ? 429 : 502;
+    const msg = getAIErrorMessage(e);
+    const status = isAIRateLimitError(e) ? 429 : 502;
     return Response.json({ error: msg }, { status });
   }
 }
