@@ -1,4 +1,13 @@
 import type { Endpoint } from "@/types/api";
+import type {
+  ApiExecutionRequest,
+  ApiExecutionResult,
+  ExecutionMode,
+} from "@/types/execution";
+import {
+  executeBrowserRequest,
+  executeProxyRequestClient,
+} from "./browser-execution";
 
 function isObject(v: unknown): v is Record<string, unknown> {
   return v !== null && typeof v === "object" && !Array.isArray(v);
@@ -111,4 +120,42 @@ export function statusExpectationMet(
     return true;
   }
   return false;
+}
+
+/**
+ * Determines whether a browser execution result warrants an automatic fallback to APIForge proxy.
+ */
+export function shouldFallbackToProxy(
+  browserResult: ApiExecutionResult,
+): boolean {
+  if (browserResult.success) return false;
+  if (!browserResult.proxyAvailable) return false;
+  const code = browserResult.error?.code;
+  return code === "BROWSER_CORS_BLOCKED" || code === "BROWSER_NETWORK_ERROR";
+}
+
+/**
+ * Centralized client-side execution gateway orchestrating AUTO, BROWSER, and APIFORGE_PROXY modes.
+ */
+export async function executeTestRequestClient(
+  reqDef: ApiExecutionRequest,
+  mode: ExecutionMode = "AUTO",
+): Promise<ApiExecutionResult> {
+  if (mode === "BROWSER") {
+    return executeBrowserRequest(reqDef);
+  }
+
+  if (mode === "APIFORGE_PROXY") {
+    return executeProxyRequestClient(reqDef);
+  }
+
+  // AUTO mode: Attempt browser execution first
+  const browserResult = await executeBrowserRequest(reqDef);
+
+  if (shouldFallbackToProxy(browserResult)) {
+    const proxyResult = await executeProxyRequestClient(reqDef);
+    return proxyResult;
+  }
+
+  return browserResult;
 }

@@ -5,10 +5,15 @@ import type { TranslateFn } from "@/context/LanguageContext";
 import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
 import { getScopedEndpoints, getScopeLabel } from "@/lib/endpoint-groups";
 import {
+  executeTestRequestClient,
   joinBaseAndPath,
   prepareRequestFromPayload,
   statusExpectationMet,
 } from "@/lib/execute-test-request";
+import type { ApiExecutionRequest } from "@/types/execution";
+
+// ... inside TestGenerationPanel ...
+
 import { parseUsageFromResponseHeaders } from "@/lib/groq-token-usage";
 import {
   endpointToJsonSafe,
@@ -68,6 +73,7 @@ export default function TestGenerationPanel({ t }: { t: TranslateFn }) {
   const specServerUrls = useWorkspaceStore((s) => s.specServerUrls);
   const setLastGroqUsage = useWorkspaceStore((s) => s.setLastGroqUsage);
   const setLastGenerationMs = useWorkspaceStore((s) => s.setLastGenerationMs);
+  const executionMode = useWorkspaceStore((s) => s.executionMode);
 
   const [cases, setCases] = useState<TestCase[]>([]);
   const [loading, setLoading] = useState(false);
@@ -228,35 +234,57 @@ export default function TestGenerationPanel({ t }: { t: TranslateFn }) {
       });
       const headers: Record<string, string> = {};
       if (hasJsonBody) headers["Content-Type"] = "application/json";
-      const token = bearer.trim();
-      if (token) headers.Authorization = `Bearer ${token}`;
 
-      const t0 = performance.now();
-      const res = await fetch(u.toString(), {
-        method: curlEndpoint.method,
-        headers,
-        body: body as BodyInit | undefined,
+      const queryParamsClean: Record<string, string> = {};
+      u.searchParams.forEach((val, key) => {
+        queryParamsClean[key] = val;
       });
-      const ms = Math.round(performance.now() - t0);
-      const text = await res.text();
-      let parsed: unknown = null;
-      try {
-        parsed = text ? JSON.parse(text) : null;
-      } catch {
-        parsed = null;
+
+      let parsedBodyReq: unknown = undefined;
+      if (body) {
+        try {
+          parsedBodyReq = typeof body === "string" ? JSON.parse(body) : body;
+        } catch {
+          parsedBodyReq = body;
+        }
       }
-      const pass = statusExpectationMet(
-        res.status,
-        detail.expectedStatus,
-        detail.type,
-      );
-      setRunResult({
-        status: res.status,
-        ms,
-        bodyText: text.slice(0, 12_000),
-        parsedBody: parsed,
-        pass,
-      });
+
+      const reqDef: ApiExecutionRequest = {
+        url: u.toString(),
+        method: curlEndpoint.method,
+        headers: Object.keys(headers).length > 0 ? headers : undefined,
+        queryParams: Object.keys(queryParamsClean).length > 0 ? queryParamsClean : undefined,
+        body: parsedBodyReq,
+        auth: bearer.trim() ? { type: "bearer", bearerToken: bearer.trim() } : { type: "none" },
+      };
+
+      const result = await executeTestRequestClient(reqDef, executionMode);
+
+      if (result.success && result.status != null) {
+        const text = result.rawBody ?? (typeof result.body === "string" ? result.body : JSON.stringify(result.body, null, 2));
+        const pass = statusExpectationMet(
+          result.status,
+          detail.expectedStatus,
+          detail.type,
+        );
+        setRunResult({
+          status: result.status,
+          ms: result.durationMs ?? 0,
+          bodyText: text.slice(0, 12_000),
+          parsedBody: result.body !== undefined ? result.body : null,
+          pass,
+        });
+      } else {
+        setRunResult({
+          status: 0,
+          ms: result.durationMs ?? 0,
+          bodyText: result.error?.message
+            ? `${result.error.message}\n\n${t("testGen.corsHint")}`
+            : t("testGen.runError"),
+          parsedBody: null,
+          pass: false,
+        });
+      }
     } catch (e) {
       setRunResult({
         status: 0,
@@ -271,7 +299,8 @@ export default function TestGenerationPanel({ t }: { t: TranslateFn }) {
     } finally {
       setRunLoading(false);
     }
-  }, [detail, curlEndpoint, baseUrl, bearer, t]);
+  }, [detail, curlEndpoint, baseUrl, bearer, executionMode, t]);
+
 
   const onValidateResponse = useCallback(async () => {
     if (!runResult || !curlEndpoint || runResult.status === 0) return;

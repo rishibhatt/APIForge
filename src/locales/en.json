@@ -438,7 +438,29 @@
     "status": "HTTP {code}",
     "elapsed": "{ms} ms",
     "validate": "Validate response vs schema",
-    "explain": "Explain issues (AI)"
+    "explain": "Explain issues (AI)",
+    "executionModeLabel": "Execution Mode",
+    "modeAuto": "Auto (Smart CORS Proxy Fallback)",
+    "modeBrowser": "Browser (Direct)",
+    "modeProxy": "APIForge Proxy (Server Gateway)",
+    "modeAutoShort": "Auto",
+    "modeBrowserShort": "Browser",
+    "modeProxyShort": "APIForge Proxy",
+    "corsBlockedTitle": "Browser execution blocked by CORS",
+    "corsBlockedSub": "The target API does not expose CORS headers for browser-origin requests. APIForge can execute this request securely through its server-side execution gateway.",
+    "runViaProxyCta": "Run via APIForge Proxy",
+    "securityBlockedTitle": "Request blocked by Security Policy",
+    "requestIdLabel": "Request ID: {id}",
+    "redirectsLabel": "{count} redirects",
+    "statusSteps": {
+      "preparing": "Preparing request…",
+      "validating_target": "Validating target security policy…",
+      "executing": "Executing request…",
+      "receiving": "Receiving response…",
+      "validating_schema": "Validating OpenAPI schema…",
+      "complete": "Execution complete",
+      "blocked": "Execution blocked"
+    }
   },
   "testGen": {
     "matrixTitle": "Test suite matrix",

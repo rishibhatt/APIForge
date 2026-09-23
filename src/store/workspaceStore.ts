@@ -8,6 +8,7 @@ import {
 import type { AIMetadata, AITokenUsage, GroqTokenUsage } from "@/lib/groq-token-usage";
 import type { Endpoint } from "@/types/api";
 import type { GenerationScope, OutputTab } from "@/types/api";
+import type { ExecutionMode } from "@/types/execution";
 
 const HTTP_METHODS_FILTER = [
   "GET",
@@ -52,6 +53,8 @@ export interface WorkspaceState {
   /** Optional Bearer applied to every Run API request when Authorization is unset */
   workspaceDefaultBearer: string;
   endpointSearch: string;
+  executionMode: ExecutionMode;
+  setExecutionMode: (mode: ExecutionMode) => void;
   /** Empty = no method filter (show all) */
   methodFilters: MethodFilterKey[];
   mobileSidebarOpen: boolean;
@@ -111,6 +114,7 @@ const initial = {
   specUrlInput: "",
   workspaceDefaultBearer: "",
   endpointSearch: "",
+  executionMode: "AUTO" as ExecutionMode,
   methodFilters: [] as MethodFilterKey[],
   mobileSidebarOpen: false,
   focusMode: false,
@@ -188,6 +192,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   setWorkspaceDefaultBearer: (workspaceDefaultBearer) =>
     set({ workspaceDefaultBearer }),
   setEndpointSearch: (endpointSearch) => set({ endpointSearch }),
+  setExecutionMode: (executionMode) => set({ executionMode }),
   toggleMethodFilter: (m) => {
     const cur = get().methodFilters;
     const has = cur.includes(m);
