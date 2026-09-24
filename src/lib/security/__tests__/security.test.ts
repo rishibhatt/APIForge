@@ -3,7 +3,9 @@ import assert from "node:assert";
 import { validateIpAddress } from "../ip-validation";
 import {
   containsControlCharacters,
+  isIpAddress,
   normalizeAndValidateMethod,
+  resolveAndValidateDestination,
   validateUrlStructure,
 } from "../url-validation";
 import {
@@ -41,13 +43,16 @@ describe("Security Layer 1 — Input & Method Validation", () => {
 });
 
 describe("Security Layer 2 & 8 — URL & Port Validation", () => {
-  it("should allow standard HTTP and HTTPS URLs", () => {
+  it("should allow standard HTTP and HTTPS URLs and non-restricted ports", () => {
     const res1 = validateUrlStructure("https://api.github.com/users");
     assert.strictEqual(res1.valid, true);
     assert.strictEqual(res1.url?.hostname, "api.github.com");
 
     const res2 = validateUrlStructure("http://example.com:8080/api");
     assert.strictEqual(res2.valid, true);
+
+    const res3 = validateUrlStructure("http://example.com:3001/api");
+    assert.strictEqual(res3.valid, true);
   });
 
   it("should reject non-HTTP/HTTPS protocols", () => {
@@ -80,7 +85,7 @@ describe("Security Layer 2 & 8 — URL & Port Validation", () => {
 });
 
 describe("Security Layer 3, 4 & 5 — Localhost, Private IP & Metadata Blocking", () => {
-  it("should block loopback and localhost hostnames", () => {
+  it("should block loopback and localhost hostnames when loopback is disabled", () => {
     const loopbacks = [
       "http://localhost",
       "http://localhost:3000",
@@ -93,16 +98,37 @@ describe("Security Layer 3, 4 & 5 — Localhost, Private IP & Metadata Blocking"
     ];
 
     for (const url of loopbacks) {
-      const res = validateUrlStructure(url);
+      const res = validateUrlStructure(url, { allowLoopback: false });
       assert.strictEqual(res.valid, false, `Should block ${url}`);
       assert.strictEqual(res.reason, "LOOPBACK");
     }
+  });
+
+  it("should allow loopback and localhost hostnames when allowLoopback is true", () => {
+    const res = validateUrlStructure("http://localhost:3000/api", { allowLoopback: true });
+    assert.strictEqual(res.valid, true);
+  });
+
+  it("should correctly distinguish IP addresses from hostnames with isIpAddress", () => {
+    assert.strictEqual(isIpAddress("127.0.0.1"), true);
+    assert.strictEqual(isIpAddress("192.168.1.1"), true);
+    assert.strictEqual(isIpAddress("::1"), true);
+    assert.strictEqual(isIpAddress("[::1]"), true);
+    assert.strictEqual(isIpAddress("2130706433"), true);
+    assert.strictEqual(isIpAddress("0x7f000001"), true);
+
+    // Domains/hostnames must NOT be classified as IP addresses
+    assert.strictEqual(isIpAddress("b25e-112-196-16-34.ngrok-free.app"), false);
+    assert.strictEqual(isIpAddress("api.github.com"), false);
+    assert.strictEqual(isIpAddress("localhost"), false);
+    assert.strictEqual(isIpAddress("example.com"), false);
   });
 
   it("should validate IPv4 private ranges and alternate representations", () => {
     // 127.0.0.1 Loopback
     assert.strictEqual(validateIpAddress("127.0.0.1").allowed, false);
     assert.strictEqual(validateIpAddress("127.0.0.1").reason, "LOOPBACK");
+    assert.strictEqual(validateIpAddress("127.0.0.1", { allowLoopback: true }).allowed, true);
 
     // Decimal IP representation of 127.0.0.1 (2130706433)
     assert.strictEqual(validateIpAddress("2130706433").allowed, false);
@@ -116,8 +142,13 @@ describe("Security Layer 3, 4 & 5 — Localhost, Private IP & Metadata Blocking"
     assert.strictEqual(validateIpAddress("192.168.1.1").reason, "PRIVATE_NETWORK");
     assert.strictEqual(validateIpAddress("100.64.0.1").reason, "PRIVATE_NETWORK");
 
-    // Cloud Metadata 169.254.169.254
+    // Private ranges allowed when allowPrivateNetworks is true
+    assert.strictEqual(validateIpAddress("192.168.1.1", { allowPrivateNetworks: true }).allowed, true);
+    assert.strictEqual(validateIpAddress("10.0.0.1", { allowPrivateNetworks: true }).allowed, true);
+
+    // Cloud Metadata 169.254.169.254 (ALWAYS blocked)
     assert.strictEqual(validateIpAddress("169.254.169.254").reason, "METADATA_ENDPOINT");
+    assert.strictEqual(validateIpAddress("169.254.169.254", { allowPrivateNetworks: true, allowLoopback: true }).allowed, false);
 
     // Public IPs should be allowed
     assert.strictEqual(validateIpAddress("8.8.8.8").allowed, true);

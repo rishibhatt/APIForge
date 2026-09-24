@@ -1,8 +1,14 @@
 import dns from "dns";
-import { validateIpAddress } from "./ip-validation";
+import net from "net";
+import {
+  IpValidationOptions,
+  parseIPv4ToUint32,
+  validateIpAddress,
+} from "./ip-validation";
 
 export type UrlValidationReason =
   | "INVALID_URL"
+  | "INVALID_IP"
   | "UNSUPPORTED_PROTOCOL"
   | "UNSUPPORTED_METHOD"
   | "CONTROL_CHARACTERS"
@@ -33,8 +39,6 @@ const ALLOWED_METHODS = new Set([
 ]);
 
 const FORBIDDEN_METHODS = new Set(["TRACE", "CONNECT"]);
-
-const ALLOWED_PORTS = new Set([80, 443, 8080, 8443, 3000, 5000, 8000]);
 
 const DENIED_PORTS = new Set([
   22, // SSH
@@ -77,6 +81,18 @@ const METADATA_HOSTNAMES = new Set([
 ]);
 
 /**
+ * Checks if a string represents an IPv4 / IPv6 address or numeric IP literal.
+ */
+export function isIpAddress(host: string): boolean {
+  const clean = host.replace(/^\[/, "").replace(/\]$/, "").trim();
+  if (net.isIP(clean) !== 0) return true;
+  if (/^\d+$/.test(clean) || /^0x[0-9a-fA-F]+$/i.test(clean)) {
+    return parseIPv4ToUint32(clean) !== null;
+  }
+  return false;
+}
+
+/**
  * Checks if string contains control characters (\r, \n, \0, ASCII < 32 or 127-159)
  */
 export function containsControlCharacters(str: string): boolean {
@@ -101,7 +117,10 @@ export function normalizeAndValidateMethod(methodStr: string): {
 /**
  * Synchronously checks preliminary URL security (schema, control chars, port, localhost string).
  */
-export function validateUrlStructure(urlStr: string): {
+export function validateUrlStructure(
+  urlStr: string,
+  options?: IpValidationOptions,
+): {
   valid: boolean;
   url?: URL;
   reason?: UrlValidationReason;
@@ -135,21 +154,24 @@ export function validateUrlStructure(urlStr: string): {
   }
 
   const hostname = parsed.hostname.toLowerCase().replace(/\.$/, "");
+  const allowLoopback = options?.allowLoopback ?? false;
 
-  // Localhost check
-  if (
-    LOCALHOST_HOSTNAMES.has(hostname) ||
-    hostname.endsWith(".localhost") ||
-    hostname.endsWith(".nip.io") && hostname.includes("127.0.0.1")
-  ) {
-    return {
-      valid: false,
-      reason: "LOOPBACK",
-      message: "Access to localhost/loopback destinations is prohibited.",
-    };
+  // Localhost check (skipped if loopback is explicitly allowed)
+  if (!allowLoopback) {
+    if (
+      LOCALHOST_HOSTNAMES.has(hostname) ||
+      hostname.endsWith(".localhost") ||
+      (hostname.endsWith(".nip.io") && hostname.includes("127.0.0.1"))
+    ) {
+      return {
+        valid: false,
+        reason: "LOOPBACK",
+        message: "Access to localhost/loopback destinations is prohibited.",
+      };
+    }
   }
 
-  // Cloud metadata hostname check
+  // Cloud metadata hostname check (always blocked for SSRF protection)
   if (METADATA_HOSTNAMES.has(hostname) || hostname.endsWith(".internal")) {
     return {
       valid: false,
@@ -165,19 +187,19 @@ export function validateUrlStructure(urlStr: string): {
       ? 443
       : 80;
 
+  if (isNaN(port) || port < 1 || port > 65535) {
+    return {
+      valid: false,
+      reason: "PORT_BLOCKED",
+      message: `Invalid port "${parsed.port}".`,
+    };
+  }
+
   if (DENIED_PORTS.has(port)) {
     return {
       valid: false,
       reason: "PORT_BLOCKED",
       message: `Port ${port} is restricted for security reasons.`,
-    };
-  }
-
-  if (!ALLOWED_PORTS.has(port)) {
-    return {
-      valid: false,
-      reason: "PORT_BLOCKED",
-      message: `Port ${port} is not in the allowed API ports list.`,
     };
   }
 
@@ -189,8 +211,9 @@ export function validateUrlStructure(urlStr: string): {
  */
 export async function resolveAndValidateDestination(
   urlStr: string,
+  options?: IpValidationOptions,
 ): Promise<TargetValidationResult> {
-  const structCheck = validateUrlStructure(urlStr);
+  const structCheck = validateUrlStructure(urlStr, options);
   if (!structCheck.valid || !structCheck.url) {
     return {
       allowed: false,
@@ -203,8 +226,9 @@ export async function resolveAndValidateDestination(
   const rawHost = parsedUrl.hostname.toLowerCase().replace(/\.$/, "");
 
   // If host is already an IP address, validate directly
-  const directIpCheck = validateIpAddress(rawHost);
-  if (directIpCheck.ip === rawHost || rawHost.startsWith("[")) {
+  if (isIpAddress(rawHost) || rawHost.startsWith("[")) {
+    const cleanIp = rawHost.replace(/^\[/, "").replace(/\]$/, "");
+    const directIpCheck = validateIpAddress(cleanIp, options);
     if (!directIpCheck.allowed) {
       return {
         allowed: false,
@@ -213,20 +237,22 @@ export async function resolveAndValidateDestination(
             ? "LOOPBACK"
             : directIpCheck.reason === "METADATA_ENDPOINT"
               ? "METADATA_ENDPOINT"
-              : "PRIVATE_NETWORK",
+              : directIpCheck.reason === "INVALID_IP"
+                ? "INVALID_IP"
+                : "PRIVATE_NETWORK",
         message: `Destination IP ${rawHost} is blocked (${directIpCheck.reason}).`,
         url: parsedUrl,
-        resolvedIps: [rawHost],
+        resolvedIps: [cleanIp],
       };
     }
     return {
       allowed: true,
       url: parsedUrl,
-      resolvedIps: [rawHost],
+      resolvedIps: [cleanIp],
     };
   }
 
-  // DNS lookup
+  // Hostname DNS lookup
   let records: dns.LookupAddress[];
   try {
     records = await dns.promises.lookup(rawHost, { all: true });
@@ -252,7 +278,7 @@ export async function resolveAndValidateDestination(
   for (const record of records) {
     const ip = record.address;
     resolvedIps.push(ip);
-    const ipCheck = validateIpAddress(ip);
+    const ipCheck = validateIpAddress(ip, options);
     if (!ipCheck.allowed) {
       return {
         allowed: false,

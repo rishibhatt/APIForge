@@ -1,5 +1,10 @@
 import net from "net";
 
+export interface IpValidationOptions {
+  allowLoopback?: boolean;
+  allowPrivateNetworks?: boolean;
+}
+
 export interface IpValidationResult {
   allowed: boolean;
   reason?: "PRIVATE_NETWORK" | "LOOPBACK" | "METADATA_ENDPOINT" | "INVALID_IP";
@@ -81,8 +86,13 @@ const IPV4_BLOCKED_RANGES: { cidr: string; prefix: number; reason: "LOOPBACK" | 
 /**
  * Validates whether an IP string (IPv4 or IPv6) is a public, non-internal IP address.
  */
-export function validateIpAddress(ip: string): IpValidationResult {
+export function validateIpAddress(
+  ip: string,
+  options?: IpValidationOptions,
+): IpValidationResult {
   const normalized = ip.trim().toLowerCase();
+  const allowLoopback = options?.allowLoopback ?? false;
+  const allowPrivate = options?.allowPrivateNetworks ?? false;
 
   if (net.isIPv4(normalized) || parseIPv4ToUint32(normalized) !== null) {
     const u32 = parseIPv4ToUint32(normalized);
@@ -92,6 +102,12 @@ export function validateIpAddress(ip: string): IpValidationResult {
 
     for (const range of IPV4_BLOCKED_RANGES) {
       if (ipv4InCidr(u32, range.cidr, range.prefix)) {
+        if (range.reason === "LOOPBACK" && allowLoopback) {
+          continue;
+        }
+        if (range.reason === "PRIVATE_NETWORK" && allowPrivate) {
+          continue;
+        }
         return { allowed: false, reason: range.reason, ip };
       }
     }
@@ -102,6 +118,9 @@ export function validateIpAddress(ip: string): IpValidationResult {
   if (net.isIPv6(normalized)) {
     // Check loopback ::1 / ::
     if (normalized === "::1" || normalized === "::") {
+      if (allowLoopback) {
+        return { allowed: true, ip };
+      }
       return { allowed: false, reason: "LOOPBACK", ip };
     }
 
@@ -109,7 +128,7 @@ export function validateIpAddress(ip: string): IpValidationResult {
     if (normalized.startsWith("::ffff:")) {
       const v4Part = normalized.substring(7);
       if (net.isIPv4(v4Part) || parseIPv4ToUint32(v4Part) !== null) {
-        return validateIpAddress(v4Part);
+        return validateIpAddress(v4Part, options);
       }
       // Hex IPv4-mapped
       const hexParts = v4Part.split(":");
@@ -119,7 +138,7 @@ export function validateIpAddress(ip: string): IpValidationResult {
         if (!isNaN(high) && !isNaN(low)) {
           const u32 = ((high << 16) | low) >>> 0;
           const dotted = `${(u32 >> 24) & 255}.${(u32 >> 16) & 255}.${(u32 >> 8) & 255}.${u32 & 255}`;
-          return validateIpAddress(dotted);
+          return validateIpAddress(dotted, options);
         }
       }
     }
@@ -130,11 +149,17 @@ export function validateIpAddress(ip: string): IpValidationResult {
       if (normalized.includes("ec2::254") || normalized.includes("169:254")) {
         return { allowed: false, reason: "METADATA_ENDPOINT", ip };
       }
+      if (allowPrivate) {
+        return { allowed: true, ip };
+      }
       return { allowed: false, reason: "PRIVATE_NETWORK", ip };
     }
 
     // Link Local fe80::/10 (fe80:: to febf::)
     if (/^fe[89ab]/i.test(normalized)) {
+      if (allowPrivate) {
+        return { allowed: true, ip };
+      }
       return { allowed: false, reason: "PRIVATE_NETWORK", ip };
     }
 

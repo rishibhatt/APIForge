@@ -9,6 +9,7 @@ import {
   normalizeAndValidateMethod,
   resolveAndValidateDestination,
 } from "./security/url-validation";
+import type { IpValidationOptions } from "./security/ip-validation";
 import {
   redactSensitiveHeaders,
   sanitizeRequestHeaders,
@@ -21,6 +22,24 @@ const MAX_RESPONSE_BYTES = 5 * 1024 * 1024; // 5 MB
 const DEFAULT_TIMEOUT_MS = 10_000;
 const MAX_TIMEOUT_MS = 30_000;
 const MAX_REDIRECT_COUNT = 3;
+
+export function getProxySecurityOptions(): IpValidationOptions {
+  const strictMode =
+    process.env.STRICT_SSRF === "true" ||
+    process.env.APIFORGE_STRICT_SSRF === "true";
+
+  if (strictMode) {
+    return {
+      allowLoopback: false,
+      allowPrivateNetworks: false,
+    };
+  }
+
+  return {
+    allowLoopback: true,
+    allowPrivateNetworks: true,
+  };
+}
 
 export async function executeProxyRequest(
   reqDef: ApiExecutionRequest,
@@ -80,7 +99,8 @@ export async function executeProxyRequest(
 
   // 4. Initial Destination Security Validation (SSRF guard)
   const currentUrl = reqDef.url;
-  const targetValidation = await resolveAndValidateDestination(currentUrl);
+  const securityOptions = getProxySecurityOptions();
+  const targetValidation = await resolveAndValidateDestination(currentUrl, securityOptions);
 
   if (!targetValidation.allowed || !targetValidation.url) {
     const errCode = mapReasonToErrorCode(targetValidation.reason);
@@ -211,7 +231,7 @@ export async function executeProxyRequest(
         }
 
         // Re-validate redirect target URL and IP (SSRF Layer 7 guard)
-        const redirectCheck = await resolveAndValidateDestination(nextUrl.toString());
+        const redirectCheck = await resolveAndValidateDestination(nextUrl.toString(), securityOptions);
         if (!redirectCheck.allowed || !redirectCheck.url) {
           logSsrfSecurityEvent({
             requestId,
