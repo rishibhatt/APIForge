@@ -5,7 +5,6 @@ import {
   containsControlCharacters,
   isIpAddress,
   normalizeAndValidateMethod,
-  resolveAndValidateDestination,
   validateUrlStructure,
 } from "../url-validation";
 import {
