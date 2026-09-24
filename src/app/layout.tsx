@@ -1,3 +1,4 @@
+import Script from "next/script";
 import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import { AppThemeProvider } from "@/components/providers/AppThemeProvider";
@@ -18,6 +19,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://apiforge.dev";
+const gaId = process.env.NEXT_PUBLIC_GA_ID || "G-E9R9NSFZVR";
 
 export const viewport: Viewport = {
   themeColor: [
@@ -118,6 +120,25 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${plusJakarta.variable} ${jetbrainsMono.variable}`}
     >
+      <head>
+        {/* Google Analytics (gtag.js) */}
+        <Script
+          async
+          src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+
+            gtag('config', '${gaId}', {
+              page_path: window.location.pathname,
+            });
+          `}
+        </Script>
+      </head>
       <body className={bodyStyles.body}>
         <AppThemeProvider>
           <LanguageProvider>{children}</LanguageProvider>
