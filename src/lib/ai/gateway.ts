@@ -92,7 +92,7 @@ async function callChatEndpoint(
   };
 
   if (gateway.name === "OpenRouter") {
-    headers["HTTP-Referer"] = "https://apiforge.dev";
+    headers["HTTP-Referer"] = "https://apiforge.info";
     headers["X-Title"] = "APIForge";
   }
 
@@ -286,7 +286,7 @@ export async function executeStreamWithFallback(
         };
 
         if (gateway.name === "OpenRouter") {
-          headers["HTTP-Referer"] = "https://apiforge.dev";
+          headers["HTTP-Referer"] = "https://apiforge.info";
           headers["X-Title"] = "APIForge";
         }
 
