@@ -18,7 +18,7 @@ const jetbrainsMono = JetBrains_Mono({
   weight: ["400", "500", "600", "700"],
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://apiforge.dev";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://apiforge.info";
 const gaId = process.env.NEXT_PUBLIC_GA_ID || "G-E9R9NSFZVR";
 
 export const viewport: Viewport = {
@@ -34,11 +34,11 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "APIForge — AI-Powered OpenAPI & Swagger Workspace",
+    default: "APIForge — The Intelligent OpenAPI & Swagger Workspace",
     template: "%s | APIForge",
   },
   description:
-    "Parse OpenAPI & Swagger specifications, audit API quality scores, auto-fix schemas, generate TypeScript SDKs, and build automated test suites with instant AI intelligence.",
+    "Transform OpenAPI & Swagger specs into interactive API explorers, TypeScript SDKs, automated test suites, and AI-powered quality audits. Test live APIs with zero CORS blockers.",
   applicationName: "APIForge",
   authors: [{ name: "Rishi Bhatt", url: "https://github.com/rishibhatt" }],
   creator: "Rishi Bhatt",
@@ -47,13 +47,16 @@ export const metadata: Metadata = {
     "OpenAPI",
     "Swagger",
     "OpenAPI 3.0",
+    "Swagger 2.0",
     "Swagger Parser",
     "API Quality Score",
     "API Linter",
     "TypeScript SDK Generator",
     "API Mock Server",
     "AI Schema Auto-Fix",
+    "CORS Proxy",
     "REST API Tools",
+    "API Testing",
     "Developer Tools",
     "Groq AI",
   ],
@@ -78,26 +81,34 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: siteUrl,
     siteName: "APIForge",
-    title: "APIForge — AI-Powered OpenAPI & Swagger Workspace",
+    title: "APIForge — The Intelligent OpenAPI & Swagger Workspace",
     description:
-      "Transform raw API specifications into interactive workspaces, instant TypeScript clients, automated test suites, and AI-powered quality audits.",
+      "Transform OpenAPI & Swagger specs into interactive API explorers, TypeScript SDKs, automated test suites, and AI-powered quality audits. Test live APIs with zero CORS blockers.",
     images: [
       {
         url: "/opengraph-image",
         width: 1200,
         height: 630,
-        alt: "APIForge — AI-Powered OpenAPI & Swagger Workspace",
+        alt: "APIForge — The Intelligent OpenAPI & Swagger Workspace",
         type: "image/png",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "APIForge — AI-Powered OpenAPI & Swagger Workspace",
+    title: "APIForge — The Intelligent OpenAPI & Swagger Workspace",
     description:
-      "Transform raw API specifications into interactive workspaces, instant TypeScript clients, automated test suites, and AI-powered quality audits.",
+      "Transform OpenAPI & Swagger specs into interactive API explorers, TypeScript SDKs, automated test suites, and AI-powered quality audits. Test live APIs with zero CORS blockers.",
     creator: "@rishibhatt",
-    images: ["/twitter-image"],
+    site: "@rishibhatt",
+    images: [
+      {
+        url: "/twitter-image",
+        width: 1200,
+        height: 630,
+        alt: "APIForge — The Intelligent OpenAPI & Swagger Workspace",
+      },
+    ],
   },
   icons: {
     icon: [
