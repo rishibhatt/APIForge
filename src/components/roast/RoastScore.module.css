@@ -1,0 +1,185 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.judgedKicker {
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #ff6b4a;
+  margin-bottom: 1.25rem;
+}
+
+.scoreCircleWrap {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.glow {
+  position: absolute;
+  inset: -15px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 107, 74, 0.35) 0%, transparent 70%);
+  animation: pulseGlow 3s infinite alternate;
+}
+
+@keyframes pulseGlow {
+  0% { transform: scale(0.95); opacity: 0.6; }
+  100% { transform: scale(1.05); opacity: 0.9; }
+}
+
+.ringSvg {
+  width: 100%;
+  height: 100%;
+}
+
+.ringTrack {
+  stroke: #201f22;
+}
+
+.ringProgress {
+  stroke: #ff6b4a;
+  transition: stroke-dashoffset 0.1s linear;
+}
+
+.scoreInner {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.scoreNum {
+  font-size: 3.5rem;
+  font-weight: 900;
+  line-height: 1;
+  color: #ffffff;
+  letter-spacing: -0.04em;
+}
+
+.denom {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #96939d;
+}
+
+.verdictBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.badgeRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.tierBadge {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+}
+
+.personalityBadge {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  background: rgba(139, 92, 246, 0.15);
+  color: #a78bfa;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.tierHealthy {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.tierNeedsWork {
+  background: rgba(234, 179, 8, 0.15);
+  color: #eab308;
+  border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+.tierTalk {
+  background: rgba(255, 107, 74, 0.15);
+  color: #ff6b4a;
+  border: 1px solid rgba(255, 107, 74, 0.3);
+}
+
+.verdictQuote {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #f5f3f7;
+  letter-spacing: -0.02em;
+  max-width: 680px;
+  margin-top: 0.25rem;
+}
+
+.categoriesSub {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #71717a;
+  text-transform: uppercase;
+}
+
+.metaRow {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  font-size: 0.85rem;
+  color: #96939d;
+  margin-top: 0.5rem;
+}
+
+.metaItem {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #3f3f46;
+}
+
+:global(.light) .scoreNum {
+  color: #0f172a;
+}
+
+:global(.light) .denom {
+  color: #64748b;
+}
+
+:global(.light) .verdictQuote {
+  color: #0f172a;
+}
+
+:global(.light) .ringTrack {
+  stroke: #e2e8f0;
+}

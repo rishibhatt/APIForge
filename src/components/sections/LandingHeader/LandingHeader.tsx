@@ -12,12 +12,13 @@ export interface LandingHeaderProps {
   minimal?: boolean;
 }
 
-const NAV_LINKS: { href: string; labelKey: string }[] = [
+const NAV_LINKS: { href: string; labelKey?: string; label?: string; isCoral?: boolean; isNew?: boolean }[] = [
   { href: "#what-apiforge-does", labelKey: "landing.nav.features" },
   { href: "#workspace-showcase", labelKey: "landing.nav.workspace" },
   { href: "#how-it-works", labelKey: "landing.nav.howItWorks" },
   { href: "#playground", labelKey: "landing.nav.playground" },
   { href: "#why-apiforge", labelKey: "landing.nav.why" },
+  { href: "/roast-my-api", label: "🔥 Roast My API", isCoral: true, isNew: true },
 ];
 
 export default function LandingHeader({ t, minimal = false }: LandingHeaderProps) {
@@ -49,11 +50,15 @@ export default function LandingHeader({ t, minimal = false }: LandingHeaderProps
       {!minimal ? (
         <nav className={styles.nav} aria-label={t("landing.navAria")}>
           <ul className={styles.navList}>
-            {NAV_LINKS.map(({ href, labelKey }) => (
+            {NAV_LINKS.map(({ href, labelKey, label, isCoral, isNew }) => (
               <li key={href}>
-                <a className={styles.navLink} href={href}>
-                  {t(labelKey)}
-                </a>
+                <Link
+                  className={`${styles.navLink} ${isCoral ? styles.coralNavLink : ""}`}
+                  href={href}
+                >
+                  <span>{label || (labelKey ? t(labelKey) : "")}</span>
+                  {isNew ? <span className={styles.newBadge}>NEW</span> : null}
+                </Link>
               </li>
             ))}
           </ul>

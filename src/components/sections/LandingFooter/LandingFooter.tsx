@@ -16,47 +16,49 @@ export default function LandingFooter({ t }: LandingFooterProps) {
   const year = new Date().getFullYear();
 
   return (
-    <footer className={styles.footer}>
-      <p className={styles.line}>
-        <span>© {year}</span>
-        <span className={styles.sep} aria-hidden>
-          ·
-        </span>
-        <span>{t("landing.footer.madeBy")}</span>
-        <span className={styles.sep} aria-hidden>
-          ·
-        </span>
-        <a
-          className={styles.link}
-          href={GITHUB_REPO_HREF}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Repository
-        </a>
-        <span className={styles.sep} aria-hidden>
-          ·
-        </span>
-        <a
-          className={styles.link}
-          href={LINKEDIN_HREF}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          {t("landing.footer.linkedin")}
-        </a>
-        <span className={styles.sep} aria-hidden>
-          ·
-        </span>
-        <a
-          className={styles.link}
-          href={X_HREF}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          {t("landing.footer.x")}
-        </a>
-      </p>
+    <footer className={styles.footerWrap}>
+      <div className={styles.footerInner}>
+        <p className={styles.line}>
+          <span>© {year}</span>
+          <span className={styles.sep} aria-hidden>
+            ·
+          </span>
+          <span>{t("landing.footer.madeBy")}</span>
+          <span className={styles.sep} aria-hidden>
+            ·
+          </span>
+          <a
+            className={styles.link}
+            href={GITHUB_REPO_HREF}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Repository
+          </a>
+          <span className={styles.sep} aria-hidden>
+            ·
+          </span>
+          <a
+            className={styles.link}
+            href={LINKEDIN_HREF}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t("landing.footer.linkedin")}
+          </a>
+          <span className={styles.sep} aria-hidden>
+            ·
+          </span>
+          <a
+            className={styles.link}
+            href={X_HREF}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t("landing.footer.x")}
+          </a>
+        </p>
+      </div>
     </footer>
   );
 }

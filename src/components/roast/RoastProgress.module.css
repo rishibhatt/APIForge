@@ -1,0 +1,97 @@
+.terminal {
+  width: 100%;
+  max-width: 680px;
+  margin: 2rem auto;
+  background: #131315;
+  border: 1px solid rgba(255, 107, 87, 0.2);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  background: #18181b;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.dotRed {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ff5f56;
+}
+
+.dotYellow {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ffbd2e;
+}
+
+.dotGreen {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #27c93f;
+}
+
+.title {
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+  color: #71717a;
+  letter-spacing: 0.05em;
+}
+
+.body {
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-height: 220px;
+  justify-content: flex-start;
+}
+
+.line {
+  font-size: 0.875rem;
+  color: #a1a1aa;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  line-height: 1.5;
+}
+
+.lineActive {
+  color: #ff6b57;
+  font-weight: 600;
+}
+
+.check {
+  color: #22c55e;
+}
+
+.accentLine {
+  color: #ff9f43;
+  font-weight: 700;
+  margin-top: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.cursor {
+  display: inline-block;
+  width: 8px;
+  height: 15px;
+  background: #ff6b57;
+  margin-left: 4px;
+  animation: blink 1s infinite;
+  vertical-align: middle;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}

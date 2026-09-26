@@ -84,9 +84,9 @@ function scoreNaming(endpoints: NormalizedEndpoint[]): number {
   let sum = 0;
   for (const ep of endpoints) {
     let q = 1;
-    if (hasCamelCaseInPath(ep.path)) q -= 0.35;
-    if (hasUnderscoreSegment(ep.path)) q -= 0.15;
-    if (verbLikeSegment(ep.path)) q -= 0.45;
+    if (hasCamelCaseInPath(ep.path)) q -= 0.45;
+    if (hasUnderscoreSegment(ep.path)) q -= 0.35;
+    if (verbLikeSegment(ep.path)) q -= 0.55;
     sum += Math.max(0, q);
   }
   return (sum / endpoints.length) * MAX.naming;
@@ -95,11 +95,11 @@ function scoreNaming(endpoints: NormalizedEndpoint[]): number {
 function scoreHttp(endpoints: NormalizedEndpoint[]): number {
   if (endpoints.length === 0) return 0;
   let sum = 0;
-  const actionInPath = /\/(create|update|delete|remove)\b/i;
+  const actionInPath = /\/(create|update|delete|remove|get|fetch|add|save)\b/i;
   for (const ep of endpoints) {
     let q = 1;
     if (ep.method === "GET" && hasJsonBody(ep)) q -= 1;
-    if (actionInPath.test(ep.path)) q -= 0.25;
+    if (actionInPath.test(ep.path)) q -= 0.45;
     sum += Math.max(0, q);
   }
   return (sum / endpoints.length) * MAX.http;
@@ -111,7 +111,7 @@ function scoreStructure(endpoints: NormalizedEndpoint[]): number {
   for (const ep of endpoints) {
     const d = pathDepth(ep.path);
     let q = 1;
-    if (d > 4) q -= Math.min(0.85, (d - 4) * 0.18);
+    if (d > 3) q -= Math.min(0.9, (d - 3) * 0.22);
     sum += Math.max(0, q);
   }
   return (sum / endpoints.length) * MAX.structure;
@@ -128,7 +128,7 @@ function scoreConsistency(endpoints: NormalizedEndpoint[]): number {
     keyCount.set(k, (keyCount.get(k) ?? 0) + 1);
   }
   for (const n of Array.from(keyCount.values())) {
-    if (n > 1) penalty += 0.35;
+    if (n > 1) penalty += 0.45;
   }
 
   const tokens = new Map<string, number>();
@@ -159,20 +159,20 @@ function scoreConsistency(endpoints: NormalizedEndpoint[]): number {
       }
     }
   }
-  if (mixedSingularPlural) penalty += 0.4;
+  if (mixedSingularPlural) penalty += 0.5;
 
   const q = Math.max(0, 1 - Math.min(1, penalty));
   return q * MAX.consistency;
 }
 
 function scoreVersioning(paths: string[]): number {
-  return hasVersionPrefix(paths) ? MAX.versioning : MAX.versioning * 0.35;
+  return hasVersionPrefix(paths) ? MAX.versioning : MAX.versioning * 0.1;
 }
 
 function scoreErrorHandling(endpoints: NormalizedEndpoint[]): number {
   const withSpec = endpoints.filter(hasAnyResponses);
   if (withSpec.length === 0) {
-    return MAX.errorHandling * 0.55;
+    return MAX.errorHandling * 0.2;
   }
   let ok = 0;
   for (const ep of withSpec) {
@@ -231,6 +231,7 @@ export function calculateApiScore(
     breakdown.versioning +
     breakdown.errorHandling +
     breakdown.documentation;
+
   const totalScore = Math.min(100, Math.round(totalRaw * 10) / 10);
 
   const suggestions = buildSuggestions(issues);

@@ -51,6 +51,7 @@ export interface ScoreCardProps {
   topIssueCount?: number;
   variant?: "default" | "modal";
   animate?: boolean;
+  onRoastApi?: () => void;
   onViewFullAnalysis?: () => void;
   onContinueWorkspace?: () => void;
 }
@@ -61,6 +62,7 @@ export default function ScoreCard({
   topIssueCount = 3,
   variant = "default",
   animate = true,
+  onRoastApi,
   onViewFullAnalysis,
   onContinueWorkspace,
 }: ScoreCardProps) {
@@ -181,6 +183,21 @@ export default function ScoreCard({
         ) : null}
 
         <div className={styles.ctaRow}>
+          {onRoastApi ? (
+            <button
+              type="button"
+              className={`${styles.ctaPrimary} focusRing`}
+              style={{
+                background: "linear-gradient(135deg, #ff6b57 0%, #ff523b 100%)",
+                border: "none",
+                color: "#ffffff",
+                boxShadow: "0 4px 12px rgba(255, 107, 87, 0.35)",
+              }}
+              onClick={onRoastApi}
+            >
+              🔥 Roast This API
+            </button>
+          ) : null}
           {onViewFullAnalysis ? (
             <button
               type="button"

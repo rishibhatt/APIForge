@@ -142,6 +142,31 @@
   color: var(--color-primary-container);
 }
 
+.coralNavLink {
+  color: #ff6b4a;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.coralNavLink:hover {
+  color: #ff8c70;
+}
+
+.newBadge {
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  background: linear-gradient(135deg, #ff6b4a 0%, #e04828 100%);
+  color: #ffffff;
+  padding: 0.12rem 0.4rem;
+  border-radius: 999px;
+  line-height: 1;
+  box-shadow: 0 2px 8px rgba(255, 107, 74, 0.4);
+  text-transform: uppercase;
+}
+
 .right {
   display: flex;
   flex-shrink: 0;

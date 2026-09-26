@@ -101,6 +101,15 @@ export default function QualityScoreModal({ t }: { t: TranslateFn }) {
             t={t}
             result={result}
             variant="modal"
+            onRoastApi={() => {
+              const specUrl = useWorkspaceStore.getState().specUrlInput;
+              setOpen(false);
+              if (specUrl) {
+                router.push(`/roast-my-api?specUrl=${encodeURIComponent(specUrl)}`);
+              } else {
+                router.push("/roast-my-api");
+              }
+            }}
             onViewFullAnalysis={onFullAnalysis}
           />
         </div>

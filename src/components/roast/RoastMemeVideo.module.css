@@ -1,0 +1,175 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 720px;
+  margin: 2rem auto;
+}
+
+/* Caption bar positioned ABOVE the video frame */
+.captionBar {
+  margin-bottom: 1rem;
+  padding: 0.95rem 1.5rem;
+  background: rgba(18, 18, 22, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 107, 74, 0.3);
+  border-radius: 14px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), 0 0 15px rgba(255, 107, 74, 0.1);
+  position: relative;
+}
+
+.captionBar::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 15%;
+  right: 15%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 107, 74, 0.6), transparent);
+}
+
+.captionText {
+  color: #f5f3f7;
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.4;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.videoFrame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #121216;
+  border: 1px solid rgba(255, 107, 74, 0.25);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 24px rgba(255, 107, 74, 0.12);
+}
+
+.video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.muteBtn {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1rem;
+  background: rgba(11, 11, 13, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 107, 74, 0.4);
+  border-radius: 20px;
+  color: #f5f3f7;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 5;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+}
+
+.muteBtn:hover {
+  background: rgba(255, 107, 74, 0.25);
+  border-color: #ff6b4a;
+  transform: translateY(-1px);
+}
+
+.muteBtn:active {
+  transform: translateY(0);
+}
+
+.moodTag {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.85rem;
+  background: rgba(11, 11, 13, 0.85);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 107, 74, 0.3);
+  border-radius: 10px;
+  color: #ff8a65;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  z-index: 5;
+}
+
+.cycleRow {
+  margin-top: 1.25rem;
+  display: flex;
+  justify-content: center;
+}
+
+.cycleBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.65rem 1.4rem;
+  background: rgba(255, 107, 74, 0.1);
+  border: 1px solid rgba(255, 107, 74, 0.35);
+  border-radius: 12px;
+  color: #ff8a65;
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cycleBtn:hover {
+  background: rgba(255, 107, 74, 0.2);
+  border-color: #ff6b4a;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(255, 107, 74, 0.2);
+}
+
+.cycleBtn:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 640px) {
+  .captionBar {
+    padding: 0.8rem 1rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .captionText {
+    font-size: 0.95rem;
+  }
+
+  .muteBtn {
+    padding: 0.45rem 0.8rem;
+    font-size: 0.78rem;
+    bottom: 0.75rem;
+    right: 0.75rem;
+  }
+}
+
+:global(.light) .captionBar {
+  background: #ffffff;
+  border-color: rgba(255, 107, 74, 0.3);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+}
+
+:global(.light) .captionText {
+  color: #0f172a;
+}
