@@ -12,14 +12,25 @@ export interface LandingHeaderProps {
   minimal?: boolean;
 }
 
-const fallbackT = (k: string) => (k === "common.appName" ? "APIForge" : k);
+const DEFAULT_NAV_LABELS: Record<string, string> = {
+  "common.appName": "APIForge",
+  "landing.nav.features": "Features",
+  "landing.nav.workspace": "Workspace",
+  "landing.nav.howItWorks": "How It Works",
+  "landing.nav.why": "Why APIForge",
+  "landing.nav.guides": "Guides",
+  "landing.navAria": "Main Navigation",
+  "landing.navHomeAria": "APIForge Homepage",
+};
 
-const NAV_LINKS: { href: string; labelKey?: string; label?: string; isCoral?: boolean; isNew?: boolean; showFire?: boolean }[] = [
-  { href: "/#what-apiforge-does", labelKey: "landing.nav.features" },
-  { href: "/#workspace-showcase", labelKey: "landing.nav.workspace" },
-  { href: "/#how-it-works", labelKey: "landing.nav.howItWorks" },
-  { href: "/guides", label: "Guides" },
-  { href: "/#why-apiforge", labelKey: "landing.nav.why" },
+const fallbackT = (k: string) => DEFAULT_NAV_LABELS[k] || k;
+
+const NAV_LINKS: { href: string; label: string; labelKey?: string; isCoral?: boolean; isNew?: boolean; showFire?: boolean }[] = [
+  { href: "/#what-apiforge-does", label: "Features", labelKey: "landing.nav.features" },
+  { href: "/#workspace-showcase", label: "Workspace", labelKey: "landing.nav.workspace" },
+  { href: "/#how-it-works", label: "How It Works", labelKey: "landing.nav.howItWorks" },
+  { href: "/guides", label: "Guides", labelKey: "landing.nav.guides" },
+  { href: "/#why-apiforge", label: "Why APIForge", labelKey: "landing.nav.why" },
   { href: "/roast-my-api", label: "Roast My API", isCoral: true, isNew: true, showFire: true },
 ];
 
@@ -40,20 +51,25 @@ export default function LandingHeader({ t = fallbackT, minimal = false }: Landin
 
         <nav className={styles.nav} aria-label={t("landing.navAria")}>
           <ul className={styles.navList}>
-            {NAV_LINKS.map(({ href, labelKey, label, isCoral, isNew, showFire }) => (
-              <li key={href}>
-                <Link
-                  className={`${styles.navLink} ${isCoral ? styles.coralNavLink : ""}`}
-                  href={href}
-                >
-                  <span>
-                    {showFire ? "🔥 " : null}
-                    {label || (labelKey ? t(labelKey) : "")}
-                  </span>
-                  {isNew ? <span className={styles.newBadge}>NEW</span> : null}
-                </Link>
-              </li>
-            ))}
+            {NAV_LINKS.map(({ href, labelKey, label, isCoral, isNew, showFire }) => {
+              const translated = labelKey ? t(labelKey) : undefined;
+              const textToDisplay = (translated && translated !== labelKey) ? translated : label;
+
+              return (
+                <li key={href}>
+                  <Link
+                    className={`${styles.navLink} ${isCoral ? styles.coralNavLink : ""}`}
+                    href={href}
+                  >
+                    <span>
+                      {showFire ? "🔥 " : null}
+                      {textToDisplay}
+                    </span>
+                    {isNew ? <span className={styles.newBadge}>NEW</span> : null}
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         </nav>
 
