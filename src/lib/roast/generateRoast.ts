@@ -132,7 +132,7 @@ export function generateRoastSummary(
     tone,
   };
 
-  const memeRes = selectRoastMeme(tempSummary, personality);
+  const memeRes = selectRoastMeme(tempSummary);
 
   tempSummary.meme = {
     id: memeRes.meme.id,

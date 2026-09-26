@@ -1,0 +1,203 @@
+.section {
+  width: 100%;
+  max-width: 820px;
+  margin: 0 auto 2.5rem;
+  box-sizing: border-box;
+}
+
+.sectionHeader {
+  margin-bottom: 1.25rem;
+  text-align: left;
+}
+
+.headerTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.fireIcon {
+  color: #ff6b4a;
+  font-size: 1.5rem;
+}
+
+.sectionTitle {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #f4f4f5;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.sectionSub {
+  font-size: 0.9rem;
+  color: #a1a1aa;
+  margin: 0.25rem 0 0;
+  font-style: italic;
+}
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.85rem;
+  margin-bottom: 1.25rem;
+}
+
+.metricCard {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 1.1rem 1rem;
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.metricCard:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 107, 74, 0.3);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.metricTop {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.metricIconFire {
+  color: #ff6b4a;
+  font-size: 1.2rem;
+}
+
+.metricIconWarn {
+  color: #f59e0b;
+  font-size: 1.2rem;
+}
+
+.metricIconRoute {
+  color: #3b82f6;
+  font-size: 1.2rem;
+}
+
+.metricIconRate {
+  color: #a855f7;
+  font-size: 1.2rem;
+}
+
+.metricVal {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1;
+  font-family: ui-monospace, monospace;
+}
+
+.metricLabel {
+  font-size: 0.775rem;
+  color: #a1a1aa;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.heatmapCard {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  backdrop-filter: blur(12px);
+}
+
+.heatmapTitle {
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #ff6b4a;
+  text-transform: uppercase;
+  margin: 0 0 1rem 0;
+  font-family: ui-monospace, monospace;
+}
+
+.heatmapList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.heatmapRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.heatmapLabelGroup {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.heatmapCategoryName {
+  font-size: 0.775rem;
+  font-weight: 700;
+  color: #e4e4e7;
+  letter-spacing: 0.05em;
+  font-family: ui-monospace, monospace;
+}
+
+.heatmapCount {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #ff6b4a;
+  font-family: ui-monospace, monospace;
+}
+
+.barTrack {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.barOrange {
+  background: linear-gradient(90deg, #ff6b4a 0%, #ff8f75 100%);
+  box-shadow: 0 0 10px rgba(255, 107, 74, 0.4);
+}
+
+.barRed {
+  background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+}
+
+@media (max-width: 640px) {
+  .metricsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.65rem;
+  }
+
+  .metricCard {
+    padding: 0.9rem;
+  }
+
+  .metricVal {
+    font-size: 1.35rem;
+  }
+
+  .metricLabel {
+    font-size: 0.7rem;
+  }
+
+  .heatmapCard {
+    padding: 1rem;
+  }
+}

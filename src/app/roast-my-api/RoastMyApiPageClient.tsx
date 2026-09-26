@@ -11,13 +11,17 @@ import RoastInput from "@/components/roast/RoastInput";
 import RoastProgress from "@/components/roast/RoastProgress";
 import RoastScore from "@/components/roast/RoastScore";
 import RoastCard from "@/components/roast/RoastCard";
-import RoastFindings from "@/components/roast/RoastFindings";
+import DamageSnapshot from "@/components/roast/DamageSnapshot";
+import RoastOffences from "@/components/roast/RoastOffences";
+import RoastTechnicalDetails from "@/components/roast/RoastTechnicalDetails";
 import RoastStrengths from "@/components/roast/RoastStrengths";
-import RoastVerdict from "@/components/roast/RoastVerdict";
+import AutoFixVerdict from "@/components/roast/AutoFixVerdict";
+import RoastFinalCTA from "@/components/roast/RoastFinalCTA";
 import RoastMemeVideo from "@/components/roast/RoastMemeVideo";
 import RoastShare from "@/components/roast/RoastShare";
 import type { SanitizedRoastReport } from "@/lib/roast/types";
 import { getRoastTextVariant } from "@/lib/roast/generateRoast";
+import { adaptRoastSummaryToPresentation } from "@/lib/roast/presentationAdapter";
 import { persistAnalysisPayload } from "@/lib/analysis-session";
 import { useLanguage } from "@/hooks/useLanguage";
 import styles from "./RoastPage.module.css";
@@ -239,62 +243,82 @@ export default function RoastMyApiPageClient() {
           </div>
         ) : null}
 
-        {viewState === "complete" && report ? (
-          <div className={styles.resultContainer}>
-            <RoastScore
-              score={report.summary.score}
-              statusTier={report.summary.statusTier}
-              verdict={report.summary.verdict}
-              totalEndpoints={report.summary.totalEndpoints}
-              totalFindings={report.summary.totalFindings}
-              patternsCount={report.summary.topPatterns.length}
-            />
+        {viewState === "complete" && report ? (() => {
+          const presentation = adaptRoastSummaryToPresentation(report.summary);
+          return (
+            <div className={styles.resultContainer}>
+              {/* 01 - JUDGEMENT */}
+              <RoastScore
+                score={report.summary.score}
+                statusTier={report.summary.statusTier}
+                verdict={report.summary.verdict}
+                totalEndpoints={report.summary.totalEndpoints}
+                totalFindings={report.summary.totalFindings}
+                patternsCount={report.summary.topPatterns.length}
+              />
 
-            <RoastMemeVideo summary={report.summary} />
+              {/* 02 - MEME MOMENT */}
+              <RoastMemeVideo summary={report.summary} />
 
-            <RoastCard
-              roastText={report.summary.roast}
-              characterCount={report.summary.characterCount}
-              variantNumber={variantIndex + 1}
-              onRoastAgain={handleRoastAgain}
-              onOpenShare={() => setShareOpen(true)}
-            />
+              {/* 03 - ROAST STATEMENT */}
+              <RoastCard
+                roastText={report.summary.roast}
+                characterCount={report.summary.characterCount}
+                variantNumber={variantIndex + 1}
+                onRoastAgain={handleRoastAgain}
+                onOpenShare={() => setShareOpen(true)}
+              />
 
-            <RoastFindings patterns={report.summary.topPatterns} />
+              {/* 04 - DAMAGE SNAPSHOT */}
+              <DamageSnapshot
+                metrics={presentation.metrics}
+                heatmap={presentation.heatmap}
+              />
 
-            <RoastStrengths strengths={report.summary.strengths} />
+              {/* 05 - BIGGEST OFFENCES */}
+              <RoastOffences offences={presentation.offences} />
 
-            <RoastVerdict
-              score={report.summary.score}
-              onReset={handleReset}
-              onOpenWorkspace={handleOpenWorkspace}
-            />
+              {/* 06 - DEEP DIVE */}
+              <RoastTechnicalDetails
+                summary={report.summary}
+                breakdown={report.breakdown}
+                suggestions={report.suggestions}
+              />
 
-            <div className={styles.finalCtaSection}>
-              <h2 className={styles.finalCtaHeading}>STILL THINK YOUR API IS CLEAN?</h2>
-              <div className={styles.finalCtaSub}>PROVE IT.</div>
-              <button type="button" onClick={handleReset} className={styles.finalCtaBtn}>
-                ROAST ANOTHER API
-              </button>
-              <div className={styles.finalCtaFooterText}>
-                Build APIs worth bragging about with APIForge.
+              {/* 07 - WHAT YOU ACTUALLY DID RIGHT */}
+              <RoastStrengths
+                strengths={report.summary.strengths}
+                totalFindings={report.summary.totalFindings}
+              />
+
+              {/* 08 - THERE IS HOPE */}
+              <AutoFixVerdict
+                score={report.summary.score}
+                onReset={handleReset}
+                onOpenWorkspace={handleOpenWorkspace}
+              />
+
+              {/* 09 - FINAL CTA */}
+              <RoastFinalCTA
+                onReset={handleReset}
+                onOpenWorkspace={handleOpenWorkspace}
+              />
+
+              <div className={styles.reportModerationBar}>
+                <button
+                  type="button"
+                  className={styles.reportModerationTrigger}
+                  onClick={() => {
+                    setModerationSubmitted(false);
+                    setModerationOpen(true);
+                  }}
+                >
+                  Report this roast
+                </button>
               </div>
             </div>
-
-            <div className={styles.reportModerationBar}>
-              <button
-                type="button"
-                className={styles.reportModerationTrigger}
-                onClick={() => {
-                  setModerationSubmitted(false);
-                  setModerationOpen(true);
-                }}
-              >
-                Report this roast
-              </button>
-            </div>
-          </div>
-        ) : null}
+          );
+        })() : null}
 
         {shareOpen && report ? (
           <RoastShare report={report} onClose={() => setShareOpen(false)} />

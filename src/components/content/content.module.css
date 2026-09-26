@@ -526,22 +526,50 @@
 
 @media (max-width: 768px) {
   .container {
-    padding: 24px 16px 60px;
+    padding: calc(var(--header-h, 68px) + 24px) 16px 60px;
+    box-sizing: border-box;
+    max-width: 100%;
   }
 
   .title {
-    font-size: 28px;
+    font-size: 26px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   .description {
-    font-size: 17px;
+    font-size: 16px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .heading2 {
+    font-size: 22px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .heading3 {
+    font-size: 18px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   .ctaCard {
-    padding: 24px;
+    padding: 20px 16px;
+  }
+
+  .authorBox {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px;
   }
 
   .shareWrap {
     flex-wrap: wrap;
+  }
+
+  .relatedGrid {
+    grid-template-columns: 1fr;
   }
 }

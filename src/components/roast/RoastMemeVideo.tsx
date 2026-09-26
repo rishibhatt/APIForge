@@ -23,6 +23,8 @@ export default function RoastMemeVideo({
     return initialMeme || selectRoastMeme(summary);
   });
 
+  const [recentMemeIds, setRecentMemeIds] = useState<string[]>([]);
+  const [recentCaptions, setRecentCaptions] = useState<string[]>([]);
   const [isMuted, setIsMuted] = useState<boolean>(true);
 
   useEffect(() => {
@@ -70,7 +72,13 @@ export default function RoastMemeVideo({
   };
 
   const handleCycleMeme = () => {
-    const next = selectRoastMeme(summary, undefined, currentResult.meme.id);
+    const next = selectRoastMeme(summary, {
+      excludeId: currentResult.meme.id,
+      recentMemeIds,
+      recentCaptions,
+    });
+    setRecentMemeIds((prev) => [...prev.slice(-3), currentResult.meme.id]);
+    setRecentCaptions((prev) => [...prev.slice(-9), currentResult.caption]);
     setCurrentResult(next);
     if (onMemeChange) {
       onMemeChange(next);

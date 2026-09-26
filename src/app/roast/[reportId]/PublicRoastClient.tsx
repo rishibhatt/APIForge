@@ -6,11 +6,16 @@ import LandingHeader from "@/components/sections/LandingHeader/LandingHeader";
 import LandingFooter from "@/components/sections/LandingFooter/LandingFooter";
 import RoastScore from "@/components/roast/RoastScore";
 import RoastCard from "@/components/roast/RoastCard";
-import RoastFindings from "@/components/roast/RoastFindings";
+import DamageSnapshot from "@/components/roast/DamageSnapshot";
+import RoastOffences from "@/components/roast/RoastOffences";
+import RoastTechnicalDetails from "@/components/roast/RoastTechnicalDetails";
 import RoastStrengths from "@/components/roast/RoastStrengths";
+import AutoFixVerdict from "@/components/roast/AutoFixVerdict";
+import RoastFinalCTA from "@/components/roast/RoastFinalCTA";
 import RoastMemeVideo from "@/components/roast/RoastMemeVideo";
 import RoastShare from "@/components/roast/RoastShare";
 import type { SanitizedRoastReport } from "@/lib/roast/types";
+import { adaptRoastSummaryToPresentation } from "@/lib/roast/presentationAdapter";
 import { useLanguage } from "@/hooks/useLanguage";
 import styles from "@/app/roast-my-api/RoastPage.module.css";
 
@@ -107,37 +112,60 @@ export default function PublicRoastClient({ reportId }: { reportId: string }) {
               </span>
             </div>
 
-            <RoastScore
-              score={report.summary.score}
-              statusTier={report.summary.statusTier}
-              verdict={report.summary.verdict}
-              totalEndpoints={report.summary.totalEndpoints}
-              totalFindings={report.summary.totalFindings}
-              patternsCount={report.summary.topPatterns.length}
-            />
+            {(() => {
+              const presentation = adaptRoastSummaryToPresentation(report.summary);
+              return (
+                <>
+                  {/* 01 - JUDGEMENT */}
+                  <RoastScore
+                    score={report.summary.score}
+                    statusTier={report.summary.statusTier}
+                    verdict={report.summary.verdict}
+                    totalEndpoints={report.summary.totalEndpoints}
+                    totalFindings={report.summary.totalFindings}
+                    patternsCount={report.summary.topPatterns.length}
+                  />
 
-            <RoastMemeVideo summary={report.summary} />
+                  {/* 02 - MEME MOMENT */}
+                  <RoastMemeVideo summary={report.summary} />
 
-            <RoastCard
-              roastText={report.summary.roast}
-              characterCount={report.summary.characterCount}
-              onOpenShare={() => setShareOpen(true)}
-            />
+                  {/* 03 - ROAST STATEMENT */}
+                  <RoastCard
+                    roastText={report.summary.roast}
+                    characterCount={report.summary.characterCount}
+                    onOpenShare={() => setShareOpen(true)}
+                  />
 
-            <RoastFindings patterns={report.summary.topPatterns} />
+                  {/* 04 - DAMAGE SNAPSHOT */}
+                  <DamageSnapshot
+                    metrics={presentation.metrics}
+                    heatmap={presentation.heatmap}
+                  />
 
-            <RoastStrengths strengths={report.summary.strengths} />
+                  {/* 05 - BIGGEST OFFENCES */}
+                  <RoastOffences offences={presentation.offences} />
 
-            <div className={styles.finalCtaSection}>
-              <h2 className={styles.finalCtaHeading}>THINK YOUR API CAN DO BETTER?</h2>
-              <div className={styles.finalCtaSub}>ROAST YOURS</div>
-              <Link href="/roast-my-api" className={styles.finalCtaBtn}>
-                ROAST MY API
-              </Link>
-              <div className={styles.finalCtaFooterText}>
-                Audit your OpenAPI spec with APIForge&apos;s deterministic quality engine.
-              </div>
-            </div>
+                  {/* 06 - DEEP DIVE */}
+                  <RoastTechnicalDetails
+                    summary={report.summary}
+                    breakdown={report.breakdown}
+                    suggestions={report.suggestions}
+                  />
+
+                  {/* 07 - WHAT YOU ACTUALLY DID RIGHT */}
+                  <RoastStrengths
+                    strengths={report.summary.strengths}
+                    totalFindings={report.summary.totalFindings}
+                  />
+
+                  {/* 08 - THERE IS HOPE */}
+                  <AutoFixVerdict score={report.summary.score} />
+
+                  {/* 09 - FINAL CTA */}
+                  <RoastFinalCTA onReset={() => (window.location.href = "/roast-my-api")} />
+                </>
+              );
+            })()}
 
             <div className={styles.reportModerationBar}>
               <button
