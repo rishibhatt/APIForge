@@ -1,0 +1,107 @@
+{
+  "slug": "api-security-best-practices",
+  "title": "API Security Best Practices: OWASP API Top 10 Mitigation Matrix (2026)",
+  "description": "Essential security guidelines to protect REST APIs against unauthorized access, BOLA/BFLA vulnerability exploits, credential leaks, and rate-limiting bypasses.",
+  "excerpt": "A deep dive into securing RESTful APIs with OAuth 2.0, mTLS, rate limiting, granular RBAC, and automated OpenAPI security scanning.",
+  "category": "api-security",
+  "tags": [
+    "API Security",
+    "OWASP API Top 10",
+    "OAuth 2.0",
+    "JWT",
+    "Rate Limiting",
+    "OpenAPI"
+  ],
+  "keywords": [
+    "api security best practices",
+    "owasp api top 10",
+    "bola mitigation",
+    "oauth 2.0 security",
+    "jwt validation guide"
+  ],
+  "author": "rishab",
+  "publishedAt": "2026-09-26",
+  "updatedAt": "2026-09-26",
+  "readingTime": "11 min read",
+  "featured": true,
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "APIs are the primary target for modern cyber threats. As microservices and public endpoints proliferate, enforcing defense-in-depth API security controls is paramount to protect sensitive business data and infrastructure."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "1. Mitigate Broken Object Level Authorization (BOLA / IDOR)",
+      "id": "bola-mitigation"
+    },
+    {
+      "type": "paragraph",
+      "text": "BOLA remains the #1 vulnerability on the OWASP API Security Top 10. It occurs when an API endpoint exposes an object identifier without verifying if the authenticated identity owns or is authorized to access that specific object."
+    },
+    {
+      "type": "callout",
+      "variant": "danger",
+      "title": "BOLA Attack Scenario",
+      "text": "Attacker logs in as User A (ID: 101) and sends a request GET /v1/invoices/102. If the API checks authentication but neglects tenant ownership matching (invoice.tenant_id == current_user.tenant_id), User A reads User B's private invoice data."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "2. Secure JWT Token Verification & Rotation",
+      "id": "jwt-security"
+    },
+    {
+      "type": "paragraph",
+      "text": "When using JSON Web Tokens (JWT) for stateless authorization, adhere strictly to security validation steps on every incoming request:"
+    },
+    {
+      "type": "list",
+      "ordered": true,
+      "items": [
+        "Enforce strict cryptographic signature algorithms (RS256, ES256, or EdDSA). Explicitly reject alg: 'none'.",
+        "Verify token claims: iss (Issuer), aud (Audience), exp (Expiration time), and nbf (Not Before).",
+        "Store token signing keys in Key Management Services (KMS) and rotate public keys via JWKS URIs automatically.",
+        "Keep access token lifespans short (15 minutes or less) and use cryptographically bound refresh tokens."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "3. Enforce Rate Limiting & Resource Throttling",
+      "id": "rate-limiting"
+    },
+    {
+      "type": "paragraph",
+      "text": "Prevent Denial of Service (DoS) and brute-force key attacks by implementing sliding-window rate limiters at the API Gateway level based on authenticated identity (IP, API Key, or User ID)."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "filename": "openapi-security-schemes.yaml",
+      "code": "components:\n  securitySchemes:\n    BearerAuth:\n      type: http\n      scheme: bearer\n      bearerFormat: JWT\n      description: Enter RS256 signed bearer access token\n    ApiKeyAuth:\n      type: apiKey\n      in: header\n      name: X-API-Key\nsecurity:\n  - BearerAuth: []"
+    },
+    {
+      "type": "tool",
+      "tool": "api-score",
+      "title": "Scan OpenAPI Spec for Security Holes",
+      "description": "Inspect your API specification for unauthenticated endpoints, exposed admin parameters, missing HTTPS schemes, and weak security definitions.",
+      "buttonText": "Run Security Audit",
+      "href": "/api-score"
+    }
+  ],
+  "faqs": [
+    {
+      "question": "What is BOLA in API Security?",
+      "answer": "Broken Object Level Authorization (BOLA) happens when an API checks if a user is authenticated, but fails to check whether that authenticated user has access permissions for the specific resource ID requested in the URL path."
+    },
+    {
+      "question": "Why should I use OAuth 2.0 scopes instead of simple role strings?",
+      "answer": "OAuth 2.0 scopes represent fine-grained action intents (e.g. read:reports, write:charges) attached directly to the access token. This allows API Gateways to perform instantaneous policy enforcement before invoking microservice logic."
+    },
+    {
+      "question": "How can I prevent sensitive keys from appearing in URLs?",
+      "answer": "Never pass API keys, tokens, or personal identifiers in URI query parameters (e.g., /api?key=xyz) because query strings are routinely logged in plaintext by proxies, firewalls, and server logs. Always use HTTP Authorization headers."
+    }
+  ]
+}

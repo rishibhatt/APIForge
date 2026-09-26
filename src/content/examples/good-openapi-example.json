@@ -1,0 +1,25 @@
+{
+  "slug": "good-openapi-example",
+  "title": "Good OpenAPI 3.0 Specification Example",
+  "description": "Study a clean, well-structured OpenAPI 3.0 specification featuring singular collection naming, reusable error components, and explicit responses.",
+  "category": "openapi",
+  "problemStatement": "Many teams produce incomplete OpenAPI specs with missing error responses, unmodeled request bodies, and inline repetitive schemas.",
+  "badExample": {
+    "language": "yaml",
+    "explanation": "This spec uses verb-like paths (/getUsers), omits operation summaries, and doesn't model error responses.",
+    "code": "paths:\n  /getUsers:\n    get:\n      responses:\n        '200':\n          description: OK"
+  },
+  "goodExample": {
+    "language": "yaml",
+    "explanation": "This production-grade spec uses clean plural collection endpoints (/v1/users), operationIds, explicit schemas, and reusable error components.",
+    "code": "openapi: 3.0.3\ninfo:\n  title: User Management Service\n  version: 1.0.0\npaths:\n  /v1/users:\n    get:\n      summary: List system users\n      operationId: listUsers\n      responses:\n        '200':\n          description: Successfully fetched users\n          content:\n            application/json:\n              schema:\n                type: array\n                items:\n                  $ref: '#/components/schemas/User'\n        '400':\n          $ref: '#/components/responses/BadRequest'\ncomponents:\n  schemas:\n    User:\n      type: object\n      required: [id, email]\n      properties:\n        id:\n          type: string\n        email:\n          type: string\n          format: email\n  responses:\n    BadRequest:\n      description: Invalid request payload"
+  },
+  "apiforgeChecks": [
+    "Checks for version segment prefix (/v1)",
+    "Validates unique operationId declarations",
+    "Verifies error status code responses (400, 404, 500)",
+    "Confirms component $ref resolution"
+  ],
+  "publishedAt": "2026-09-26",
+  "updatedAt": "2026-09-26"
+}

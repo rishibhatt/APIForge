@@ -1,0 +1,12 @@
+{
+  "slug": "rate-limiting",
+  "term": "Rate Limiting",
+  "definition": "Rate limiting restricts the number of API requests a client can make within a specified time window.",
+  "category": "api-security",
+  "detailedExplanation": "APIs enforce rate limits to protect infrastructure capacity and prevent abuse. Standard HTTP responses use 429 Too Many Requests alongside X-RateLimit-Limit, X-RateLimit-Remaining, and Retry-After headers.",
+  "commonMistakes": ["Omitting Retry-After header on 429 responses", "Not documenting rate limits in OpenAPI security schemes"],
+  "relatedTerms": ["API Security", "HTTP Status Code", "API Gateway"],
+  "relatedToolHref": "/api-testing",
+  "relatedToolTitle": "Test Rate Limits in APIForge",
+  "publishedAt": "2026-09-26"
+}

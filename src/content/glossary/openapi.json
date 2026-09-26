@@ -1,0 +1,28 @@
+{
+  "slug": "openapi",
+  "term": "OpenAPI Specification (OAS)",
+  "definition": "The OpenAPI Specification (OAS) is an open-source, machine-readable standard format for defining, describing, consuming, and visualizing RESTful web services.",
+  "category": "openapi",
+  "detailedExplanation": "Formerly known as the Swagger Specification, OpenAPI allows API developers to define endpoints, HTTP operations, query/path parameters, request bodies, response status codes, error models, and security schemes in JSON or YAML. OpenAPI 3.1 features 100% alignment with JSON Schema Draft 2020-12, enabling full type validation, polymorphic schemas, and automated client SDK generation.",
+  "codeExample": {
+    "language": "yaml",
+    "code": "openapi: 3.1.0\ninfo:\n  title: Core Account API\n  version: 1.0.0\npaths:\n  /v1/accounts:\n    get:\n      summary: List account records\n      operationId: listAccounts\n      responses:\n        '200':\n          description: Successful array response\n          content:\n            application/json:\n              schema:\n                type: array\n                items:\n                  $ref: '#/components/schemas/Account'",
+    "caption": "Basic OpenAPI 3.1 Specification structure"
+  },
+  "commonMistakes": [
+    "Mixing legacy Swagger 2.0 keywords (definitions, host) with OpenAPI 3.0/3.1 keywords (components, servers)",
+    "Defining non-unique operationId values across paths",
+    "Omitting required properties from the info object block"
+  ],
+  "relatedTerms": ["Swagger", "JSON Schema", "API Contract", "REST API"],
+  "relatedToolHref": "/openapi-validator",
+  "relatedToolTitle": "Validate OpenAPI Specs with APIForge",
+  "faqs": [
+    {
+      "question": "What is the difference between OpenAPI and Swagger?",
+      "answer": "OpenAPI is the open Linux Foundation specification standard, while Swagger refers to SmartBear's commercial and open-source developer toolset (Swagger UI, Swagger Editor)."
+    }
+  ],
+  "publishedAt": "2026-09-26",
+  "updatedAt": "2026-09-26"
+}

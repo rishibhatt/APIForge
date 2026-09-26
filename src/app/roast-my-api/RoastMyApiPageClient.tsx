@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import LandingHeader from "@/components/sections/LandingHeader/LandingHeader";
 import LandingFooter from "@/components/sections/LandingFooter/LandingFooter";
+import FloatingSupportButton from "@/components/atomic/atoms/FloatingSupportButton/FloatingSupportButton";
+import SupportModal from "@/components/atomic/organisms/SupportModal/SupportModal";
 import RoastHero from "@/components/roast/RoastHero";
 import RoastInput from "@/components/roast/RoastInput";
 import RoastProgress from "@/components/roast/RoastProgress";
@@ -387,6 +389,8 @@ export default function RoastMyApiPageClient() {
         ) : null}
       </main>
 
+      <FloatingSupportButton t={t} />
+      <SupportModal t={t} />
       <LandingFooter t={t} />
     </div>
   );

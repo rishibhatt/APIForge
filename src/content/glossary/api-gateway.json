@@ -1,0 +1,12 @@
+{
+  "slug": "api-gateway",
+  "term": "API Gateway",
+  "definition": "An API Gateway is a server component acting as a single entry point for client applications to route requests, enforce security, apply rate limits, and perform transformation tasks.",
+  "category": "developer-tools",
+  "detailedExplanation": "API Gateways handle cross-cutting concerns such as TLS termination, OAuth verification, request logging, CORS policy handling, and microservice proxying.",
+  "commonMistakes": ["Coupling business logic inside gateway scripts", "Not maintaining an OpenAPI specification matching gateway routing"],
+  "relatedTerms": ["Rate Limiting", "OAuth 2.0", "REST API"],
+  "relatedToolHref": "/api-testing",
+  "relatedToolTitle": "Test API Gateway Endpoints with APIForge",
+  "publishedAt": "2026-09-26"
+}

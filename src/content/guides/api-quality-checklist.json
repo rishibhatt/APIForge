@@ -1,0 +1,65 @@
+{
+  "slug": "api-quality-checklist",
+  "title": "The Ultimate API Quality Checklist for Production Specs (2026)",
+  "description": "An essential 25-point audit checklist covering API security, OpenAPI schema validation, URI design, error handling, and performance standards.",
+  "excerpt": "A 25-point production audit checklist for REST APIs, OpenAPI specifications, and API Gateways.",
+  "category": "api-quality",
+  "tags": [
+    "API Quality",
+    "API Audit",
+    "OpenAPI",
+    "REST API",
+    "Best Practices"
+  ],
+  "keywords": [
+    "api quality checklist",
+    "production api audit criteria",
+    "openapi quality score",
+    "rest api launch checklist"
+  ],
+  "author": "rishab",
+  "publishedAt": "2026-09-26",
+  "updatedAt": "2026-09-26",
+  "readingTime": "11 min read",
+  "featured": false,
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "Before publishing an API to production or external consumers, verify that your specification and infrastructure comply with enterprise quality standards across design, security, performance, and documentation."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "1. Production API Readiness Checklist",
+      "id": "readiness-checklist"
+    },
+    {
+      "type": "list",
+      "ordered": true,
+      "items": [
+        "100% OpenAPI 3.x Validation: Zero syntax errors or unresolved $ref pointers.",
+        "Resource URI Consistency: Lower kebab-case plural nouns without path verbs.",
+        "RFC 7807 Error Models: Standardized Problem Details payload for all 4xx/5xx responses.",
+        "OWASP Security Alignment: OAuth 2.0 / Bearer token security schemes with granular scopes.",
+        "Rate Limiting & Throttling: 429 response declarations with RateLimit headers.",
+        "Cursor Pagination: Enforced limit parameters with pagination metadata arrays.",
+        "Unique Operation IDs: Unique, camelCase operationId values across all paths.",
+        "Explicit Required Arrays: Required fields explicitly listed for all DTO schemas."
+      ]
+    },
+    {
+      "type": "tool",
+      "tool": "api-score",
+      "title": "Get Your API Quality Score (0-100)",
+      "description": "Run APIForge's automated 25-point quality scanner against your OpenAPI spec to generate a shareable quality report.",
+      "buttonText": "Calculate Quality Score",
+      "href": "/api-score"
+    }
+  ],
+  "faqs": [
+    {
+      "question": "How is the APIForge Quality Score calculated?",
+      "answer": "APIForge parses your OpenAPI file across 5 dimensions: Schema Completeness, Security Coverage, Error Modeling, Path Naming, and Documentation Quality, computing a weighted 0-100 score."
+    }
+  ]
+}

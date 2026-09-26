@@ -1,0 +1,62 @@
+{
+  "slug": "common-openapi-errors",
+  "title": "Top 10 OpenAPI Syntax Errors & How to Fix Them (2026)",
+  "description": "Troubleshoot common OpenAPI 2.0/3.0/3.1 errors including broken $ref pointers, duplicate operationIds, unhandled status codes, and type mismatches.",
+  "excerpt": "A troubleshooting index for fixing reference errors, schema syntax mismatches, and validation errors in OpenAPI.",
+  "category": "openapi",
+  "tags": [
+    "OpenAPI Errors",
+    "Troubleshooting",
+    "OpenAPI",
+    "Swagger",
+    "Validation"
+  ],
+  "keywords": [
+    "common openapi errors",
+    "fix openapi ref pointer error",
+    "duplicate operationid openapi",
+    "invalid openapi yaml syntax"
+  ],
+  "author": "rishab",
+  "publishedAt": "2026-09-26",
+  "updatedAt": "2026-09-26",
+  "readingTime": "9 min read",
+  "featured": false,
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "OpenAPI specifications can fail validation for subtle reasons. Knowing how to diagnose and fix schema syntax errors speeds up development cycles."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "1. Common Errors Index",
+      "id": "error-index"
+    },
+    {
+      "type": "table",
+      "headers": ["Error Message", "Root Cause", "Quick Fix"],
+      "rows": [
+        ["Unresolved $ref Pointer", "Invalid path to component schema", "Ensure file path or #/components/schemas/ identifier is spelled correctly"],
+        ["Duplicate operationId", "Same operationId assigned to multiple endpoints", "Ensure operationId strings are unique across the entire document"],
+        ["Missing required 'info' fields", "Missing title or version in info block", "Add info.title and info.version strings to specification root"],
+        ["Invalid HTTP response code key", "Status code key declared as number instead of string", "Wrap status keys in quotes e.g. '200' instead of 200"]
+      ],
+      "caption": "OpenAPI Common Errors Resolution Matrix"
+    },
+    {
+      "type": "tool",
+      "tool": "openapi-validator",
+      "title": "Debug OpenAPI Errors Instantly",
+      "description": "Paste your error-prone spec into APIForge to highlight exact line numbers and get deterministic fix hints.",
+      "buttonText": "Debug Spec Errors",
+      "href": "/openapi-validator"
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Why must status code keys be strings in OpenAPI ('200' instead of 200)?",
+      "answer": "JSON object keys must strictly be strings according to the ECMA-404 JSON standard. OpenAPI status code keys like '200' or '4XX' must be quoted string keys."
+    }
+  ]
+}

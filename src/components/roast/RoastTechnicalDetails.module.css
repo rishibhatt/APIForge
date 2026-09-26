@@ -6,6 +6,9 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   padding: 1.75rem;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .title {
@@ -32,6 +35,9 @@
   padding: 0.75rem 1rem;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .catLabel {
@@ -70,16 +76,24 @@
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .issueMsg {
   font-size: 0.875rem;
   color: #e5e1e4;
   font-weight: 500;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .issueFix {
   font-size: 0.8rem;
   color: #22c55e;
   font-family: ui-monospace, monospace;
+  overflow-wrap: anywhere;
+  word-break: break-all;
 }

@@ -1,0 +1,12 @@
+{
+  "slug": "pagination",
+  "term": "Pagination",
+  "definition": "Pagination is the technique of breaking large result sets into discrete chunks or pages returned over successive API requests.",
+  "category": "api-design",
+  "detailedExplanation": "Common patterns include offset-limit pagination (?offset=20&limit=10) and cursor-based pagination (?starting_after=obj_123). Cursor-based pagination is preferred for high-frequency or real-time collections.",
+  "commonMistakes": ["Returning unbounded arrays on GET collection endpoints", "Using offset pagination on tables with high write volume"],
+  "relatedTerms": ["REST API", "JSON Schema", "OpenAPI"],
+  "relatedToolHref": "/api-quality-checker",
+  "relatedToolTitle": "Check Pagination in APIForge",
+  "publishedAt": "2026-09-26"
+}

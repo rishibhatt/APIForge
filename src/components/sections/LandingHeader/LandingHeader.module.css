@@ -3,14 +3,12 @@
   top: 0;
   left: 0;
   z-index: var(--z-header);
-  display: grid;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   min-height: var(--header-h);
-  align-items: center;
-  column-gap: var(--space-3);
-  padding: var(--space-2) var(--space-4);
   border-bottom: 1px solid color-mix(in srgb, var(--color-on-surface) 6%, transparent);
-  background: color-mix(in srgb, var(--color-surface) 78%, transparent);
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
   backdrop-filter: blur(16px) saturate(1.35);
   -webkit-backdrop-filter: blur(16px) saturate(1.35);
   box-shadow:
@@ -19,18 +17,30 @@
   font-family: var(--font-body);
   letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
-  grid-template-columns: auto 1fr auto;
+}
+
+.headerInner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--space-2) var(--space-4);
+  gap: var(--space-3);
 }
 
 @media (min-width: 768px) {
   .header {
+    flex-direction: row;
+    align-items: center;
+  }
+  .headerInner {
     padding: var(--space-2) var(--space-6);
-    column-gap: var(--space-4);
+    gap: var(--space-4);
   }
 }
 
 .headerMinimal {
-  grid-template-columns: auto 1fr auto;
+  flex-direction: row;
 }
 
 .navSpacer {
@@ -104,33 +114,45 @@
 }
 
 .nav {
-  display: none;
+  display: flex;
   min-width: 0;
-  justify-content: center;
+  align-items: center;
+  justify-content: flex-start;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  padding: 4px 16px 8px;
+  border-top: 1px solid color-mix(in srgb, var(--color-on-surface) 4%, transparent);
+}
+
+.nav::-webkit-scrollbar {
+  display: none;
 }
 
 @media (min-width: 768px) {
   .nav {
-    display: flex;
+    justify-content: center;
+    border-top: none;
+    padding: 0;
   }
 }
 
 .navList {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
-  gap: var(--space-1) var(--space-4);
+  gap: var(--space-2) var(--space-4);
   margin: 0;
   padding: 0;
   list-style: none;
+  white-space: nowrap;
 }
 
 .navLink {
   font-family: var(--font-mono);
-  font-size: 0.6875rem;
+  font-size: 0.72rem;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--color-on-surface-muted);
   text-decoration: none;
@@ -178,16 +200,5 @@
 @media (min-width: 480px) {
   .right {
     gap: var(--space-3);
-  }
-}
-
-@media (max-width: 1100px) {
-  .navList {
-    gap: var(--space-1) var(--space-2);
-  }
-
-  .navLink {
-    font-size: 0.625rem;
-    letter-spacing: 0.06em;
   }
 }

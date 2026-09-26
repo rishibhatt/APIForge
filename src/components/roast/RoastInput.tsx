@@ -152,19 +152,10 @@ export default function RoastInput({
               (mode === "paste" && !rawText.trim())
             }
           >
-            <MaterialIcon name="local_fire_department" size="sm" />
             <span>{isLoading ? "AUDITING ENDPOINTS..." : "ROAST MY API"}</span>
           </button>
         ) : null}
       </form>
-
-      <div className={styles.microRow}>
-        <span className={styles.microLeft}>
-          <MaterialIcon name="shield" size="sm" />
-          Zero client data saved • Privacy-conscious evaluation
-        </span>
-        <span>Deterministic findings • Instant review</span>
-      </div>
 
       {error ? (
         <div className={styles.errorMsg}>

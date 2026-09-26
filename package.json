@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "seo:check": "npx tsx scripts/validate-seo.ts",
+    "content:check": "npx tsx scripts/validate-content.ts"
   },
   "dependencies": {
     "@ai-sdk/groq": "^3.0.35",

@@ -1,0 +1,54 @@
+{
+  "slug": "apiforge-vs-spectral",
+  "title": "APIForge vs Spectral: OpenAPI Quality & Linting Comparison",
+  "description": "Compare APIForge's instant visual API quality workbench with Stoplight Spectral CLI linter.",
+  "competitorName": "Spectral",
+  "heroSubtitle": "Visual API Workbench vs CLI Linter Framework",
+  "verdict": "Spectral is an excellent CLI-first rule engine for custom YAML linter rule sets in CI/CD. APIForge provides an instant visual quality score, interactive CORS-free API testing, automated test generation, and AI schema auto-fixing directly in the browser.",
+  "featuresTable": [
+    {
+      "feature": "Interface",
+      "apiforge": "Interactive Web & Workbench UI",
+      "competitor": "Command Line Interface (CLI)",
+      "notes": "APIForge requires zero installation"
+    },
+    {
+      "feature": "Quality Scoring",
+      "apiforge": "Deterministic 0-100 Score & Category Breakdown",
+      "competitor": "Rule Pass/Fail Diagnostics Output",
+      "notes": "APIForge categorizes naming, HTTP, versioning, security"
+    },
+    {
+      "feature": "Live API Testing",
+      "apiforge": "Built-in Zero-CORS Proxy Client",
+      "competitor": "Not Available",
+      "notes": "APIForge executes live requests directly"
+    },
+    {
+      "feature": "AI Auto-Fix",
+      "apiforge": "Built-in AI Schema Repair",
+      "competitor": "Requires Manual Rule Fixes"
+    },
+    {
+      "feature": "CI/CD Integration",
+      "apiforge": "Sharable Reports & Web Audits",
+      "competitor": "Native CLI / GitHub Actions"
+    }
+  ],
+  "sections": [
+    {
+      "title": "Workflow Differences",
+      "description": "Spectral requires installing Node/npm dependencies and configuring custom ruleset YAML files. APIForge allows pasting any OpenAPI URL or YAML directly into the browser for immediate visual diagnosis, scoring, and testing.",
+      "apiforgeWay": "Paste URL -> Instant 0-100 Quality Audit -> Live CORS Proxy Test",
+      "competitorWay": "npx @stoplight/spectral-cli lint openapi.yaml --ruleset .spectral.yaml"
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Can I use both APIForge and Spectral?",
+      "answer": "Yes! Many developers use Spectral in GitHub Actions CI pipelines and use APIForge for interactive exploration, score benchmarking, live API testing, and sharing reports."
+    }
+  ],
+  "publishedAt": "2026-09-26",
+  "updatedAt": "2026-09-26"
+}

@@ -1,0 +1,136 @@
+{
+  "slug": "rest-api-design-best-practices",
+  "title": "REST API Design Best Practices: Architectural Blueprints & Standards (2026)",
+  "description": "Comprehensive design guide for building developer-friendly, scalable, and secure RESTful web APIs using standard HTTP semantics, RFC guidelines, and OpenAPI schemas.",
+  "excerpt": "Architectural guidelines for REST API URI design, HTTP verbs, payload modeling, pagination standards, and status code selection.",
+  "category": "api-design",
+  "tags": [
+    "REST API",
+    "API Design",
+    "HTTP Semantics",
+    "OpenAPI",
+    "API Architecture",
+    "Developer Experience"
+  ],
+  "keywords": [
+    "rest api design best practices",
+    "restful api guidelines",
+    "http status code selection",
+    "api pagination standards",
+    "rest api architecture"
+  ],
+  "author": "rishab",
+  "publishedAt": "2026-09-26",
+  "updatedAt": "2026-09-26",
+  "readingTime": "12 min read",
+  "featured": true,
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "Designing a modern REST API requires balancing developer experience, consistency, backward compatibility, and system performance. Following established web standards guarantees that client integrators can intuitively predict API behavior without constantly consulting documentation."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "1. Adhere Strictly to HTTP Method Semantics",
+      "id": "http-methods"
+    },
+    {
+      "type": "paragraph",
+      "text": "HTTP verbs communicate action intent. RFC 9110 cleanly defines safe, idempotent, and state-modifying operations:"
+    },
+    {
+      "type": "table",
+      "headers": ["Method", "Safety", "Idempotence", "Primary Target Use Case"],
+      "rows": [
+        ["GET", "Safe (No state change)", "Idempotent", "Fetch resource representations or collections."],
+        ["POST", "Unsafe (Mutates state)", "Non-Idempotent", "Create new resources, trigger complex operations."],
+        ["PUT", "Unsafe (Mutates state)", "Idempotent", "Full resource replacement or create with client ID."],
+        ["PATCH", "Unsafe (Mutates state)", "Non-Idempotent", "Apply delta modifications to target resource."],
+        ["DELETE", "Unsafe (Mutates state)", "Idempotent", "Remove specified resource from state store."]
+      ],
+      "caption": "HTTP Method Semantics Matrix"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "2. Utilize Proper HTTP Status Codes",
+      "id": "status-codes"
+    },
+    {
+      "type": "paragraph",
+      "text": "Never return a 200 OK status code with an inline status: 'error' payload. Choose precise status codes to convey execution results:"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "200 OK: Successful GET, PUT, or PATCH call returning data.",
+        "201 Created: Successful POST creation, returning Location header pointing to new resource URI.",
+        "202 Accepted: Asynchronous job processing initiated; returns status poll location.",
+        "204 No Content: Successful DELETE or action returning no body.",
+        "400 Bad Request: Malformed JSON syntax or schema validation failure.",
+        "401 Unauthorized: Missing or invalid authentication credential (JWT/API key).",
+        "403 Forbidden: Authenticated identity lacks required scope or permissions.",
+        "404 Not Found: Requested resource URI does not exist.",
+        "409 Conflict: State collision (e.g., duplicate unique constraint or optimistic locking error).",
+        "422 Unprocessable Entity: Valid JSON syntax but semantic business rule violation.",
+        "429 Too Many Requests: Rate limit quota exceeded; include Retry-After header."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "3. Standardize Naming Conventions & Case Sensitivity",
+      "id": "naming-conventions"
+    },
+    {
+      "type": "paragraph",
+      "text": "Enforce strict consistency across URIs, query parameters, headers, and payload keys. Mixing camelCase and snake_case creates friction for SDK generators and typescript clients."
+    },
+    {
+      "type": "code",
+      "language": "json",
+      "filename": "canonical-user-payload.json",
+      "code": "{\n  \"id\": \"usr_8492049281\",\n  \"firstName\": \"Alex\",\n  \"lastName\": \"Morgan\",\n  \"emailAddress\": \"alex.morgan@example.com\",\n  \"accountStatus\": \"active\",\n  \"createdAt\": \"2026-09-26T18:30:00Z\"\n}"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "4. Enforce Filtering, Sorting, and Cursor Pagination",
+      "id": "pagination"
+    },
+    {
+      "type": "paragraph",
+      "text": "Collection endpoints must never return unbounded arrays. For high-volume collections, prefer cursor-based pagination over offset-limit to avoid database performance penalties and drift during writes."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "filename": "cursor-pagination.yaml",
+      "code": "/v1/audit-logs:\n  get:\n    summary: Retrieve paginated audit logs\n    parameters:\n      - name: limit\n        in: query\n        schema:\n          type: integer\n          default: 25\n          maximum: 100\n      - name: startingAfter\n        in: query\n        description: Cursor for pagination (ID of last item in previous page)\n        schema:\n          type: string"
+    },
+    {
+      "type": "tool",
+      "tool": "api-score",
+      "title": "Evaluate Your REST API Quality",
+      "description": "Benchmark your REST API against industry standards for URI structure, HTTP verb usage, error schemas, and response consistency.",
+      "buttonText": "Check REST API Score",
+      "href": "/api-score"
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Should I use camelCase or snake_case for REST API JSON keys?",
+      "answer": "Both are acceptable, but camelCase is preferred in JavaScript/TypeScript ecosystems. The key requirement is 100% strict consistency throughout all request and response bodies."
+    },
+    {
+      "question": "When should I use PUT versus PATCH?",
+      "answer": "Use PUT when replacing the entire resource payload (omitted fields are set to null/default). Use PATCH to apply partial updates where omitted fields remain untouched."
+    },
+    {
+      "question": "Why is cursor pagination better than page offset pagination?",
+      "answer": "Cursor pagination performs SQL queries using indexed WHERE id > cursor conditions (O(1) complexity), avoiding expensive OFFSET skips (O(N) complexity) and preventing missed or duplicated items when records are inserted concurrently."
+    }
+  ]
+}

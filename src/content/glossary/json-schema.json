@@ -1,0 +1,16 @@
+{
+  "slug": "json-schema",
+  "term": "JSON Schema",
+  "definition": "JSON Schema is a vocabulary that allows you to annotate and validate JSON data structures.",
+  "category": "openapi",
+  "detailedExplanation": "JSON Schema defines the shape, properties, data types, required fields, and format restrictions of JSON data payloads. OpenAPI 3.1 aligns directly with JSON Schema Draft 2020-12.",
+  "codeExample": {
+    "language": "json",
+    "code": "{\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n  \"type\": \"object\",\n  \"required\": [\"id\", \"email\"],\n  \"properties\": {\n    \"id\": { \"type\": \"string\" },\n    \"email\": { \"type\": \"string\", \"format\": \"email\" }\n  }\n}"
+  },
+  "commonMistakes": ["Confusing JSON Schema keywords with OpenAPI 3.0 keywords", "Omitting required arrays"],
+  "relatedTerms": ["OpenAPI", "Schema Validation", "API Contract"],
+  "relatedToolHref": "/openapi-validator",
+  "relatedToolTitle": "Validate JSON Schemas with APIForge",
+  "publishedAt": "2026-09-26"
+}

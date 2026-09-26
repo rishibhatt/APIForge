@@ -1,49 +1,79 @@
 .footerWrap {
   width: 100%;
   border-top: 1px solid var(--color-divider-subtle);
-  background: color-mix(in srgb, var(--color-surface) 90%, transparent);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: color-mix(in srgb, var(--color-surface) 95%, transparent);
   margin-top: auto;
   position: relative;
   z-index: 2;
+  padding: var(--space-8) 0 var(--space-6);
 }
 
 .footerInner {
   width: 100%;
-  max-width: 70rem;
+  max-width: 72rem;
   margin: 0 auto;
-  padding: var(--space-5) clamp(var(--space-4), 4vw, var(--space-6))
-    calc(var(--space-6) + env(safe-area-inset-bottom, 0));
+  padding: 0 clamp(var(--space-4), 4vw, var(--space-6));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.footerGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-6);
+}
+
+.footerCol {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.colTitle {
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-on-surface);
+  margin: 0 0 var(--space-2);
+}
+
+.linkList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.link {
+  color: var(--color-on-surface-variant);
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+.link:hover {
+  color: var(--color-text-accent);
 }
 
 .line {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
-  gap: var(--space-2) var(--space-3);
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--color-divider-subtle);
   margin: 0;
-  font-size: 0.75rem;
-  font-weight: 500;
-  line-height: 1.5;
-  color: var(--color-on-surface-variant);
-  text-align: center;
+  font-size: 0.8rem;
+  color: var(--color-on-surface-subtle);
 }
 
 .sep {
   color: var(--color-on-surface-subtle);
   user-select: none;
-}
-
-.link {
-  color: var(--color-text-accent);
-  text-decoration: none;
-  font-weight: 600;
-  transition: opacity 0.15s ease;
-}
-
-.link:hover {
-  opacity: 0.88;
-  text-decoration: underline;
 }

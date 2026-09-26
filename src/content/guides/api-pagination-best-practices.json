@@ -1,0 +1,67 @@
+{
+  "slug": "api-pagination-best-practices",
+  "title": "API Pagination Best Practices: Offset vs Cursor vs Keyset (2026)",
+  "description": "Deep comparison of Offset-Limit, Cursor-based, and Keyset pagination patterns in REST APIs with OpenAPI parameter schemas.",
+  "excerpt": "Master pagination design patterns to handle high-volume dataset queries without database performance degradation.",
+  "category": "api-design",
+  "tags": [
+    "API Pagination",
+    "REST API",
+    "API Design",
+    "OpenAPI",
+    "Database Performance"
+  ],
+  "keywords": [
+    "api pagination best practices",
+    "cursor vs offset pagination",
+    "keyset pagination SQL",
+    "openapi pagination parameter schema"
+  ],
+  "author": "rishab",
+  "publishedAt": "2026-09-26",
+  "updatedAt": "2026-09-26",
+  "readingTime": "9 min read",
+  "featured": false,
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "Unbounded collection queries crash databases and consume high network bandwidth. Implementing proper pagination guarantees fast response latencies regardless of table size."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "1. Pagination Method Comparison",
+      "id": "pagination-comparison"
+    },
+    {
+      "type": "table",
+      "headers": ["Pagination Type", "Query Signature", "SQL Complexity", "Data Drift Prevention", "Use Case"],
+      "rows": [
+        ["Offset-Limit", "?page=3&limit=20", "OFFSET 40 LIMIT 20 (O(N))", "Poor (Duplicate/missing items on inserts)", "Small static tables, basic admin panels"],
+        ["Cursor-Based", "?startingAfter=cursor_xyz", "WHERE id > cursor LIMIT 20 (O(1))", "Perfect (Immutability guarantee)", "Real-time feeds, public APIs, mobile apps"],
+        ["Keyset", "?lastCreatedAt=2026-09-26T12:00:00Z", "WHERE created_at < ts LIMIT 20 (O(1))", "High", "Time-series logs, event streaming"]
+      ],
+      "caption": "REST API Pagination Technical Comparison"
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "filename": "cursor-pagination-schema.yaml",
+      "code": "components:\n  schemas:\n    PaginatedResponse:\n      type: object\n      required:\n        - data\n        - hasMore\n      properties:\n        data:\n          type: array\n          items:\n            type: object\n        hasMore:\n          type: boolean\n          example: true\n        nextCursor:\n          type: string\n          example: cur_92847293"
+    },
+    {
+      "type": "tool",
+      "tool": "api-score",
+      "title": "Analyze Pagination Metadata Schemas",
+      "description": "Upload your API specification into APIForge to inspect list endpoints for proper pagination query parameters and response objects.",
+      "buttonText": "Check Pagination Score",
+      "href": "/api-score"
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Why is offset-limit pagination dangerous for large SQL tables?",
+      "answer": "SQL engines executing OFFSET 1000000 LIMIT 20 must scan and throw away 1,000,000 index entries before returning 20 records, leading to high CPU usage and slow responses."
+    }
+  ]
+}

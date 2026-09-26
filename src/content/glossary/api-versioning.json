@@ -1,0 +1,12 @@
+{
+  "slug": "api-versioning",
+  "term": "API Versioning",
+  "definition": "API Versioning is the practice of managing changes to an API specification across multiple released iterations without breaking existing client integrations.",
+  "category": "api-design",
+  "detailedExplanation": "Common strategies include URL path versioning (/v1/users), custom header versioning (X-API-Version: 1), and Accept header content negotiation.",
+  "commonMistakes": ["Changing field types in minor releases", "Deprecating endpoints without deprecation headers"],
+  "relatedTerms": ["API Contract", "REST API", "OpenAPI"],
+  "relatedToolHref": "/api-score",
+  "relatedToolTitle": "Verify Version Prefixes with APIForge",
+  "publishedAt": "2026-09-26"
+}

@@ -1,0 +1,12 @@
+{
+  "slug": "oauth",
+  "term": "OAuth 2.0",
+  "definition": "OAuth 2.0 is an industry-standard authorization framework enabling third-party applications to obtain limited access to user accounts without exposing user credentials.",
+  "category": "api-security",
+  "detailedExplanation": "OAuth 2.0 defines authorization flows including Authorization Code flow with PKCE, Client Credentials, and Implicit (deprecated) flows. OpenAPI 3.0 supports oauth2 security schemes with authorizationUrl and tokenUrl.",
+  "commonMistakes": ["Using Implicit flow in modern applications", "Not specifying scopes in OpenAPI security declarations"],
+  "relatedTerms": ["Bearer Token", "API Security", "OpenAPI"],
+  "relatedToolHref": "/api-score",
+  "relatedToolTitle": "Audit Security Schemes in APIForge",
+  "publishedAt": "2026-09-26"
+}

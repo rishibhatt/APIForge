@@ -1,0 +1,32 @@
+{
+  "slug": "idempotency",
+  "term": "Idempotency",
+  "definition": "In HTTP APIs, an operation is idempotent if executing it multiple times with the same parameters produces the exact same side-effect state on the server as executing it a single time.",
+  "category": "api-design",
+  "detailedExplanation": "According to RFC 9110, HTTP methods GET, HEAD, PUT, DELETE, and OPTIONS are inherently idempotent. Executing GET /users/100 five times returns the same data without altering server state. In contrast, POST is non-idempotent. To make POST operations idempotent (e.g. payment processing or order creation), APIs use an Idempotency-Key HTTP request header stored in a fast key-value database like Redis with a 24-hour TTL.",
+  "codeExample": {
+    "language": "http",
+    "code": "POST /v1/payments HTTP/1.1\nHost: api.example.com\nAuthorization: Bearer jwt_token_xyz\nIdempotency-Key: 7b928374-4b10-482a-912f-981249120491\nContent-Type: application/json\n\n{\n  \"amount\": 5000,\n  \"currency\": \"USD\"\n}",
+    "caption": "Idempotent POST request using an Idempotency-Key header"
+  },
+  "commonMistakes": [
+    "Designing PUT endpoints that mutate state non-deterministically (e.g., incrementing counter values)",
+    "Assuming POST requests are idempotent without implementing an Idempotency-Key header",
+    "Returning 500 Internal Server Errors when a duplicate idempotent request is received instead of replaying the original 200/201 cached response payload"
+  ],
+  "relatedTerms": ["REST API", "HTTP Status Code", "API Design", "JSON Schema"],
+  "relatedToolHref": "/api-score",
+  "relatedToolTitle": "Audit HTTP Method Semantics with APIForge",
+  "faqs": [
+    {
+      "question": "Is HTTP DELETE idempotent?",
+      "answer": "Yes. Deleting a resource for the first time removes it (returning 200 or 204). Calling DELETE on that same resource ID again leaves the server in the exact same state (returning 404 or 204), so the net side-effect remains identical."
+    },
+    {
+      "question": "How should API servers handle duplicate Idempotency-Keys?",
+      "answer": "When a server receives a request with an Idempotency-Key it has already processed, it should skip executing the payment logic and immediately return the exact cached response body and status code from the first request."
+    }
+  ],
+  "publishedAt": "2026-09-26",
+  "updatedAt": "2026-09-26"
+}

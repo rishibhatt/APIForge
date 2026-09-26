@@ -41,6 +41,10 @@
   transition: all 0.2s ease;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .card:hover {
@@ -54,6 +58,8 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .number {
@@ -81,6 +87,8 @@
   font-weight: 700;
   color: #e5e1e4;
   margin-bottom: 0.5rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .desc {
@@ -89,6 +97,8 @@
   line-height: 1.5;
   margin-bottom: 1rem;
   flex: 1;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .endpoints {
@@ -98,12 +108,15 @@
   font-family: ui-monospace, monospace;
   font-size: 0.775rem;
   color: #d0bcff;
+  max-width: 100%;
+  overflow-x: auto;
+  box-sizing: border-box;
 }
 
 .endpointItem {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-wrap: anywhere;
 }
 
 :global(.light) .card {

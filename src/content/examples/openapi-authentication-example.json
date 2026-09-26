@@ -1,0 +1,23 @@
+{
+  "slug": "openapi-authentication-example",
+  "title": "OpenAPI Bearer Token & OAuth 2.0 Security Schemes Example",
+  "description": "How to declare securitySchemes and operation-level security requirements in OpenAPI 3.0 specs.",
+  "category": "api-security",
+  "problemStatement": "Undocumented security schemes prevent client code generators and automated testing tools from configuring authentication headers properly.",
+  "badExample": {
+    "language": "yaml",
+    "explanation": "No components.securitySchemes defined; endpoints lack authorization requirements.",
+    "code": "paths:\n  /v1/protected-data:\n    get:\n      summary: Protected endpoint"
+  },
+  "goodExample": {
+    "language": "yaml",
+    "explanation": "Explicit Bearer JWT securityScheme attached to globally or operationally scoped security blocks.",
+    "code": "openapi: 3.0.3\npaths:\n  /v1/protected-data:\n    get:\n      summary: Protected data resource\n      security:\n        - BearerAuth: []\n      responses:\n        '200':\n          description: Success\n        '401':\n          description: Unauthorized\ncomponents:\n  securitySchemes:\n    BearerAuth:\n      type: http\n      scheme: bearer\n      bearerFormat: JWT"
+  },
+  "apiforgeChecks": [
+    "Checks for global and path security requirement declarations",
+    "Validates securityScheme component configurations"
+  ],
+  "publishedAt": "2026-09-26",
+  "updatedAt": "2026-09-26"
+}

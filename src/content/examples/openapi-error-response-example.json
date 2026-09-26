@@ -1,0 +1,23 @@
+{
+  "slug": "openapi-error-response-example",
+  "title": "OpenAPI RFC 7807 Error Response Schema Example",
+  "description": "Learn how to model RFC 7807 problem details error responses cleanly inside OpenAPI 3.0 specs.",
+  "category": "api-design",
+  "problemStatement": "Inconsistent error payloads force client integrations to write custom, brittle try-catch parsers for every API endpoint.",
+  "badExample": {
+    "language": "json",
+    "explanation": "Inconsistent error format returning plain text or non-standard keys.",
+    "code": "{\n  \"error\": \"something failed\",\n  \"code\": 500\n}"
+  },
+  "goodExample": {
+    "language": "yaml",
+    "explanation": "RFC 7807 compliant reusable OpenAPI problem details component.",
+    "code": "components:\n  schemas:\n    ProblemDetails:\n      type: object\n      required: [type, title, status]\n      properties:\n        type:\n          type: string\n          format: uri\n          example: https://api.example.com/errors/invalid-input\n        title:\n          type: string\n          example: Invalid Input Parameter\n        status:\n          type: integer\n          example: 400\n        detail:\n          type: string\n          example: The provided email address is already registered."
+  },
+  "apiforgeChecks": [
+    "Evaluates error response declarations across operations",
+    "Ensures 4xx and 5xx status codes are explicitly covered"
+  ],
+  "publishedAt": "2026-09-26",
+  "updatedAt": "2026-09-26"
+}

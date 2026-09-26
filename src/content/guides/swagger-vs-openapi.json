@@ -1,0 +1,80 @@
+{
+  "slug": "swagger-vs-openapi",
+  "title": "Swagger vs OpenAPI: Key Differences Explained (2026)",
+  "description": "Clear technical breakdown of the differences between Swagger 2.0 and OpenAPI 3.0/3.1. Learn when to upgrade and how to migrate specs.",
+  "excerpt": "Understand the history, structural changes, and feature enhancements separating Swagger 2.0 from modern OpenAPI 3.x standards.",
+  "category": "swagger",
+  "tags": [
+    "Swagger",
+    "OpenAPI",
+    "API Specs",
+    "Migration",
+    "Developer Tools"
+  ],
+  "keywords": [
+    "swagger vs openapi",
+    "difference between swagger and openapi",
+    "convert swagger 2 to openapi 3",
+    "swagger 2.0 vs openapi 3.1"
+  ],
+  "author": "rishab",
+  "publishedAt": "2026-09-26",
+  "updatedAt": "2026-09-26",
+  "readingTime": "9 min read",
+  "featured": false,
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "The terms 'Swagger' and 'OpenAPI' are often used interchangeably, leading to confusion. Swagger refers to SmartBear's open-source and commercial tooling ecosystem (Swagger UI, Swagger Editor), whereas OpenAPI refers to the open Linux Foundation specification standard."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "1. Technical Feature Comparison Matrix",
+      "id": "feature-matrix"
+    },
+    {
+      "type": "table",
+      "headers": ["Feature", "Swagger 2.0 (Legacy)", "OpenAPI 3.0", "OpenAPI 3.1"],
+      "rows": [
+        ["Specification Root", "swagger: '2.0'", "openapi: '3.0.3'", "openapi: '3.1.0'"],
+        ["Base URL Structure", "host, basePath, schemes", "servers array with templates", "servers array with templates"],
+        ["JSON Schema Version", "Custom schema subset", "Draft 05 alignment", "100% JSON Schema 2020-12"],
+        ["Request Payload", "parameters (in: body)", "requestBody object", "requestBody object"],
+        ["Nullable Fields", "x-nullable extension", "nullable: true keyword", "type: ['string', 'null']"],
+        ["Webhooks Support", "Not supported", "Callbacks per operation", "Native top-level webhooks object"]
+      ],
+      "caption": "Swagger 2.0 vs OpenAPI 3.x Feature Matrix"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "2. Structural Code Migration Example",
+      "id": "code-migration"
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "filename": "swagger2-vs-openapi3.yaml",
+      "code": "# Legacy Swagger 2.0:\nswagger: '2.0'\nhost: api.example.com\nbasePath: /v1\nschemes:\n  - https\npaths:\n  /users:\n    post:\n      parameters:\n        - in: body\n          name: body\n          schema:\n            $ref: '#/definitions/User'\n\n# Modern OpenAPI 3.0:\nopenapi: 3.0.3\nservers:\n  - url: https://api.example.com/v1\npaths:\n  /users:\n    post:\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: '#/components/schemas/User'"
+    },
+    {
+      "type": "tool",
+      "tool": "openapi-validator",
+      "title": "Upgrade Your Swagger 2.0 Spec Automatically",
+      "description": "Upload your legacy Swagger 2.0 specification into APIForge to inspect structural issues and convert it into OpenAPI 3.0/3.1 format.",
+      "buttonText": "Validate & Upgrade Spec",
+      "href": "/openapi-validator"
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Is Swagger 2.0 deprecated?",
+      "answer": "While Swagger 2.0 specs are still read by legacy tools, OpenAPI 3.0 and 3.1 have superseded it as the official industry standard since 2017."
+    },
+    {
+      "question": "Can APIForge parse both Swagger 2.0 and OpenAPI 3.1?",
+      "answer": "Yes! APIForge features deterministic parsers supporting Swagger 2.0, OpenAPI 3.0, and OpenAPI 3.1 seamlessly."
+    }
+  ]
+}

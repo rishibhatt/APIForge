@@ -1,0 +1,78 @@
+{
+  "slug": "api-naming-conventions",
+  "title": "API Naming Conventions: The Complete Cheat Sheet for REST & OpenAPI (2026)",
+  "description": "Master standard naming conventions for URIs, path parameters, JSON keys, query filters, and HTTP headers across REST APIs and OpenAPI specs.",
+  "excerpt": "A cheat sheet for consistent URI structure, casing standards, parameter naming, and HTTP header conventions.",
+  "category": "api-design",
+  "tags": [
+    "API Naming",
+    "REST API",
+    "OpenAPI",
+    "API Design",
+    "Clean Code"
+  ],
+  "keywords": [
+    "api naming conventions",
+    "rest uri naming rules",
+    "json key casing standard",
+    "query parameter naming convention"
+  ],
+  "author": "rishab",
+  "publishedAt": "2026-09-26",
+  "updatedAt": "2026-09-26",
+  "readingTime": "9 min read",
+  "featured": false,
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "Consistency in naming conventions separates professional enterprise APIs from ad-hoc internal endpoints. Adopting predictable casing rules across URIs, parameters, and payload keys simplifies SDK generation and client integration."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "1. Standard Casing Rules Summary",
+      "id": "casing-rules"
+    },
+    {
+      "type": "table",
+      "headers": ["API Target", "Recommended Casing", "Correct Example", "Incorrect Example"],
+      "rows": [
+        ["URI Paths", "lower-kebab-case", "/v1/user-profiles", "/v1/userProfiles or /v1/user_profiles"],
+        ["Path Parameters", "camelCase or lower-kebab-case", "/v1/users/{userId}", "/v1/users/{user_id}"],
+        ["Query Parameters", "camelCase", "?startingAfter=usr_100", "?starting_after=usr_100"],
+        ["JSON Keys", "camelCase", "{\"firstName\": \"Jane\"}", "{\"first_name\": \"Jane\"}"],
+        ["HTTP Headers", "Train-Case (Hyphenated)", "X-Request-ID", "x_request_id or requestid"]
+      ],
+      "caption": "Canonical Casing Standards across API Surface"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "2. Resource Path Rules",
+      "id": "path-rules"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Use Plural Nouns: Represent resource collections with plural nouns (e.g. /v1/orders, /v1/products).",
+        "Avoid Verbs in Path: Use HTTP methods (POST, DELETE) to express actions instead of /v1/createOrder.",
+        "Nested Resources: Limit nested hierarchy depth to 2 levels (e.g. /v1/users/{userId}/orders). If deeper relations are needed, make sub-resources top-level with query filters."
+      ]
+    },
+    {
+      "type": "tool",
+      "tool": "api-score",
+      "title": "Check API Naming Quality Automatically",
+      "description": "Scan your specification with APIForge to catch mixed casing, path verbs, and deeply nested URIs instantly.",
+      "buttonText": "Check Naming Score",
+      "href": "/api-score"
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Why shouldn't I use verbs in REST API path URLs?",
+      "answer": "HTTP verbs (GET, POST, PUT, DELETE, PATCH) already specify the operation. Adding verbs to paths creates redundant URIs like POST /create-user instead of clean RESTful URIs like POST /users."
+    }
+  ]
+}

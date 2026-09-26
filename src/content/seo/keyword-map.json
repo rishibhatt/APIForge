@@ -1,0 +1,18 @@
+{
+  "api-score": {
+    "primary": ["api quality checker", "api quality score"],
+    "secondary": ["openapi quality checker", "swagger quality checker", "api specification checker"]
+  },
+  "openapi-validator": {
+    "primary": ["openapi validator", "validate openapi specification"],
+    "secondary": ["swagger 3.0 validator", "openapi linting tool", "openapi 3.0 checker"]
+  },
+  "swagger-validator": {
+    "primary": ["swagger validator", "validate swagger file"],
+    "secondary": ["swagger 2.0 parser", "swagger spec validator", "swagger linter"]
+  },
+  "api-testing": {
+    "primary": ["api testing workbench", "automated api testing"],
+    "secondary": ["openapi endpoint test generator", "cors proxy api tester", "mock api request tester"]
+  }
+}

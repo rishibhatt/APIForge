@@ -1,0 +1,65 @@
+{
+  "slug": "openapi-response-schema-best-practices",
+  "title": "OpenAPI Response Schema Best Practices: Complete Modeling Guide (2026)",
+  "description": "Model robust, type-safe OpenAPI response schemas across 2xx, 4xx, and 5xx status codes. Master content negotiation, headers, and pagination schemas.",
+  "excerpt": "A deep dive into modeling OpenAPI response schemas for error codes, success bodies, and pagination objects.",
+  "category": "openapi",
+  "tags": [
+    "OpenAPI",
+    "JSON Schema",
+    "API Design",
+    "REST API"
+  ],
+  "keywords": [
+    "openapi response schema best practices",
+    "openapi 3.0 response modeling",
+    "content negotiation openapi",
+    "api response headers schema"
+  ],
+  "author": "rishab",
+  "publishedAt": "2026-09-26",
+  "updatedAt": "2026-09-26",
+  "readingTime": "9 min read",
+  "featured": false,
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "Response schemas tell API consumers exactly what data structure, data types, headers, and status codes to expect. Incomplete response schemas lead to runtime crashes and unhandled exceptions in client code."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "1. Response Schema Declaration Rules",
+      "id": "declaration-rules"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Explicit Status Codes: Model specific HTTP status codes ('200', '201', '400', '401', '404', '500') rather than relying solely on default.",
+        "Strict Required Arrays: Specify the required array on all component schemas so client SDK generators do not mark all properties as optional.",
+        "Model Response Headers: Declare rate-limiting (X-RateLimit-Remaining) and location headers (Location) inside the response definition."
+      ]
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "filename": "response-schema-example.yaml",
+      "code": "responses:\n  '201':\n    description: Resource successfully created\n    headers:\n      Location:\n        description: URI of the newly created resource\n        schema:\n          type: string\n          format: uri\n    content:\n      application/json:\n        schema:\n          $ref: '#/components/schemas/CustomerAccount'\n  '400':\n    description: Invalid payload syntax or validation error\n    content:\n      application/problem+json:\n        schema:\n          $ref: '#/components/schemas/ProblemDetails'"
+    },
+    {
+      "type": "tool",
+      "tool": "api-score",
+      "title": "Analyze Response Schema Completeness",
+      "description": "Run APIForge to check if your API endpoints define explicit response schemas for all expected HTTP success and error status codes.",
+      "buttonText": "Check Response Schemas",
+      "href": "/api-score"
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Why is the required array critical in OpenAPI response schemas?",
+      "answer": "Without explicit required fields in OpenAPI schemas, TypeScript/Go code generators treat every JSON field as optional (string | undefined), forcing developer consumers to add tedious null checks everywhere."
+    }
+  ]
+}

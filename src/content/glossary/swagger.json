@@ -1,0 +1,27 @@
+{
+  "slug": "swagger",
+  "term": "Swagger",
+  "definition": "Swagger is a popular suite of open-source and commercial developer tools built around the OpenAPI Specification, including Swagger UI, Swagger Editor, and Swagger Codegen.",
+  "category": "swagger",
+  "detailedExplanation": "Created by SmartBear Software, Swagger originated as the initial API description format in 2011. In 2015, SmartBear donated the specification format to the Linux Foundation, renaming it the OpenAPI Specification. Today, 'Swagger' refers specifically to the toolset used to render interactive documentation, edit specifications, and generate client/server code stubs.",
+  "codeExample": {
+    "language": "html",
+    "code": "<!-- Embedding Swagger UI in HTML -->\n<div id=\"swagger-ui\"></div>\n<script src=\"https://unpkg.com/swagger-ui-dist/swagger-ui-bundle.js\"></script>\n<script>\n  SwaggerUIBundle({\n    url: \"https://api.example.com/openapi.json\",\n    dom_id: '#swagger-ui'\n  });\n</script>",
+    "caption": "Minimal HTML snippet for embedding Swagger UI"
+  },
+  "commonMistakes": [
+    "Using 'Swagger' to refer to OpenAPI 3.1 specifications",
+    "Assuming Swagger UI performs full server-side schema validation"
+  ],
+  "relatedTerms": ["OpenAPI", "API Contract", "JSON Schema"],
+  "relatedToolHref": "/swagger-validator",
+  "relatedToolTitle": "Validate Swagger & OpenAPI Specs",
+  "faqs": [
+    {
+      "question": "Can APIForge read Swagger 2.0 files?",
+      "answer": "Yes! APIForge parses both Swagger 2.0 (JSON/YAML) and OpenAPI 3.0/3.1 specifications without configuration."
+    }
+  ],
+  "publishedAt": "2026-09-26",
+  "updatedAt": "2026-09-26"
+}

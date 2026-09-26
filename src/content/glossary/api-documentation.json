@@ -1,0 +1,12 @@
+{
+  "slug": "api-documentation",
+  "term": "API Documentation",
+  "definition": "API Documentation provides developer instructions on how to effectively integrate with and consume an API, including endpoint reference guides, tutorials, code samples, and authentication instructions.",
+  "category": "api-documentation",
+  "detailedExplanation": "Modern API documentation is usually generated dynamically from machine-readable OpenAPI specifications, guaranteeing that docs remain perfectly synchronized with underlying API code.",
+  "commonMistakes": ["Maintaining docs manually separate from code", "Omitting realistic response body samples"],
+  "relatedTerms": ["OpenAPI", "Swagger", "Developer Tools"],
+  "relatedToolHref": "/api-testing",
+  "relatedToolTitle": "Explore API Specs in APIForge",
+  "publishedAt": "2026-09-26"
+}

@@ -1,0 +1,12 @@
+{
+  "slug": "schema-validation",
+  "term": "Schema Validation",
+  "definition": "Schema Validation is the automated process of checking whether a data structure matches a target JSON Schema or OpenAPI data model.",
+  "category": "openapi",
+  "detailedExplanation": "Schema validation ensures incoming HTTP request bodies and outgoing server response payloads adhere strictly to expected data types, formats, required fields, and boundary constraints.",
+  "commonMistakes": ["Skipping response payload validation in integration test suites", "Ignoring extra unmodeled properties"],
+  "relatedTerms": ["JSON Schema", "OpenAPI", "API Testing"],
+  "relatedToolHref": "/openapi-validator",
+  "relatedToolTitle": "Run Schema Validation Tool",
+  "publishedAt": "2026-09-26"
+}

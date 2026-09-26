@@ -1,0 +1,24 @@
+{
+  "slug": "bad-openapi-example",
+  "title": "Bad OpenAPI Anti-Patterns & Refactoring Guide",
+  "description": "Analyze common OpenAPI specification anti-patterns and learn how to refactor them into clean, standardized API contracts.",
+  "category": "openapi",
+  "problemStatement": "Bad OpenAPI specifications contain broken references, duplicate operation IDs, verbs in URL paths, and GET requests with payload bodies.",
+  "badExample": {
+    "language": "yaml",
+    "explanation": "Anti-pattern: Verbs in URL path (/createUser), GET method with request body, missing error responses.",
+    "code": "paths:\n  /createUser:\n    post:\n      summary: create user\n  /getUserDetails:\n    get:\n      requestBody:\n        content:\n          application/json:\n            schema:\n              type: object"
+  },
+  "goodExample": {
+    "language": "yaml",
+    "explanation": "Refactored: RESTful resource URLs (/v1/users), standard HTTP POST for creation, and GET with query parameters.",
+    "code": "paths:\n  /v1/users:\n    post:\n      summary: Create a new user\n      operationId: createUser\n      responses:\n        '201':\n          description: Created\n  /v1/users/{id}:\n    get:\n      summary: Get user details by ID\n      operationId: getUserById\n      parameters:\n        - name: id\n          in: path\n          required: true\n          schema:\n            type: string"
+  },
+  "apiforgeChecks": [
+    "Detects GET requests containing request bodies",
+    "Flags verb segments in path names",
+    "Scores naming and path depth consistency"
+  ],
+  "publishedAt": "2026-09-26",
+  "updatedAt": "2026-09-26"
+}

@@ -1,0 +1,60 @@
+{
+  "slug": "api-documentation-best-practices",
+  "title": "API Documentation Best Practices: Building World-Class Portals (2026)",
+  "description": "Learn how to build interactive, search-engine optimized API documentation portals powered by OpenAPI 3.x specifications.",
+  "excerpt": "A guide to generating interactive developer portals, code samples, and comprehensive OpenAPI descriptions.",
+  "category": "api-documentation",
+  "tags": [
+    "API Documentation",
+    "Developer Experience",
+    "OpenAPI",
+    "Developer Portals"
+  ],
+  "keywords": [
+    "api documentation best practices",
+    "interactive openapi developer portal",
+    "generate api docs from swagger",
+    "developer experience api"
+  ],
+  "author": "rishab",
+  "publishedAt": "2026-09-26",
+  "updatedAt": "2026-09-26",
+  "readingTime": "9 min read",
+  "featured": false,
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "Great API documentation is the foundation of high API adoption. Automatically generated documentation from OpenAPI specs ensures your docs never get out of sync with production code deployments."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "1. Key Pillars of Developer Portal Design",
+      "id": "documentation-pillars"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Interactive Try-It-Out Console: Allow developers to execute live test requests directly inside their browser.",
+        "Multi-Language Code Snippets: Provide instant copy-paste cURL, TypeScript, Python, and Go code blocks for every operation.",
+        "Clear Authentication Guides: Dedicate a section explaining API key acquisition, OAuth 2.0 flow steps, and sample token request headers.",
+        "Comprehensive Property Descriptions: Add descriptions and realistic examples for every query parameter, request property, and response payload."
+      ]
+    },
+    {
+      "type": "tool",
+      "tool": "api-score",
+      "title": "Check API Documentation Coverage",
+      "description": "APIForge evaluates your OpenAPI spec for missing descriptions, absent operation summaries, and missing schema examples.",
+      "buttonText": "Audit Docs Quality",
+      "href": "/api-score"
+    }
+  ],
+  "faqs": [
+    {
+      "question": "How can I keep API documentation from becoming outdated?",
+      "answer": "Adopt a Spec-First or Code-First OpenAPI workflow integrated into your CI/CD pipeline, publishing interactive docs automatically upon every pull request merge."
+    }
+  ]
+}

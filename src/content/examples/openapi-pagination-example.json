@@ -1,0 +1,23 @@
+{
+  "slug": "openapi-pagination-example",
+  "title": "OpenAPI Cursor & Offset Pagination Schema Example",
+  "description": "How to declare query parameters and response pagination wrapper metadata in OpenAPI specifications.",
+  "category": "api-design",
+  "problemStatement": "Collection endpoints without pagination parameters risk server timeout crashes when returning large datasets.",
+  "badExample": {
+    "language": "yaml",
+    "explanation": "Collection endpoint returning array without limit/offset or cursor parameters.",
+    "code": "paths:\n  /v1/orders:\n    get:\n      responses:\n        '200':\n          description: List of orders"
+  },
+  "goodExample": {
+    "language": "yaml",
+    "explanation": "Cursor-based pagination with limit and starting_after parameters.",
+    "code": "paths:\n  /v1/orders:\n    get:\n      summary: List orders with cursor pagination\n      parameters:\n        - name: limit\n          in: query\n          schema:\n            type: integer\n            default: 20\n        - name: starting_after\n          in: query\n          schema:\n            type: string\n      responses:\n        '200':\n          description: Paginated orders payload\n          content:\n            application/json:\n              schema:\n                type: object\n                properties:\n                  data:\n                    type: array\n                    items:\n                      $ref: '#/components/schemas/Order'\n                  has_more:\n                    type: boolean"
+  },
+  "apiforgeChecks": [
+    "Analyzes collection endpoint parameters",
+    "Verifies response wrapper schemas"
+  ],
+  "publishedAt": "2026-09-26",
+  "updatedAt": "2026-09-26"
+}

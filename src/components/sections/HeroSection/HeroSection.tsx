@@ -89,6 +89,34 @@ export default function HeroSection({
               <span className={styles.tagMuted}>{t("landing.tagSwagger")}</span>
             </div>
           </div>
+
+          <div className={styles.samplesRow}>
+            <span className={styles.samplesLabel}>Try Sample Specs:</span>
+            <div className={styles.samplesBtns}>
+              <button
+                type="button"
+                className={styles.sampleChip}
+                onClick={() => {
+                  setSpecUrlInput("https://petstore.swagger.io/v2/swagger.json");
+                  setTimeout(onForge, 100);
+                }}
+              >
+                <MaterialIcon name="pets" size="xs" />
+                Swagger Petstore
+              </button>
+              <button
+                type="button"
+                className={styles.sampleChip}
+                onClick={() => {
+                  setSpecUrlInput("https://httpbin.org/spec.json");
+                  setTimeout(onForge, 100);
+                }}
+              >
+                <MaterialIcon name="swap_horiz" size="xs" />
+                HTTPBin API
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 

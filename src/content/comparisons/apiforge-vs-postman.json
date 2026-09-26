@@ -1,0 +1,46 @@
+{
+  "slug": "apiforge-vs-postman",
+  "title": "APIForge vs Postman: OpenAPI-Native vs Collection-First",
+  "description": "Compare APIForge and Postman for OpenAPI specification linting, quality scoring, zero-CORS testing, and web-first developer workflow.",
+  "competitorName": "Postman",
+  "heroSubtitle": "Spec-Native Quality Workbench vs Collection HTTP Client",
+  "verdict": "Postman is an extensive API platform focused on workspace collaboration and manual HTTP collections. APIForge is specialized for OpenAPI-native developers who want instant spec parsing, quality scoring, schema validation, zero-CORS testing, and shareable public reports without account signups.",
+  "featuresTable": [
+    {
+      "feature": "Core Paradigm",
+      "apiforge": "OpenAPI Spec Native",
+      "competitor": "Proprietary Collection Format"
+    },
+    {
+      "feature": "API Quality Scoring",
+      "apiforge": "Automated 0-100 Quality Score",
+      "competitor": "Requires API Governance Enterprise Plan"
+    },
+    {
+      "feature": "Account Requirement",
+      "apiforge": "100% Free & No Sign-up Required",
+      "competitor": "Requires Account Login"
+    },
+    {
+      "feature": "Web App CORS Proxy",
+      "apiforge": "Built-in CORS Proxy",
+      "competitor": "Requires Desktop Agent Installation"
+    }
+  ],
+  "sections": [
+    {
+      "title": "OpenAPI Specification Native Workflows",
+      "description": "Postman converts OpenAPI specs into Postman Collections. APIForge works directly on the underlying OpenAPI specification, preserving custom extensions, $ref chains, and JSON Schema contracts.",
+      "apiforgeWay": "Native OpenAPI 3.0 & Swagger 2.0 evaluation",
+      "competitorWay": "Import/convert to Postman Collection v2.1"
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Do I need to create an account to use APIForge?",
+      "answer": "No. APIForge is completely open and web-native. You can paste any URL or file and start testing and scoring immediately."
+    }
+  ],
+  "publishedAt": "2026-09-26",
+  "updatedAt": "2026-09-26"
+}

@@ -1,0 +1,12 @@
+{
+  "slug": "api-contract",
+  "term": "API Contract",
+  "definition": "An API Contract is a formal, binding specification defining the endpoints, inputs, outputs, error conditions, and SLA guarantees agreed upon between API providers and consumers.",
+  "category": "api-design",
+  "detailedExplanation": "API contracts prevent breaking changes by guaranteeing payload shapes, status codes, and security requirements. OpenAPI specifications serve as formal executable API contracts.",
+  "commonMistakes": ["Introducing breaking changes without bumping major API version", "Making schema fields non-optional without notice"],
+  "relatedTerms": ["OpenAPI", "Schema Validation", "API Versioning"],
+  "relatedToolHref": "/api-score",
+  "relatedToolTitle": "Audit API Contract Quality",
+  "publishedAt": "2026-09-26"
+}

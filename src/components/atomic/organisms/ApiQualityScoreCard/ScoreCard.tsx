@@ -195,7 +195,7 @@ export default function ScoreCard({
               }}
               onClick={onRoastApi}
             >
-              🔥 Roast This API
+              Roast This API
             </button>
           ) : null}
           {onViewFullAnalysis ? (

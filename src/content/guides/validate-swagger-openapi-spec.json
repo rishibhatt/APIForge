@@ -1,0 +1,77 @@
+{
+  "slug": "validate-swagger-openapi-spec",
+  "title": "How to Validate Swagger and OpenAPI Specs: Step-by-Step Guide (2026)",
+  "description": "Learn how to validate OpenAPI 2.0, 3.0, and 3.1 specifications locally, in CI/CD pipelines, and with online tools to prevent build failures.",
+  "excerpt": "A hands-on technical walkthrough for linting, validating, and enforcement checking OpenAPI specifications.",
+  "category": "openapi",
+  "tags": [
+    "OpenAPI",
+    "Validation",
+    "CI/CD",
+    "Linting",
+    "API Quality"
+  ],
+  "keywords": [
+    "validate openapi spec",
+    "swagger validator online",
+    "openapi linter ci cd",
+    "check openapi syntax"
+  ],
+  "author": "rishab",
+  "publishedAt": "2026-09-26",
+  "updatedAt": "2026-09-26",
+  "readingTime": "8 min read",
+  "featured": false,
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "Syntax errors or invalid `$ref` pointers in your OpenAPI specification break client SDK builds, doc generators, and API Gateway routing rules. Implementing automated validation in your continuous integration pipeline prevents invalid specs from entering production."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "1. Common Validation Check Categories",
+      "id": "validation-categories"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Structural Syntax: Verifying valid YAML/JSON formatting and required OAS root properties (openapi, info, paths).",
+        "Reference Resolution: Ensuring all $ref JSON pointers resolve to existing components or external URI schemas.",
+        "Schema Integrity: Confirming type definitions comply with JSON Schema keywords.",
+        "Semantic Rules: Enforcing operationId uniqueness, valid HTTP response status code formats ('200', '404'), and path parameter matching."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "2. Integrating Spec Validation into GitHub Actions",
+      "id": "github-actions"
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "filename": "openapi-ci-workflow.yaml",
+      "code": "name: Validate OpenAPI Specification\non:\n  push:\n    branches: [main]\n  pull_request:\n    branches: [main]\n\njobs:\n  validate:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - name: Run APIForge CLI Validation\n        run: |\n          npx @apiforge/cli validate ./openapi.yaml --strict"
+    },
+    {
+      "type": "tool",
+      "tool": "openapi-validator",
+      "title": "Instant Online OpenAPI Validation",
+      "description": "Paste your OpenAPI URL or content into APIForge for instant syntax parsing, reference checking, and zero-hallucination analysis.",
+      "buttonText": "Validate Spec Now",
+      "href": "/openapi-validator"
+    }
+  ],
+  "faqs": [
+    {
+      "question": "What happens if a $ref point in OpenAPI cannot be resolved?",
+      "answer": "Unresolved $ref pointers cause codegen engines and OpenAPI parsers to crash at runtime with 'ReferenceError: $ref node not found'."
+    },
+    {
+      "question": "Can APIForge check public URLs for OpenAPI specification updates?",
+      "answer": "Yes! Enter any public URL pointing to a JSON or YAML specification, and APIForge fetches, parses, and audits the spec in real time."
+    }
+  ]
+}

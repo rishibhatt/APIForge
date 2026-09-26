@@ -1,0 +1,74 @@
+{
+  "slug": "api-rate-limiting-best-practices",
+  "title": "API Rate Limiting Best Practices: Algorithms & Headers (2026)",
+  "description": "Architect robust rate limiting with Token Bucket, Leaky Bucket, and Sliding Window Counter algorithms. Implement standard HTTP headers.",
+  "excerpt": "A deep dive into rate limiting algorithms, HTTP headers, and 429 response structures for REST APIs.",
+  "category": "api-security",
+  "tags": [
+    "Rate Limiting",
+    "API Security",
+    "Redis",
+    "API Gateway",
+    "HTTP Headers"
+  ],
+  "keywords": [
+    "api rate limiting algorithms",
+    "token bucket vs sliding window",
+    "http 429 too many requests",
+    "rate limit headers ietf standard"
+  ],
+  "author": "rishab",
+  "publishedAt": "2026-09-26",
+  "updatedAt": "2026-09-26",
+  "readingTime": "9 min read",
+  "featured": false,
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "Rate limiting protects infrastructure from traffic surges, malicious scraper bots, and denial of service attacks while ensuring fair usage across API tenants."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "1. Comparing Rate Limiting Algorithms",
+      "id": "algorithms"
+    },
+    {
+      "type": "table",
+      "headers": ["Algorithm", "Burst Capacity", "Memory Footprint", "Best Suited Use Case"],
+      "rows": [
+        ["Token Bucket", "Supports bursts up to bucket size", "Low (tokens count + timestamp)", "General public API rate limiting"],
+        ["Leaky Bucket", "Smooths out bursts into steady queue", "Medium (FIFO queue buffer)", "Traffic shaping for downstream microservices"],
+        ["Sliding Window Log", "Zero burst boundary window bugs", "High (Stores timestamp per request)", "High-security financial transaction endpoints"],
+        ["Sliding Window Counter", "High accuracy with fast computation", "Low (Current + previous window counters)", "High-scale API Gateways (Envoy, Kong, Cloudflare)"]
+      ],
+      "caption": "Rate Limiting Algorithm Comparison"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "2. Standard Rate Limiting HTTP Headers (IETF Draft)",
+      "id": "rate-limit-headers"
+    },
+    {
+      "type": "code",
+      "language": "http",
+      "filename": "ratelimit-headers.http",
+      "code": "HTTP/1.1 429 Too Many Requests\nContent-Type: application/problem+json\nRateLimit-Limit: 100\nRateLimit-Remaining: 0\nRateLimit-Reset: 1798761600\nRetry-After: 30"
+    },
+    {
+      "type": "tool",
+      "tool": "api-score",
+      "title": "Check Rate Limit Declarations in OpenAPI",
+      "description": "Inspect your OpenAPI specification for 429 response declarations and standard RateLimit headers using APIForge.",
+      "buttonText": "Run Security Audit",
+      "href": "/api-score"
+    }
+  ],
+  "faqs": [
+    {
+      "question": "What HTTP status code should be returned when a rate limit is exceeded?",
+      "answer": "Always return HTTP status code 429 Too Many Requests along with a Retry-After header indicating how many seconds the client must wait."
+    }
+  ]
+}

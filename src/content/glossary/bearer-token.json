@@ -1,0 +1,12 @@
+{
+  "slug": "bearer-token",
+  "term": "Bearer Token",
+  "definition": "A Bearer Token is a security credential sent in the HTTP Authorization header (e.g. Authorization: Bearer <token>) granting access to protected API resources.",
+  "category": "api-security",
+  "detailedExplanation": "Whoever holds the bearer token is granted access. Tokens are typically JSON Web Tokens (JWT) or opaque string tokens issued via OAuth 2.0 or API key gateways.",
+  "commonMistakes": ["Passing bearer tokens in query parameters where logs index them", "Failing to validate token expiration"],
+  "relatedTerms": ["OAuth 2.0", "API Security", "HTTP Status Code"],
+  "relatedToolHref": "/api-testing",
+  "relatedToolTitle": "Test Bearer Tokens in APIForge Workbench",
+  "publishedAt": "2026-09-26"
+}

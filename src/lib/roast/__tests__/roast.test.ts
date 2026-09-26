@@ -147,6 +147,7 @@ describe("Roast My API Engine — Security & Redaction", () => {
       specUrl: "https://api.example.com?token=supersecret",
       summary: {
         score: 50,
+        statusTier: "CHAOTIC",
         totalEndpoints: 10,
         totalFindings: 2,
         criticalCount: 0,

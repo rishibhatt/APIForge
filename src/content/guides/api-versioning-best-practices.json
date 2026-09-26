@@ -1,0 +1,100 @@
+{
+  "slug": "api-versioning-best-practices",
+  "title": "API Versioning Best Practices: Strategies for Zero-Downtime Evolution (2026)",
+  "description": "Learn URL path versioning, header versioning, content negotiation, deprecation lifecycle headers (RFC 8594), and breaking change detection in OpenAPI.",
+  "excerpt": "A definitive guide to versioning RESTful APIs without breaking enterprise integrations or maintaining legacy codebase debt.",
+  "category": "api-design",
+  "tags": [
+    "API Versioning",
+    "API Design",
+    "REST API",
+    "OpenAPI",
+    "Backward Compatibility"
+  ],
+  "keywords": [
+    "api versioning strategies",
+    "url path versioning vs header versioning",
+    "api deprecation header rfc 8594",
+    "breaking changes in openapi"
+  ],
+  "author": "rishab",
+  "publishedAt": "2026-09-26",
+  "updatedAt": "2026-09-26",
+  "readingTime": "10 min read",
+  "featured": false,
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "As production systems evolve, API contracts inevitably change. Implementing a robust versioning strategy from day one prevents catastrophic integration breaks for client applications while maintaining developer velocity."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "1. Comparing Major Versioning Strategies",
+      "id": "versioning-strategies"
+    },
+    {
+      "type": "table",
+      "headers": ["Strategy", "Example", "Pros", "Cons"],
+      "rows": [
+        ["URI Path", "GET /v1/customers", "Explicit, easy to cache, developer friendly", "Pollutes URI space for non-breaking changes"],
+        ["Header", "X-API-Version: 2026-09-01", "Clean URIs, supports precise release dates", "Harder to test in browser without tools"],
+        ["Content Type", "Accept: application/vnd.company.v2+json", "Strict REST adherence (HATEOAS style)", "High complexity for consumers"],
+        ["Query Param", "GET /customers?v=2", "Simple prototyping", "Complicates caching proxies"]
+      ],
+      "caption": "REST API Versioning Comparison Matrix"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "2. Differentiating Breaking vs Non-Breaking Changes",
+      "id": "breaking-changes"
+    },
+    {
+      "type": "paragraph",
+      "text": "Never bump a major version for non-breaking additions. Understand what triggers a major API version bump:"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Non-Breaking: Adding a new optional request parameter, adding a new property to a response payload, or introducing a new endpoint path.",
+        "Breaking: Removing or renaming an existing parameter or property, changing field datatypes (e.g. integer to string), modifying error status codes, or making previously optional request fields required."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "3. Enforce API Deprecation Standard Headers (RFC 8594)",
+      "id": "deprecation-headers"
+    },
+    {
+      "type": "paragraph",
+      "text": "When retiring endpoints, notify client developers programmatically via HTTP headers before decommissioning functionality:"
+    },
+    {
+      "type": "code",
+      "language": "http",
+      "filename": "deprecation-response-headers.http",
+      "code": "HTTP/1.1 200 OK\nContent-Type: application/json\nDeprecation: @1798761600\nSunset: Wed, 30 Sep 2026 23:59:59 GMT\nLink: <https://api.example.com/docs/migration-v2>; rel=\"deprecation\"; type=\"text/html\""
+    },
+    {
+      "type": "tool",
+      "tool": "api-score",
+      "title": "Detect Breaking Spec Changes Automatically",
+      "description": "Upload your updated OpenAPI spec to APIForge to instantly spot accidental breaking contract changes, removed properties, or altered parameter types.",
+      "buttonText": "Check API Compatibility",
+      "href": "/api-score"
+    }
+  ],
+  "faqs": [
+    {
+      "question": "What is RFC 8594 (Sunset Header)?",
+      "answer": "RFC 8594 defines the Sunset HTTP response header, which explicitly informs clients of the exact date and timestamp when an API endpoint will be permanently shut down."
+    },
+    {
+      "question": "Which versioning strategy is best for enterprise REST APIs?",
+      "answer": "URI Path versioning (e.g. /v1/, /v2/) is the industry standard for major breaking releases due to its high visibility, proxy-cache friendliness, and universal library compatibility."
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "slug": "http-status-code",
+  "term": "HTTP Status Code",
+  "definition": "A 3-digit integer issued by a server in response to a client's HTTP request, indicating whether the request succeeded or failed.",
+  "category": "api-design",
+  "detailedExplanation": "Status codes fall into 5 categories: 1xx (Informational), 2xx (Success), 3xx (Redirection), 4xx (Client Error), and 5xx (Server Error). Standard OpenAPI specs should explicitly document status codes expected per operation.",
+  "commonMistakes": ["Returning 200 OK for business errors", "Using 500 Internal Server Error for validation failures"],
+  "relatedTerms": ["REST API", "OpenAPI", "API Contract"],
+  "relatedToolHref": "/api-score",
+  "relatedToolTitle": "Audit Error Status Codes with APIForge",
+  "publishedAt": "2026-09-26"
+}

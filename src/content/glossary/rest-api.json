@@ -1,0 +1,16 @@
+{
+  "slug": "rest-api",
+  "term": "REST API",
+  "definition": "Representational State Transfer (REST) is an architectural style for designing networked applications using stateless communications and standard HTTP methods.",
+  "category": "api-design",
+  "detailedExplanation": "REST APIs utilize HTTP methods (GET, POST, PUT, DELETE) to manipulate resource state identified by URIs. Key principles include statelessness, client-server separation, cacheability, and uniform interface design.",
+  "commonMistakes": [
+    "Using POST for all operations regardless of idempotency",
+    "Including verbs in resource URIs (/getUser)",
+    "Returning HTTP 200 OK with error payload bodies"
+  ],
+  "relatedTerms": ["HTTP Status Code", "API Contract", "Idempotency"],
+  "relatedToolHref": "/api-score",
+  "relatedToolTitle": "Audit REST API Quality with APIForge",
+  "publishedAt": "2026-09-26"
+}
