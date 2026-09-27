@@ -51,10 +51,28 @@ Return ONLY raw JSON with keys "opening", "roast", "caption". Do not wrap in mar
 
     let cleanedText = res.text.trim();
     if (cleanedText.startsWith("```")) {
-      cleanedText = cleanedText.replace(/^```(json)?/, "").replace(/```$/, "").trim();
+      cleanedText = cleanedText.replace(/^```(json)?/i, "").replace(/```$/, "").trim();
     }
 
-    const parsed = JSON.parse(cleanedText) as AiRoastGenerationOutput;
+    const firstBrace = cleanedText.indexOf("{");
+    const lastBrace = cleanedText.lastIndexOf("}");
+    if (firstBrace !== -1 && lastBrace > firstBrace) {
+      cleanedText = cleanedText.slice(firstBrace, lastBrace + 1);
+    }
+
+    let parsed: AiRoastGenerationOutput | null = null;
+    try {
+      parsed = JSON.parse(cleanedText) as AiRoastGenerationOutput;
+    } catch {
+      const sanitizedJson = cleanedText.replace(/[\u0000-\u001F]+/g, (match) => {
+        if (match === "\n") return "\\n";
+        if (match === "\r") return "\\r";
+        if (match === "\t") return "\\t";
+        return "";
+      });
+      parsed = JSON.parse(sanitizedJson) as AiRoastGenerationOutput;
+    }
+
     if (parsed && typeof parsed.roast === "string" && parsed.roast.length > 10) {
       return {
         opening: parsed.opening?.trim(),

@@ -129,7 +129,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${plusJakarta.variable} ${jetbrainsMono.variable}`}
+      className={`dark ${plusJakarta.variable} ${jetbrainsMono.variable}`}
     >
       <head>
         {/* Google Analytics (gtag.js) */}

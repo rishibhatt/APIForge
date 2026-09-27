@@ -399,20 +399,20 @@
   align-items: center;
   gap: 6px;
   border-radius: 9999px;
-  border: 1px solid color-mix(in srgb, var(--color-primary) 25%, transparent);
-  background: color-mix(in srgb, var(--color-surface-container-high) 80%, transparent);
-  padding: 5px 12px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
+  background: var(--color-cta-fill);
+  padding: 6px 14px;
   font-family: var(--font-body);
   font-size: 12px;
-  font-weight: 600;
-  color: var(--color-on-surface);
+  font-weight: 700;
+  color: var(--color-on-primary);
   cursor: pointer;
-  transition: all 0.2s ease;
+  box-shadow: var(--shadow-ambient);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .sampleChip:hover {
-  background: color-mix(in srgb, var(--color-primary-container) 35%, var(--color-surface-container-highest));
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+  filter: brightness(1.12);
   transform: translateY(-1px);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--color-primary) 40%, transparent);
 }

@@ -152,15 +152,28 @@ export default function RoastInput({
               (mode === "paste" && !rawText.trim())
             }
           >
-            <span>{isLoading ? "AUDITING ENDPOINTS..." : "ROAST MY API"}</span>
+            {isLoading ? (
+              <>
+                <MaterialIcon name="refresh" className={styles.spinnerIcon} size="sm" />
+                <span>AUDITING ENDPOINTS...</span>
+              </>
+            ) : (
+              <>
+                <span>ROAST MY API</span>
+                <span className={styles.fireEmoji} aria-hidden="true">🔥</span>
+              </>
+            )}
           </button>
         ) : null}
       </form>
 
       {error ? (
-        <div className={styles.errorMsg}>
-          <MaterialIcon name="error_outline" size="sm" />
-          <span>{error}</span>
+        <div className={styles.errorBanner}>
+          <MaterialIcon name="warning" size="sm" className={styles.errorIcon} />
+          <div className={styles.errorContent}>
+            <strong className={styles.errorTitle}>Roast Analysis Error</strong>
+            <p className={styles.errorDesc}>{error}</p>
+          </div>
         </div>
       ) : null}
     </div>

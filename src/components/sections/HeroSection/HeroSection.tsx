@@ -11,6 +11,7 @@ export interface HeroSectionProps {
   isLoading: boolean;
   error: string | null;
   onForge: () => void;
+  onSelectSampleUrl?: (url: string) => void;
 }
 
 export default function HeroSection({
@@ -18,9 +19,19 @@ export default function HeroSection({
   isLoading,
   error,
   onForge,
+  onSelectSampleUrl,
 }: HeroSectionProps) {
   const specUrlInput = useWorkspaceStore((s) => s.specUrlInput);
   const setSpecUrlInput = useWorkspaceStore((s) => s.setSpecUrlInput);
+
+  const handleSelectSample = (url: string) => {
+    setSpecUrlInput(url);
+    if (onSelectSampleUrl) {
+      onSelectSampleUrl(url);
+    } else {
+      setTimeout(onForge, 50);
+    }
+  };
 
   return (
     <section className={styles.hero} id="parse-api">
@@ -71,10 +82,17 @@ export default function HeroSection({
               onClick={onForge}
               disabled={isLoading}
             >
-              {isLoading ? t("common.loading") : t("landing.parseCta")}
-              {!isLoading ? (
-                <MaterialIcon name="bolt" className={styles.parseIcon} size="sm" />
-              ) : null}
+              {isLoading ? (
+                <>
+                  <MaterialIcon name="refresh" className={styles.spinnerIcon} size="sm" />
+                  <span>{t("common.loading")}</span>
+                </>
+              ) : (
+                <>
+                  <span>{t("landing.parseCta")}</span>
+                  <MaterialIcon name="bolt" className={styles.parseIcon} size="sm" />
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -96,10 +114,7 @@ export default function HeroSection({
               <button
                 type="button"
                 className={styles.sampleChip}
-                onClick={() => {
-                  setSpecUrlInput("https://petstore.swagger.io/v2/swagger.json");
-                  setTimeout(onForge, 100);
-                }}
+                onClick={() => handleSelectSample("https://petstore.swagger.io/")}
               >
                 <MaterialIcon name="pets" size="xs" />
                 Swagger Petstore
@@ -107,13 +122,10 @@ export default function HeroSection({
               <button
                 type="button"
                 className={styles.sampleChip}
-                onClick={() => {
-                  setSpecUrlInput("https://httpbin.org/spec.json");
-                  setTimeout(onForge, 100);
-                }}
+                onClick={() => handleSelectSample("https://fakerestapi.azurewebsites.net/index.html")}
               >
-                <MaterialIcon name="swap_horiz" size="xs" />
-                HTTPBin API
+                <MaterialIcon name="api" size="xs" />
+                Fake REST API
               </button>
             </div>
           </div>

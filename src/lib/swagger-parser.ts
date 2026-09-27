@@ -6,34 +6,35 @@ import type { ParseSwaggerResult } from "@/types/api";
 import { extractEndpointsFromSpec } from "@/lib/extract-endpoints";
 import { extractServerUrls } from "@/lib/extract-servers";
 import { specUrlCandidates } from "@/lib/spec-url";
+import { sanitizeAndStubMissingRefs } from "@/lib/sanitize-refs";
 
-/** Lenient mode: resolve $refs like Swagger UI without strict OAS schema checks */
+/** Lenient mode: resolve $refs like Swagger UI without strict OAS schema checks and ignore circular refs */
 const RELAXED: SwaggerParser.Options = {
   validate: { schema: false, spec: false },
+  dereference: { circular: "ignore" },
 };
 
-async function dereferenceSpec(
-  api: string | Record<string, unknown>,
-): Promise<Record<string, unknown>> {
-  return (await SwaggerParser.dereference(api as never, RELAXED)) as unknown as Record<
-    string,
-    unknown
-  >;
-}
 
-/**
- * Try strict validation first; fall back to lenient dereference (invalid * securitySchemes, etc. still load in Swagger UI).
- */
-async function normalizeSpec(
-  api: string | Record<string, unknown>,
+
+async function normalizeDocObject(
+  docObj: Record<string, unknown>,
 ): Promise<Record<string, unknown>> {
+  const stubbedDoc = sanitizeAndStubMissingRefs(docObj);
+
   try {
-    return (await SwaggerParser.validate(api as never)) as unknown as Record<
+    return (await SwaggerParser.validate(stubbedDoc as never, RELAXED)) as unknown as Record<
       string,
       unknown
     >;
   } catch {
-    return dereferenceSpec(api);
+    try {
+      return (await SwaggerParser.dereference(stubbedDoc as never, RELAXED)) as unknown as Record<
+        string,
+        unknown
+      >;
+    } catch {
+      return stubbedDoc;
+    }
   }
 }
 
@@ -318,6 +319,41 @@ function parseTextToObject(text: string): Record<string, unknown> {
   return loaded as Record<string, unknown>;
 }
 
+async function fetchAndNormalizeCandidate(
+  candidate: string,
+): Promise<Record<string, unknown> | null> {
+  let res: Response;
+  try {
+    res = await fetch(candidate, {
+      redirect: "follow",
+      headers: { Accept: "application/json, text/plain, text/html, */*" },
+    });
+  } catch {
+    return null;
+  }
+  if (!res.ok) return null;
+
+  const ct = res.headers.get("content-type") ?? "";
+  const text = await res.text();
+
+  const embeddedDoc = extractSwaggerDocFromInitJs(text);
+  if (embeddedDoc) {
+    return normalizeDocObject(embeddedDoc);
+  }
+
+  const isHtml = ct.includes("text/html") || /^\s*</.test(text);
+  if (isHtml) {
+    return null;
+  }
+
+  try {
+    const docObj = parseTextToObject(text);
+    return await normalizeDocObject(docObj);
+  } catch {
+    return null;
+  }
+}
+
 /** Server-side: validate / dereference, extract endpoints from URL */
 export async function parseSwaggerUrl(url: string): Promise<ParseSwaggerResult> {
   const seeds = specUrlCandidates(url);
@@ -336,25 +372,44 @@ export async function parseSwaggerUrl(url: string): Promise<ParseSwaggerResult> 
   for (let i = 0; i < queue.length; i++) {
     const candidate = queue[i]!;
 
+    // 1. Fetch & parse direct JSON / YAML / JS spec
     try {
-      const doc = await normalizeSpec(candidate);
-      return resultFromDoc(doc);
+      const doc = await fetchAndNormalizeCandidate(candidate);
+      if (doc) {
+        const res = resultFromDoc(doc);
+        if (res.endpoints.length > 0) return res;
+      }
     } catch (e) {
       lastError = e instanceof Error ? e : new Error(String(e));
     }
 
-    const recovery = await recoverFromSwaggerUiPage(candidate);
-    if (recovery) {
-      for (const u of recovery.extraUrls) push(u);
+    // 2. Recover embedded spec from Swagger UI HTML page
+    try {
+      const recovery = await recoverFromSwaggerUiPage(candidate);
+      if (recovery) {
+        for (const u of recovery.extraUrls) push(u);
 
-      if (recovery.embedded) {
-        try {
-          const doc = await normalizeSpec(recovery.embedded);
-          return resultFromDoc(doc);
-        } catch (e) {
-          lastError = e instanceof Error ? e : new Error(String(e));
+        if (recovery.embedded) {
+          const doc = await normalizeDocObject(recovery.embedded);
+          const res = resultFromDoc(doc);
+          if (res.endpoints.length > 0) return res;
         }
       }
+    } catch (e) {
+      lastError = e instanceof Error ? e : new Error(String(e));
+    }
+
+    // 3. Fallback to direct SwaggerParser URL dereference
+    try {
+      const deref = (await SwaggerParser.dereference(
+        candidate,
+        RELAXED,
+      )) as unknown as Record<string, unknown>;
+      const stubbed = sanitizeAndStubMissingRefs(deref);
+      const res = resultFromDoc(stubbed);
+      if (res.endpoints.length > 0) return res;
+    } catch (e) {
+      lastError = e instanceof Error ? e : new Error(String(e));
     }
   }
 
@@ -371,6 +426,6 @@ export async function parseSwaggerUrl(url: string): Promise<ParseSwaggerResult> 
 export async function parseSwaggerFile(file: File): Promise<ParseSwaggerResult> {
   const text = await file.text();
   const obj = parseTextToObject(text);
-  const doc = await normalizeSpec(obj);
+  const doc = await normalizeDocObject(obj);
   return resultFromDoc(doc);
 }

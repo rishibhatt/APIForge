@@ -28,6 +28,7 @@ export default function WorkspaceShell() {
   const { t } = useLanguage();
   const endpoints = useWorkspaceStore((s) => s.endpoints);
   const specUrlInput = useWorkspaceStore((s) => s.specUrlInput);
+  const setSpecUrlInput = useWorkspaceStore((s) => s.setSpecUrlInput);
   const { parseUrl, isLoading, error } = useSwaggerParser();
 
   const workspaceVisible = endpoints.length > 0;
@@ -36,6 +37,14 @@ export default function WorkspaceShell() {
   const onForge = useCallback(() => {
     void parseUrl(specUrlInput);
   }, [parseUrl, specUrlInput]);
+
+  const onSelectSampleUrl = useCallback(
+    (url: string) => {
+      setSpecUrlInput(url);
+      void parseUrl(url);
+    },
+    [parseUrl, setSpecUrlInput]
+  );
 
   const mainClass = useMemo(
     () =>
@@ -73,6 +82,7 @@ export default function WorkspaceShell() {
               isLoading={isLoading}
               error={error}
               onForge={onForge}
+              onSelectSampleUrl={onSelectSampleUrl}
             />
             <LandingMarketing
               t={t}

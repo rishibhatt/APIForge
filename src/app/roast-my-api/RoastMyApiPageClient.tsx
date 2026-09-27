@@ -6,6 +6,7 @@ import LandingHeader from "@/components/sections/LandingHeader/LandingHeader";
 import LandingFooter from "@/components/sections/LandingFooter/LandingFooter";
 import FloatingSupportButton from "@/components/atomic/atoms/FloatingSupportButton/FloatingSupportButton";
 import SupportModal from "@/components/atomic/organisms/SupportModal/SupportModal";
+import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
 import RoastHero from "@/components/roast/RoastHero";
 import RoastInput from "@/components/roast/RoastInput";
 import RoastProgress from "@/components/roast/RoastProgress";
@@ -313,7 +314,8 @@ export default function RoastMyApiPageClient() {
                     setModerationOpen(true);
                   }}
                 >
-                  Report this roast
+                  <MaterialIcon name="flag" size="xs" />
+                  <span>Report this roast</span>
                 </button>
               </div>
             </div>

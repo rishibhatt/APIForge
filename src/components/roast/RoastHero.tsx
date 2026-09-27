@@ -8,35 +8,42 @@ export interface RoastHeroProps {
 }
 
 const DEMO_SPECS = [
-  { label: "Petstore API", url: "https://petstore.swagger.io/v2/swagger.json" },
-  { label: "HTTPBin API", url: "https://httpbin.org/spec.json" },
+  { label: "Swagger Petstore", url: "https://petstore.swagger.io/", icon: "pets" },
+  { label: "Fake REST API", url: "https://fakerestapi.azurewebsites.net/index.html", icon: "api" },
 ];
 
 export default function RoastHero({ onSelectDemo }: RoastHeroProps) {
   return (
     <section className={styles.hero}>
-      <h1 className={styles.headline}>
-        SHIP IT. <br />
-        <span className={styles.coralGradient}>WE&apos;LL JUDGE IT.</span>
-      </h1>
+      <div className={styles.heroMesh} aria-hidden />
+      <div className={styles.gridSubtle} aria-hidden />
 
-      <p className={styles.subhead}>
-        Paste your OpenAPI spec. We&apos;ll find the issues your API thought nobody would notice.
-      </p>
+      <div className={styles.inner}>
+        <h1 className={styles.headline}>
+          <span className={styles.titleLine}>SHIP IT.</span>
+          <span className={styles.coralGradient}>WE&apos;LL JUDGE IT.</span>
+        </h1>
 
-      <div className={styles.demoContainer}>
-        <span className={styles.demoLabel}>Try a sample API:</span>
-        {DEMO_SPECS.map((demo) => (
-          <button
-            key={demo.label}
-            type="button"
-            className={styles.demoBtn}
-            onClick={() => onSelectDemo(demo.url)}
-          >
-            <MaterialIcon name="terminal" size="sm" />
-            <span>{demo.label}</span>
-          </button>
-        ))}
+        <p className={styles.subhead}>
+          Paste your OpenAPI spec. We&apos;ll find the issues your API thought nobody would notice.
+        </p>
+
+        <div className={styles.demoContainer}>
+          <span className={styles.demoLabel}>Try a sample API:</span>
+          <div className={styles.demoBtns}>
+            {DEMO_SPECS.map((demo) => (
+              <button
+                key={demo.label}
+                type="button"
+                className={styles.demoBtn}
+                onClick={() => onSelectDemo(demo.url)}
+              >
+                <MaterialIcon name={demo.icon} size="xs" />
+                <span>{demo.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
     </section>
   );

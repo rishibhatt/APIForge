@@ -191,14 +191,61 @@
   color: #a1a1aa;
 }
 
-.errorMsg {
-  margin-top: 0.75rem;
-  font-size: 0.85rem;
-  color: #ff6b45;
+.fireEmoji {
+  font-size: 1.15rem;
+  line-height: 1;
+  display: inline-block;
+  filter: drop-shadow(0 0 6px rgba(255, 107, 74, 0.7));
+  transform: translateY(-1px);
+}
+
+.spinnerIcon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.errorBanner {
+  margin-top: 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
+  align-items: flex-start;
+  gap: 0.75rem;
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.1);
+}
+
+.errorIcon {
+  color: #ef4444;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.errorContent {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+}
+
+.errorTitle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #f87171;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.errorDesc {
+  font-size: 0.85rem;
+  color: #fca5a5;
+  line-height: 1.4;
+  margin: 0;
 }
 
 @media (max-width: 580px) {

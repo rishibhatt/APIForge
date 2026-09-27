@@ -4,7 +4,7 @@
  */
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
   /* —— Light · same accent philosophy (violet + method colors) —— */
   --color-surface: #f5f3f8;
   --color-surface-container-lowest: #ffffff;
