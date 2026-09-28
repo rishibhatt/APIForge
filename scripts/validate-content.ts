@@ -35,7 +35,8 @@ for (const g of guides) {
     warnings++;
   }
 
-  if (!g.content || !Array.isArray(g.content) || g.content.length === 0) {
+  const blocks = (g as any).content || g.blocks;
+  if (!blocks || !Array.isArray(blocks) || blocks.length === 0) {
     console.error(`❌ Guide content is empty: ${g.slug}`);
     errors++;
   }

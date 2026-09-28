@@ -21,7 +21,7 @@ export default function RoastHero({ onSelectDemo }: RoastHeroProps) {
       <div className={styles.inner}>
         <h1 className={styles.headline}>
           <span className={styles.titleLine}>SHIP IT.</span>
-          <span className={styles.coralGradient}>WE&apos;LL JUDGE IT.</span>
+          <span className={styles.coralGradient}>WE&apos;LL  JUDGE IT.</span>
         </h1>
 
         <p className={styles.subhead}>

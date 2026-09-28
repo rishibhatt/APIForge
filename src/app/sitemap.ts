@@ -1,83 +1,32 @@
 import type { MetadataRoute } from "next";
-import { getAllGuides, getAllGlossary, getAllExamples, getAllComparisons } from "@/lib/content/loader";
+import {
+  getAllGuides,
+  getAllGlossary,
+  getAllExamples,
+  getAllComparisons,
+  getAllChecklists,
+  getAllReferences,
+} from "@/lib/content/loader";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://apiforge.info";
   const lastModified = new Date();
 
   const staticRoutes: MetadataRoute.Sitemap = [
-    {
-      url: baseUrl,
-      lastModified,
-      changeFrequency: "weekly",
-      priority: 1.0,
-    },
-    {
-      url: `${baseUrl}/about`,
-      lastModified,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/roast-my-api`,
-      lastModified,
-      changeFrequency: "daily",
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/api-score`,
-      lastModified,
-      changeFrequency: "weekly",
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/openapi-validator`,
-      lastModified,
-      changeFrequency: "weekly",
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/swagger-validator`,
-      lastModified,
-      changeFrequency: "weekly",
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/api-quality-checker`,
-      lastModified,
-      changeFrequency: "weekly",
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/api-testing`,
-      lastModified,
-      changeFrequency: "weekly",
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/guides`,
-      lastModified,
-      changeFrequency: "daily",
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/glossary`,
-      lastModified,
-      changeFrequency: "weekly",
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/examples`,
-      lastModified,
-      changeFrequency: "weekly",
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/compare`,
-      lastModified,
-      changeFrequency: "weekly",
-      priority: 0.8,
-    },
+    { url: baseUrl, lastModified, changeFrequency: "weekly", priority: 1.0 },
+    { url: `${baseUrl}/about`, lastModified, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${baseUrl}/roast-my-api`, lastModified, changeFrequency: "daily", priority: 0.9 },
+    { url: `${baseUrl}/api-score`, lastModified, changeFrequency: "weekly", priority: 0.9 },
+    { url: `${baseUrl}/openapi-validator`, lastModified, changeFrequency: "weekly", priority: 0.9 },
+    { url: `${baseUrl}/swagger-validator`, lastModified, changeFrequency: "weekly", priority: 0.9 },
+    { url: `${baseUrl}/api-quality-checker`, lastModified, changeFrequency: "weekly", priority: 0.9 },
+    { url: `${baseUrl}/api-testing`, lastModified, changeFrequency: "weekly", priority: 0.9 },
+    { url: `${baseUrl}/guides`, lastModified, changeFrequency: "daily", priority: 0.8 },
+    { url: `${baseUrl}/glossary`, lastModified, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${baseUrl}/examples`, lastModified, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${baseUrl}/compare`, lastModified, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${baseUrl}/checklists`, lastModified, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${baseUrl}/reference`, lastModified, changeFrequency: "weekly", priority: 0.8 },
   ];
 
   const guideRoutes: MetadataRoute.Sitemap = getAllGuides().map((g) => ({
@@ -108,11 +57,27 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.7,
   }));
 
+  const checklistRoutes: MetadataRoute.Sitemap = getAllChecklists().map((ch) => ({
+    url: `${baseUrl}/checklists/${ch.slug}`,
+    lastModified: ch.updatedAt ? new Date(ch.updatedAt) : lastModified,
+    changeFrequency: "weekly",
+    priority: 0.7,
+  }));
+
+  const referenceRoutes: MetadataRoute.Sitemap = getAllReferences().map((ref) => ({
+    url: `${baseUrl}/reference/${ref.slug}`,
+    lastModified: ref.updatedAt ? new Date(ref.updatedAt) : lastModified,
+    changeFrequency: "monthly",
+    priority: 0.7,
+  }));
+
   return [
     ...staticRoutes,
     ...guideRoutes,
     ...glossaryRoutes,
     ...exampleRoutes,
     ...comparisonRoutes,
+    ...checklistRoutes,
+    ...referenceRoutes,
   ];
 }

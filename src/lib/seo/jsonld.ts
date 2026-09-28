@@ -125,7 +125,7 @@ export function generateArticleJsonLd(article: Article) {
         "url": `${SITE_URL}/icon.png`,
       },
     },
-    "keywords": article.keywords.join(", "),
+    "keywords": (article.keywords || article.tags || []).join(", "),
   };
 }
 

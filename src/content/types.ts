@@ -1,3 +1,12 @@
+export type ContentType =
+  | "guide"
+  | "glossary"
+  | "example"
+  | "comparison"
+  | "checklist"
+  | "reference"
+  | "tool-guide";
+
 export type ContentCategory =
   | "api-design"
   | "openapi"
@@ -7,7 +16,40 @@ export type ContentCategory =
   | "api-documentation"
   | "developer-tools";
 
+export type ContentCluster =
+  | "openapi"
+  | "rest-api"
+  | "api-security"
+  | "api-testing"
+  | "api-documentation"
+  | "api-versioning"
+  | "api-errors"
+  | "api-performance"
+  | "api-reliability"
+  | "api-governance"
+  | "api-quality"
+  | "http"
+  | "json-schema"
+  | "developer-experience";
+
+export type SearchIntent =
+  | "informational"
+  | "commercial"
+  | "transactional"
+  | "navigational";
+
+export type TargetAudience =
+  | "frontend-dev"
+  | "backend-dev"
+  | "api-architect"
+  | "devops"
+  | "tech-lead"
+  | "all-developers";
+
+export type DifficultyLevel = "beginner" | "intermediate" | "advanced";
+
 export interface Author {
+  id?: string;
   name: string;
   role: string;
   avatar?: string;
@@ -26,9 +68,24 @@ export type BlockType =
   | "list"
   | "callout"
   | "table"
+  | "comparison"
+  | "checklist"
+  | "steps"
+  | "example"
+  | "badExample"
+  | "goodExample"
+  | "decisionTree"
+  | "quote"
+  | "image"
+  | "diagram"
   | "tool"
   | "cta"
-  | "image";
+  | "faq"
+  | "relatedContent"
+  | "externalReference"
+  | "summary"
+  | "warning"
+  | "tip";
 
 export interface ParagraphBlock {
   type: "paragraph";
@@ -76,13 +133,42 @@ export interface TableBlock {
   caption?: string;
 }
 
-export interface ToolBlock {
-  type: "tool";
-  tool: "api-score" | "openapi-validator" | "swagger-validator" | "api-testing" | "roast-my-api";
+export interface ComparisonBlock {
+  type: "comparison";
+  title?: string;
+  headers: [string, string, string];
+  rows: Array<[string, string, string]>;
+}
+
+export interface ChecklistBlock {
+  type: "checklist";
+  title?: string;
+  items: Array<{ text: string; done?: boolean; detail?: string }>;
+}
+
+export interface StepsBlock {
+  type: "steps";
+  title?: string;
+  steps: Array<{ title: string; description: string; code?: string }>;
+}
+
+export interface CodeExampleBlock {
+  type: "example" | "badExample" | "goodExample";
   title: string;
-  description: string;
-  buttonText: string;
-  href: string;
+  language: string;
+  code: string;
+  explanation: string;
+}
+
+export interface DecisionTreeBlock {
+  type: "decisionTree";
+  title: string;
+  description?: string;
+  nodes: Array<{
+    condition: string;
+    recommendation: string;
+    alternative?: string;
+  }>;
 }
 
 export interface ImageBlock {
@@ -90,6 +176,46 @@ export interface ImageBlock {
   src: string;
   alt: string;
   caption?: string;
+}
+
+export interface DiagramBlock {
+  type: "diagram";
+  title: string;
+  description?: string;
+  mermaidSyntax?: string;
+  asciiArt?: string;
+}
+
+export interface ToolBlock {
+  type: "tool" | "cta";
+  tool?: "api-score" | "openapi-validator" | "swagger-validator" | "api-testing" | "roast-my-api" | "api-quality-checker";
+  title: string;
+  description: string;
+  buttonText: string;
+  href: string;
+}
+
+export interface FaqBlock {
+  type: "faq";
+  faqs: FAQItem[];
+}
+
+export interface RelatedContentBlock {
+  type: "relatedContent";
+  slugs: string[];
+}
+
+export interface ExternalReferenceBlock {
+  type: "externalReference";
+  title: string;
+  url: string;
+  source: string;
+}
+
+export interface SummaryBlock {
+  type: "summary" | "tip" | "warning";
+  title: string;
+  text: string;
 }
 
 export type ContentBlock =
@@ -100,33 +226,82 @@ export type ContentBlock =
   | ListBlock
   | CalloutBlock
   | TableBlock
+  | ComparisonBlock
+  | ChecklistBlock
+  | StepsBlock
+  | CodeExampleBlock
+  | DecisionTreeBlock
+  | ImageBlock
+  | DiagramBlock
   | ToolBlock
-  | ImageBlock;
+  | FaqBlock
+  | RelatedContentBlock
+  | ExternalReferenceBlock
+  | SummaryBlock;
 
 export interface FAQItem {
   question: string;
   answer: string;
 }
 
-export interface Article {
+export interface ExternalReference {
+  title: string;
+  url: string;
+  source: string;
+}
+
+export interface SEOConfig {
+  title: string;
+  description: string;
+  keywords: string[];
+  canonicalUrl?: string;
+  noindex?: boolean;
+  ogType?: "website" | "article";
+}
+
+export interface KnowledgeItem {
+  id: string;
+  type: ContentType;
   slug: string;
   title: string;
   description: string;
-  excerpt: string;
+  excerpt?: string;
+  cluster: ContentCluster;
+  pillar?: string;
   category: ContentCategory;
-  tags: string[];
-  keywords: string[];
-  author: string; // author key e.g. "rishab"
+  subcategory?: string;
+  primaryIntent: SearchIntent;
+  audience: TargetAudience;
+  difficulty: DifficultyLevel;
   publishedAt: string;
   updatedAt?: string;
   readingTime?: string;
-  heroImage?: string;
-  ogImage?: string;
-  canonicalUrl?: string;
-  featured?: boolean;
-  content: ContentBlock[];
+  author: string; // Author ID or name e.g. "rishab"
+  blocks: ContentBlock[];
+  
+  // Optional enhancement sections
+  answerFirst?: string;
+  keyTakeaways?: string[];
+  checklist?: string[];
+  mistakes?: string[];
   faqs?: FAQItem[];
+  references?: ExternalReference[];
+  tool?: {
+    href: string;
+    title: string;
+    buttonText: string;
+  };
+  canonical?: string;
+  heroImage?: string;
+  shareImage?: string;
+  featured?: boolean;
+  seo?: SEOConfig;
+  tags?: string[];
+  keywords?: string[];
 }
+
+// Backward-compatibility type aliases
+export type Article = KnowledgeItem;
 
 export interface GlossaryEntry {
   slug: string;

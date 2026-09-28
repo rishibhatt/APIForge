@@ -124,66 +124,66 @@ export default function LandingHeader({ t = fallbackT, minimal = false }: Landin
       {/* Mobile Drawer Overlay via React Portal */}
       {mobileMenuOpen && mounted
         ? createPortal(
-            <div className={styles.mobileBackdrop} onClick={() => setMobileMenuOpen(false)}>
-              <div
-                className={styles.mobileDrawer}
-                onClick={(e) => e.stopPropagation()}
-                role="dialog"
-                aria-label="Mobile Navigation"
-              >
-                <div className={styles.drawerHeader}>
-                  <div className={styles.homeLinkInner}>
-                    <AppLogo size={52} maxWidth={160} className={styles.brandLogo} />
-                    <span className={styles.brand}>{t("common.appName")}</span>
-                  </div>
-                  <button
-                    type="button"
-                    className={styles.drawerCloseBtn}
-                    onClick={() => setMobileMenuOpen(false)}
-                    aria-label="Close menu"
-                  >
-                    <MaterialIcon name="close" size="md" />
-                  </button>
+          <div className={styles.mobileBackdrop} onClick={() => setMobileMenuOpen(false)}>
+            <div
+              className={styles.mobileDrawer}
+              onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-label="Mobile Navigation"
+            >
+              <div className={styles.drawerHeader}>
+                <div className={styles.homeLinkInner}>
+                  <AppLogo size={52} maxWidth={160} className={styles.brandLogo} />
+                  <span className={styles.brand}>{t("common.appName")}</span>
                 </div>
-
-                <nav className={styles.drawerNav}>
-                  <ul className={styles.drawerNavList}>
-                    {NAV_LINKS.map(({ href, labelKey, label, isCoral, isNew, showFire }) => {
-                      const translated = labelKey ? t(labelKey) : undefined;
-                      const textToDisplay = (translated && translated !== labelKey) ? translated : label;
-
-                      return (
-                        <li key={href} className={styles.drawerNavItem}>
-                          <Link
-                            className={`${styles.drawerNavLink} ${isCoral ? styles.coralDrawerNavLink : ""}`}
-                            href={href}
-                            onClick={() => setMobileMenuOpen(false)}
-                          >
-                            <span>
-                              {showFire ? "🔥 " : null}
-                              {textToDisplay}
-                            </span>
-                            {isNew ? <span className={styles.newBadge}>NEW</span> : null}
-                          </Link>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </nav>
-
-                <div className={styles.drawerFooter}>
-                  <Link
-                    href="/roast-my-api"
-                    className={styles.drawerCtaBtn}
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <span>🔥 Roast My API</span>
-                  </Link>
-                </div>
+                <button
+                  type="button"
+                  className={styles.drawerCloseBtn}
+                  onClick={() => setMobileMenuOpen(false)}
+                  aria-label="Close menu"
+                >
+                  <MaterialIcon name="close" size="md" />
+                </button>
               </div>
-            </div>,
-            document.body
-          )
+
+              <nav className={styles.drawerNav}>
+                <ul className={styles.drawerNavList}>
+                  {NAV_LINKS.map(({ href, labelKey, label, isCoral, isNew, showFire }) => {
+                    const translated = labelKey ? t(labelKey) : undefined;
+                    const textToDisplay = (translated && translated !== labelKey) ? translated : label;
+
+                    return (
+                      <li key={href} className={styles.drawerNavItem}>
+                        <Link
+                          className={`${styles.drawerNavLink} ${isCoral ? styles.coralDrawerNavLink : ""}`}
+                          href={href}
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          <span>
+                            {showFire ? "🔥 " : null}
+                            {textToDisplay}
+                          </span>
+                          {isNew ? <span className={styles.newBadge}>NEW</span> : null}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </nav>
+
+              <div className={styles.drawerFooter}>
+                <Link
+                  href="/roast-my-api"
+                  className={styles.drawerCtaBtn}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <span>🔥 Roast My API</span>
+                </Link>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )
         : null}
     </header>
   );
