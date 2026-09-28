@@ -16,13 +16,22 @@ export default function ArticleAuthor({
 }: ArticleAuthorProps) {
   return (
     <div className={styles.authorBox}>
-      <div className={styles.authorAvatar}>
-        {author.name.charAt(0)}
-      </div>
+      {author.avatar ? (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img
+          src={author.avatar}
+          alt={author.name}
+          className={styles.authorAvatarImg}
+        />
+      ) : (
+        <div className={styles.authorAvatar}>
+          {author.name.charAt(0)}
+        </div>
+      )}
       <div className={styles.authorInfo}>
         <div className={styles.authorHeader}>
           <span className={styles.authorName}>{author.name}</span>
-          <span className={styles.authorRole}>{author.role}</span>
+          {author.role && <span className={styles.authorRole}>{author.role}</span>}
         </div>
         <div className={styles.authorMeta}>
           <span>Published: {publishedAt}</span>

@@ -112,6 +112,15 @@
   flex-shrink: 0;
 }
 
+.authorAvatarImg {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1.5px solid var(--color-panel-border);
+}
+
 .authorInfo {
   display: flex;
   flex-direction: column;

@@ -51,7 +51,7 @@ export type DifficultyLevel = "beginner" | "intermediate" | "advanced";
 export interface Author {
   id?: string;
   name: string;
-  role: string;
+  role?: string;
   avatar?: string;
   website?: string;
   github?: string;

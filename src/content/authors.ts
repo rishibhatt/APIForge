@@ -3,13 +3,11 @@ import type { Author } from "./types";
 export const CANONICAL_AUTHOR: Author = {
   id: "rishab",
   name: "Rishab Bhatt",
-  role: "Founder & Lead Architect, APIForge",
-  avatar: "/icon.png",
+  avatar: "/images/RishabPFP.png",
   website: "https://apiforge.info",
   github: "https://github.com/rishibhatt",
   linkedin: "https://linkedin.com/in/rishabbhatt",
   x: "https://x.com/Rishi_o07",
-  bio: "Full-stack API engineer and creator of APIForge. Specialized in OpenAPI specification analysis, automated API linting, contract testing, and RESTful architecture.",
 };
 
 export const AUTHORS_REGISTRY: Record<string, Author> = {
