@@ -169,15 +169,63 @@
   background-clip: text;
 }
 
+.brandWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  min-width: 0;
+}
+
+.exitLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid color-mix(in srgb, var(--color-outline-variant) 30%, transparent);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-on-surface-subtle);
+  background: color-mix(in srgb, var(--color-surface-container-lowest) 75%, transparent);
+  text-decoration: none;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.exitLink:hover {
+  color: var(--color-primary-container);
+  border-color: color-mix(in srgb, var(--color-primary) 40%, transparent);
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+}
+
+@media (max-width: 480px) {
+  .exitText {
+    display: none;
+  }
+  .brand {
+    font-size: 0.95rem;
+  }
+}
+
 .right {
   display: flex;
   flex-shrink: 0;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--space-2);
+  gap: var(--space-1);
   grid-area: right;
   justify-self: end;
+}
+
+@media (min-width: 640px) {
+  .right {
+    gap: var(--space-2);
+  }
 }
 
 .focusBtn {
@@ -205,7 +253,7 @@
   flex-shrink: 0;
   border: 1px solid color-mix(in srgb, var(--color-outline-variant) 35%, transparent);
   border-radius: var(--radius-sm);
-  padding: 6px 10px;
+  padding: 5px 8px;
   font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 600;
@@ -221,10 +269,4 @@
 .clearBtn:hover {
   background: color-mix(in srgb, var(--color-on-surface) 6%, transparent);
   border-color: color-mix(in srgb, var(--color-primary) 45%, transparent);
-}
-
-@media (max-width: 767px) {
-  .clearBtn {
-    display: none;
-  }
 }

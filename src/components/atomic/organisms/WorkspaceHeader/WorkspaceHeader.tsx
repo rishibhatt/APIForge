@@ -1,6 +1,7 @@
 "use client";
 
 import type { TranslateFn } from "@/context/LanguageContext";
+import Link from "next/link";
 import AppLogo from "@/components/atomic/atoms/AppLogo/AppLogo";
 import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
 import ThemeToggle from "@/components/atomic/molecules/ThemeToggle/ThemeToggle";
@@ -75,10 +76,23 @@ export default function WorkspaceHeader({
         >
           <MaterialIcon name="menu" size="md" />
         </button>
-        <AppLogo size={56} maxWidth={180} className={styles.brandLogo} />
-        <span className={styles.brand} aria-label={t("common.appName")}>
-          {t("common.appName")}
-        </span>
+        {hasWorkspace ? (
+          <Link
+            href="/"
+            className={`${styles.exitLink} focusRing`}
+            title="Exit Workspace & Return Home"
+            aria-label="Exit Workspace"
+          >
+            <MaterialIcon name="arrow_back" size="xs" />
+            <span className={styles.exitText}>Exit</span>
+          </Link>
+        ) : null}
+        <Link href="/" className={styles.brandWrap} aria-label={t("common.appName")}>
+          <AppLogo size={42} maxWidth={180} className={styles.brandLogo} />
+          <span className={styles.brand}>
+            {t("common.appName")}
+          </span>
+        </Link>
       </div>
 
       {parseBar ? <div className={styles.center}>{parseBar}</div> : null}

@@ -6,7 +6,6 @@ import LandingHeader from "@/components/sections/LandingHeader/LandingHeader";
 import LandingFooter from "@/components/sections/LandingFooter/LandingFooter";
 import FloatingSupportButton from "@/components/atomic/atoms/FloatingSupportButton/FloatingSupportButton";
 import SupportModal from "@/components/atomic/organisms/SupportModal/SupportModal";
-import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
 import RoastHero from "@/components/roast/RoastHero";
 import RoastInput from "@/components/roast/RoastInput";
 import RoastProgress from "@/components/roast/RoastProgress";
@@ -42,12 +41,6 @@ export default function RoastMyApiPageClient() {
   const [shareOpen, setShareOpen] = useState(false);
   const [activeUrl, setActiveUrl] = useState(initialSpecUrl);
   const [variantIndex, setVariantIndex] = useState(0);
-
-  // Moderation state
-  const [moderationOpen, setModerationOpen] = useState(false);
-  const [moderationReason, setModerationReason] = useState("offensive");
-  const [moderationSubmitted, setModerationSubmitted] = useState(false);
-  const [moderationLoading, setModerationLoading] = useState(false);
 
   const startRoastUrl = useCallback(async (url: string) => {
     setViewState("analyzing");
@@ -195,28 +188,6 @@ export default function RoastMyApiPageClient() {
     setVariantIndex(0);
   };
 
-  const handleReportSubmit = async () => {
-    if (!report) return;
-    setModerationLoading(true);
-    try {
-      await fetch("/api/roast/report-moderation", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          reportId: report.id,
-          reason: moderationReason,
-          roastText: report.summary.roast,
-        }),
-      });
-      setModerationSubmitted(true);
-    } catch {
-      // Fallback grace
-      setModerationSubmitted(true);
-    } finally {
-      setModerationLoading(false);
-    }
-  };
-
   return (
     <div className={styles.pageShell}>
       <LandingHeader t={t} minimal />
@@ -305,113 +276,12 @@ export default function RoastMyApiPageClient() {
                 onOpenWorkspace={handleOpenWorkspace}
               />
 
-              <div className={styles.reportModerationBar}>
-                <button
-                  type="button"
-                  className={styles.reportModerationTrigger}
-                  onClick={() => {
-                    setModerationSubmitted(false);
-                    setModerationOpen(true);
-                  }}
-                >
-                  <MaterialIcon name="flag" size="xs" />
-                  <span>Report this roast</span>
-                </button>
-              </div>
             </div>
           );
         })() : null}
 
         {shareOpen && report ? (
           <RoastShare report={report} onClose={() => setShareOpen(false)} />
-        ) : null}
-
-        {moderationOpen ? (
-          <div className={styles.modalOverlay} onClick={() => setModerationOpen(false)}>
-            <div className={styles.modalBox} onClick={(e) => e.stopPropagation()}>
-              <div className={styles.modalHeader}>
-                <h3 className={styles.modalTitle}>REPORT THIS ROAST</h3>
-                <button
-                  type="button"
-                  className={styles.modalCloseBtn}
-                  onClick={() => setModerationOpen(false)}
-                >
-                  ✕
-                </button>
-              </div>
-
-              {moderationSubmitted ? (
-                <div style={{ textAlign: "center", padding: "1.5rem 0", color: "#a1a1aa" }}>
-                  <p style={{ color: "#22c55e", fontWeight: 700, marginBottom: "0.5rem" }}>
-                    Report received.
-                  </p>
-                  <p style={{ fontSize: "0.85rem" }}>
-                    Thank you for helping us keep Roast My API respectful and accurate.
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <p style={{ fontSize: "0.85rem", color: "#96939d", marginBottom: "1.2rem" }}>
-                    Why are you reporting this roast output?
-                  </p>
-
-                  <label className={styles.reasonOption}>
-                    <input
-                      type="radio"
-                      name="reason"
-                      value="offensive"
-                      checked={moderationReason === "offensive"}
-                      onChange={(e) => setModerationReason(e.target.value)}
-                    />
-                    <span>Roast is offensive or attacks identity</span>
-                  </label>
-
-                  <label className={styles.reasonOption}>
-                    <input
-                      type="radio"
-                      name="reason"
-                      value="incorrect"
-                      checked={moderationReason === "incorrect"}
-                      onChange={(e) => setModerationReason(e.target.value)}
-                    />
-                    <span>Roast contains incorrect technical information</span>
-                  </label>
-
-                  <label className={styles.reasonOption}>
-                    <input
-                      type="radio"
-                      name="reason"
-                      value="sensitive"
-                      checked={moderationReason === "sensitive"}
-                      onChange={(e) => setModerationReason(e.target.value)}
-                    />
-                    <span>Roast exposes sensitive or confidential data</span>
-                  </label>
-
-                  <label className={styles.reasonOption}>
-                    <input
-                      type="radio"
-                      name="reason"
-                      value="other"
-                      checked={moderationReason === "other"}
-                      onChange={(e) => setModerationReason(e.target.value)}
-                    />
-                    <span>Something else</span>
-                  </label>
-
-                  <button
-                    type="button"
-                    className={styles.finalCtaBtn}
-                    style={{ width: "100%", marginTop: "1rem" }}
-                    disabled={moderationLoading}
-                    onClick={handleReportSubmit}
-                  >
-                    {moderationLoading ? "SUBMITTING..." : "SUBMIT REPORT"}
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
         ) : null}
       </main>
 

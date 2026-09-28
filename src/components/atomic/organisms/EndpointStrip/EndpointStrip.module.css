@@ -30,6 +30,15 @@
   word-break: break-word;
 }
 
+@media (max-width: 640px) {
+  .strip {
+    padding: var(--space-4) var(--space-4) var(--space-3) !important;
+  }
+  .path {
+    font-size: 1.15rem;
+  }
+}
+
 .meta {
   display: flex;
   flex-wrap: wrap;

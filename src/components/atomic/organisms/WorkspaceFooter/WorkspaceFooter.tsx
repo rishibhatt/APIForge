@@ -45,11 +45,16 @@ export default function WorkspaceFooter({ t, hasWorkspace }: WorkspaceFooterProp
         )}
         {lastUsage != null && lastUsage.totalTokens > 0 ? (
           <span className={styles.tokens}>
-            {t("footer.tokens", {
-              total: lastUsage.totalTokens,
-              in: lastUsage.promptTokens,
-              out: lastUsage.completionTokens,
-            })}
+            <span className={styles.tokensFull}>
+              {t("footer.tokens", {
+                total: lastUsage.totalTokens,
+                in: lastUsage.promptTokens,
+                out: lastUsage.completionTokens,
+              })}
+            </span>
+            <span className={styles.tokensCompact}>
+              {lastUsage.totalTokens} tokens
+            </span>
           </span>
         ) : null}
       </div>

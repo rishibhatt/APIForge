@@ -5,20 +5,33 @@
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: var(--space-6) var(--space-4);
+  padding: var(--space-4) var(--space-3);
+  padding-bottom: max(var(--space-4), env(safe-area-inset-bottom, 0px));
   overflow-y: auto;
   background: var(--color-overlay-scrim);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
+  box-sizing: border-box;
 }
 
 .panel {
   position: relative;
   width: 100%;
   max-width: 36rem;
-  margin-top: max(24px, 6vh);
+  margin-top: max(16px, 4vh);
   margin-bottom: var(--space-8);
   outline: none;
+  box-sizing: border-box;
+}
+
+@media (max-width: 640px) {
+  .backdrop {
+    padding: var(--space-2);
+  }
+  .panel {
+    margin-top: max(8px, 1vh);
+    margin-bottom: var(--space-4);
+  }
 }
 
 .toolbar {
@@ -53,4 +66,7 @@
 
 .cardWrap {
   position: relative;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
