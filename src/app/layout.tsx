@@ -3,6 +3,8 @@ import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import { AppThemeProvider } from "@/components/providers/AppThemeProvider";
 import { LanguageProvider } from "@/context/LanguageContext";
+import { PostHogProvider } from "@/components/providers/PostHogProvider";
+import { MicrosoftClarity } from "@/components/analytics/MicrosoftClarity";
 import bodyStyles from "./layout.module.css";
 import "./globals.css";
 
@@ -151,9 +153,12 @@ export default function RootLayout({
         </Script>
       </head>
       <body className={bodyStyles.body}>
-        <AppThemeProvider>
-          <LanguageProvider>{children}</LanguageProvider>
-        </AppThemeProvider>
+        <PostHogProvider>
+          <AppThemeProvider>
+            <LanguageProvider>{children}</LanguageProvider>
+          </AppThemeProvider>
+        </PostHogProvider>
+        <MicrosoftClarity />
       </body>
     </html>
   );
