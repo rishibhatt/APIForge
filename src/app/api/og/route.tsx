@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
+import { getAppLogoBase64 } from "@/lib/seo/brandLogo";
 
 export const runtime = "edge";
 
@@ -16,6 +17,8 @@ export async function GET(req: NextRequest) {
       : versus
       ? `Factual Technical & Feature Breakdown vs ${versus}`
       : "Automated API Quality, OpenAPI Linting & AI Audit";
+
+    const logoBase64 = getAppLogoBase64();
 
     return new ImageResponse(
       (
@@ -35,23 +38,29 @@ export async function GET(req: NextRequest) {
           {/* Header Badge */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-              <div
+              {logoBase64 ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={logoBase64}
+                  alt="APIForge Logo"
+                  width="50"
+                  height="50"
+                  style={{
+                    objectFit: "contain",
+                    filter: "drop-shadow(0 2px 14px rgba(160, 120, 255, 0.45))",
+                  }}
+                />
+              ) : null}
+              <span
                 style={{
-                  width: "44px",
-                  height: "44px",
-                  borderRadius: "10px",
-                  background: "linear-gradient(135deg, #d0bcff 0%, #7c4dc4 100%)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#1c1028",
-                  fontWeight: "900",
-                  fontSize: "24px",
+                  fontSize: "32px",
+                  fontWeight: 900,
+                  letterSpacing: "-0.035em",
+                  backgroundImage: "linear-gradient(135deg, #ffffff 10%, #d0bcff 55%, #a078ff 100%)",
+                  backgroundClip: "text",
+                  color: "transparent",
                 }}
               >
-                ⚡
-              </div>
-              <span style={{ fontSize: "28px", fontWeight: "800", color: "#ffffff", letterSpacing: "-0.5px" }}>
                 APIForge
               </span>
             </div>

@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { getAppLogoBase64 } from "@/lib/seo/brandLogo";
 
 export const runtime = "edge";
 
@@ -11,6 +12,8 @@ export const size = {
 export const contentType = "image/png";
 
 export default async function Image() {
+  const logoBase64 = getAppLogoBase64();
+
   return new ImageResponse(
     (
       <div
@@ -54,30 +57,26 @@ export default async function Image() {
         >
           {/* Brand Logo & Name */}
           <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-            <div
-              style={{
-                width: "52px",
-                height: "52px",
-                borderRadius: "14px",
-                background: "linear-gradient(135deg, #c084fc 0%, #7e22ce 100%)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow: "0 0 28px rgba(192, 132, 252, 0.55)",
-                fontSize: "26px",
-                color: "#ffffff",
-                fontWeight: 900,
-              }}
-            >
-              ⚡
-            </div>
+            {logoBase64 ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={logoBase64}
+                alt="APIForge Logo"
+                width="56"
+                height="56"
+                style={{
+                  objectFit: "contain",
+                  filter: "drop-shadow(0 4px 16px rgba(160, 120, 255, 0.45))",
+                }}
+              />
+            ) : null}
             <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
               <span
                 style={{
                   fontSize: "38px",
                   fontWeight: 900,
                   letterSpacing: "-0.035em",
-                  background: "linear-gradient(135deg, #ffffff 10%, #d0bcff 55%, #a078ff 100%)",
+                  backgroundImage: "linear-gradient(135deg, #ffffff 10%, #d0bcff 55%, #a078ff 100%)",
                   backgroundClip: "text",
                   color: "transparent",
                 }}
@@ -139,7 +138,7 @@ export default async function Image() {
             <span>The Intelligent API Workspace</span>
             <span
               style={{
-                background: "linear-gradient(90deg, #c084fc 0%, #38bdf8 50%, #f472b6 100%)",
+                backgroundImage: "linear-gradient(90deg, #c084fc 0%, #38bdf8 50%, #f472b6 100%)",
                 backgroundClip: "text",
                 color: "transparent",
               }}

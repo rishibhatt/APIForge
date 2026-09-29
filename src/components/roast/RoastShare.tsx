@@ -110,59 +110,77 @@ export default function RoastShare({ report, onClose }: RoastShareProps) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Dark Background
-    ctx.fillStyle = "#0B0B0D";
-    ctx.fillRect(0, 0, 1200, 630);
+    const renderCanvas = (logoImg?: HTMLImageElement) => {
+      // Dark Background
+      ctx.fillStyle = "#0B0B0D";
+      ctx.fillRect(0, 0, 1200, 630);
 
-    // Coral Accent Gradient Border
-    const grad = ctx.createLinearGradient(0, 0, 1200, 630);
-    grad.addColorStop(0, "#FF6B4A");
-    grad.addColorStop(1, "#8B5CF6");
-    ctx.strokeStyle = grad;
-    ctx.lineWidth = 10;
-    ctx.strokeRect(5, 5, 1190, 620);
+      // Coral Accent Gradient Border
+      const grad = ctx.createLinearGradient(0, 0, 1200, 630);
+      grad.addColorStop(0, "#FF6B4A");
+      grad.addColorStop(1, "#8B5CF6");
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 10;
+      ctx.strokeRect(5, 5, 1190, 620);
 
-    // Header
-    ctx.fillStyle = "#FF6B4A";
-    ctx.font = "bold 32px sans-serif";
-    ctx.fillText("APIFORGE ROAST", 60, 80);
+      // Header with actual logo and gradient APIForge
+      let textX = 60;
+      if (logoImg && logoImg.complete && logoImg.naturalWidth > 0) {
+        ctx.drawImage(logoImg, 60, 48, 44, 44);
+        textX = 116;
+      }
 
-    // Score Badge
-    ctx.fillStyle = "#121216";
-    ctx.fillRect(960, 45, 180, 55);
-    ctx.fillStyle = "#FF6B4A";
-    ctx.font = "bold 26px sans-serif";
-    ctx.fillText(`${report.score} / 100`, 985, 82);
+      const textGrad = ctx.createLinearGradient(textX, 0, textX + 160, 0);
+      textGrad.addColorStop(0.1, "#ffffff");
+      textGrad.addColorStop(0.55, "#d0bcff");
+      textGrad.addColorStop(1.0, "#a078ff");
+      ctx.fillStyle = textGrad;
+      ctx.font = "900 32px sans-serif";
+      ctx.fillText("APIForge", textX, 80);
 
-    // Verdict Quote
-    ctx.fillStyle = "#F5F3F7";
-    ctx.font = "bold 36px sans-serif";
-    ctx.fillText(`"${report.summary.verdict}"`, 60, 180);
+      // Score Badge
+      ctx.fillStyle = "#121216";
+      ctx.fillRect(960, 45, 180, 55);
+      ctx.fillStyle = "#FF6B4A";
+      ctx.font = "bold 26px sans-serif";
+      ctx.fillText(`${report.score} / 100`, 985, 82);
 
-    // Main Roast Text
-    ctx.fillStyle = "#96939D";
-    ctx.font = "24px sans-serif";
-    const roastLines = report.summary.roast.match(/.{1,75}(\s|$)/g) || [report.summary.roast];
-    let y = 260;
-    for (const line of roastLines.slice(0, 4)) {
-      ctx.fillText(line.trim(), 60, y);
-      y += 38;
-    }
+      // Verdict Quote
+      ctx.fillStyle = "#F5F3F7";
+      ctx.font = "bold 36px sans-serif";
+      ctx.fillText(`"${report.summary.verdict}"`, 60, 180);
 
-    // Bottom Stats
-    ctx.fillStyle = "#71717A";
-    ctx.font = "bold 20px sans-serif";
-    ctx.fillText(
-      `${report.endpointsCount} endpoints • ${report.summary.totalFindings} issues • #${report.summary.statusTier}`,
-      60,
-      560,
-    );
+      // Main Roast Text
+      ctx.fillStyle = "#96939D";
+      ctx.font = "24px sans-serif";
+      const roastLines = report.summary.roast.match(/.{1,75}(\s|$)/g) || [report.summary.roast];
+      let y = 260;
+      for (const line of roastLines.slice(0, 4)) {
+        ctx.fillText(line.trim(), 60, y);
+        y += 38;
+      }
 
-    // Trigger download
-    const link = document.createElement("a");
-    link.download = `apiforge-roast-${report.score}.png`;
-    link.href = canvas.toDataURL("image/png");
-    link.click();
+      // Bottom Stats
+      ctx.fillStyle = "#71717A";
+      ctx.font = "bold 20px sans-serif";
+      ctx.fillText(
+        `${report.endpointsCount} endpoints • ${report.summary.totalFindings} issues • #${report.summary.statusTier}`,
+        60,
+        560,
+      );
+
+      // Trigger download
+      const link = document.createElement("a");
+      link.download = `apiforge-roast-${report.score}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    };
+
+    const logo = new Image();
+    logo.crossOrigin = "anonymous";
+    logo.onload = () => renderCanvas(logo);
+    logo.onerror = () => renderCanvas();
+    logo.src = "/images/logo.png";
   };
 
   return (
@@ -228,8 +246,8 @@ export default function RoastShare({ report, onClose }: RoastShareProps) {
           <div className={styles.shareCardCanvas}>
             <div className={styles.cardTopRow}>
               <div className={styles.brandWrap}>
-                <AppLogo size={28} />
-                <span className={styles.brandLogo}>APIFORGE</span>
+                <AppLogo size={32} />
+                <span className={styles.brandLogo}>APIForge</span>
                 <span className={styles.brandSub}>ROAST</span>
               </div>
               <span className={styles.scoreBadge}>{report.score} / 100</span>
