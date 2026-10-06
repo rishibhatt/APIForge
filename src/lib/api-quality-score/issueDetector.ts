@@ -21,8 +21,9 @@ function segments(path: string): string[] {
   return path.split("/").filter(Boolean);
 }
 
+/** Path parameters like `{orderId}` are names, not URL text, so they are exempt. */
 function hasCamelCaseInPath(path: string): boolean {
-  return /\/[a-z][A-Z]|_[a-z]/.test(path) || /[a-z][A-Z]/.test(path);
+  return segments(path).some((s) => !s.startsWith("{") && /[a-z][A-Z]/.test(s));
 }
 
 function hasUnderscoreSegment(path: string): boolean {

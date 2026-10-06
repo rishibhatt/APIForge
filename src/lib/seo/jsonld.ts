@@ -9,8 +9,8 @@ export function generateOrganizationJsonLd() {
     "@type": "Organization",
     "name": "APIForge",
     "url": SITE_URL,
-    "logo": `${SITE_URL}/icon.png`,
-    "description": "APIForge is an AI-native API quality, testing, and OpenAPI/Swagger analysis workbench.",
+    "logo": `${SITE_URL}/apple-icon`,
+    "description": "APIForge is a free, browser-based workspace to parse, test, score and generate from OpenAPI and Swagger specs.",
     "founder": {
       "@type": "Person",
       "name": CANONICAL_AUTHOR.name,
@@ -34,11 +34,9 @@ export function generateWebSiteJsonLd() {
     "@type": "WebSite",
     "name": "APIForge",
     "url": SITE_URL,
-    "potentialAction": {
-      "@type": "SearchAction",
-      "target": `${SITE_URL}/resources/search?q={search_term_string}`,
-      "query-input": "required name=search_term_string",
-    },
+    "description": "Parse, test, score and generate from any OpenAPI or Swagger spec.",
+    "inLanguage": "en",
+    "publisher": { "@type": "Organization", "name": "APIForge", "url": SITE_URL },
   };
 }
 
@@ -46,7 +44,7 @@ export function generateSoftwareApplicationJsonLd(name: string, description: str
   return {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    "name": `APIForge — ${name}`,
+    "name": name === "APIForge" ? name : `APIForge ${name}`,
     "operatingSystem": "Web",
     "applicationCategory": "DeveloperApplication",
     "offers": {
@@ -97,14 +95,27 @@ export function generateBreadcrumbJsonLd(items: { name: string; url: string }[])
   };
 }
 
-export function generateArticleJsonLd(article: Article) {
-  const canonicalUrl = `${SITE_URL}/guides/${article.slug}`;
+const SECTION_LABELS: Record<string, string> = {
+  guides: "Guide",
+  checklists: "Checklist",
+  reference: "Reference",
+};
+
+export function generateArticleJsonLd(article: Article, section = "guides") {
+  const canonicalUrl = `${SITE_URL}/${section}/${article.slug}`;
+  const ogImage = `${SITE_URL}/api/og?${new URLSearchParams({ title: article.title, type: SECTION_LABELS[section] ?? "Guide" }).toString()}`;
+  const heroImage = article.heroImage
+    ? article.heroImage.startsWith("http")
+      ? article.heroImage
+      : `${SITE_URL}${article.heroImage.startsWith("/") ? "" : "/"}${article.heroImage}`
+    : undefined;
   return {
     "@context": "https://schema.org",
     "@type": "TechArticle",
     "headline": article.title,
     "description": article.description,
-    "image": article.heroImage || `${SITE_URL}/api/og?type=guide&slug=${article.slug}`,
+    "image": heroImage || ogImage,
+    "url": canonicalUrl,
     "datePublished": article.publishedAt,
     "dateModified": article.updatedAt || article.publishedAt,
     "mainEntityOfPage": {
@@ -122,10 +133,10 @@ export function generateArticleJsonLd(article: Article) {
       "url": SITE_URL,
       "logo": {
         "@type": "ImageObject",
-        "url": `${SITE_URL}/icon.png`,
+        "url": `${SITE_URL}/apple-icon`,
       },
     },
-    "keywords": (article.keywords || article.tags || []).join(", "),
+    "keywords": (article.keywords || article.tags || []).join(", ") || undefined,
   };
 }
 

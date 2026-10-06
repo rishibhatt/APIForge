@@ -2,23 +2,25 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "APIForge — AI-Powered OpenAPI & Swagger Workspace",
+    name: "APIForge: OpenAPI & Swagger Workspace",
     short_name: "APIForge",
     description:
-      "Parse OpenAPI and Swagger specs, audit API quality, and generate TypeScript clients and tests with AI intelligence.",
+      "Free online OpenAPI and Swagger validator, API tester, and 0–100 quality score. Runs in the browser, no account.",
     start_url: "/",
+    scope: "/",
     display: "standalone",
-    background_color: "#0c0814",
-    theme_color: "#d0bcff",
+    background_color: "#131315",
+    theme_color: "#131315",
+    categories: ["developer", "productivity", "utilities"],
     icons: [
       {
-        src: "/icon.png",
-        sizes: "192x192",
-        type: "image/png",
+        src: "/icon.svg",
+        sizes: "any",
+        type: "image/svg+xml",
       },
       {
-        src: "/icon.png",
-        sizes: "512x512",
+        src: "/apple-icon",
+        sizes: "180x180",
         type: "image/png",
       },
     ],

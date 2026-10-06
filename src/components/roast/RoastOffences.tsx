@@ -1,202 +1,112 @@
 "use client";
-
 import { useState } from "react";
 import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
 import type { RoastOffence } from "@/lib/roast/presentationAdapter";
+import { SEVERITY_LABELS, categoryLabel, severityTone } from "./labels";
+import shared from "./RoastSection.module.css";
 import styles from "./RoastOffences.module.css";
 
 export interface RoastOffencesProps {
   offences: RoastOffence[];
 }
 
+const VISIBLE = 3;
+
+/** "POST /pet: No 2xx response is documented." -> "No 2xx response is documented." */
+function headline(explanation: string): string {
+  const stripped = explanation.replace(/^[A-Z]+\s+\S+:\s*/, "");
+  return stripped.charAt(0).toUpperCase() + stripped.slice(1);
+}
+
 export default function RoastOffences({ offences }: RoastOffencesProps) {
   const [showAll, setShowAll] = useState(false);
-  const [expandedRanks, setExpandedRanks] = useState<Record<number, boolean>>({});
-  const [copiedPath, setCopiedPath] = useState<string | null>(null);
 
   if (offences.length === 0) return null;
 
-  const visibleOffences = showAll ? offences : offences.slice(0, 3);
-  const hasMore = offences.length > 3;
-
-  const toggleExpand = (rank: number) => {
-    setExpandedRanks((prev) => ({
-      ...prev,
-      [rank]: !prev[rank],
-    }));
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text).catch(() => {});
-    setCopiedPath(text);
-    setTimeout(() => setCopiedPath(null), 2000);
-  };
-
-  const renderSeverityDots = (severity: string) => {
-    let filled = 2;
-    if (severity === "critical") filled = 4;
-    else if (severity === "high") filled = 3;
-    else if (severity === "low") filled = 1;
-
-    return (
-      <div className={styles.severityWrap} title={`Severity: ${severity}`}>
-        <span className={styles.severityText}>{severity.toUpperCase()}</span>
-        <div className={styles.dotsRow}>
-          {[1, 2, 3, 4].map((i) => (
-            <span
-              key={i}
-              className={`${styles.dot} ${i <= filled ? styles.dotFilled : styles.dotEmpty}`}
-            />
-          ))}
-        </div>
-      </div>
-    );
-  };
+  const visible = showAll ? offences : offences.slice(0, VISIBLE);
+  const hidden = offences.length - VISIBLE;
 
   return (
-    <section className={styles.section}>
-      <div className={styles.sectionHeader}>
-        <div className={styles.headerTitleRow}>
-          <MaterialIcon name="gavel" className={styles.gavelIcon} />
-          <h3 className={styles.sectionTitle}>THE BIGGEST OFFENCES</h3>
-        </div>
-        <p className={styles.sectionSub}>&quot;Your API&apos;s greatest hits.&quot;</p>
+    <section id="offences" className={shared.section} aria-labelledby="offences-title">
+      <div className={shared.head} data-reveal>
+        <h2 id="offences-title" className={shared.title}>
+          Worst offences
+        </h2>
+        <p className={shared.lede}>Ranked by how much they cost you, with the routes that commit them.</p>
       </div>
 
-      <div className={styles.stack}>
-        {visibleOffences.map((offence) => {
-          const isExpanded = !!expandedRanks[offence.rank];
-
+      <ol className={styles.list} data-reveal-group>
+        {visible.map((o) => {
+          const tone = severityTone(o.severity);
           return (
-            <article key={offence.rank} className={styles.card}>
-              {/* Layer 1: Identity & Severity */}
-              <div className={styles.cardHeader}>
-                <div className={styles.rankBadge}>
-                  <span className={styles.rankNum}>
-                    {String(offence.rank).padStart(2, "0")}
+            <li key={`${o.ruleId}-${o.rank}`} className={styles.item} data-reveal-item>
+              <span className={styles.rank} aria-hidden>
+                {o.rank}
+              </span>
+
+              <div className={styles.main}>
+                <div className={styles.top}>
+                  <h3 className={styles.title}>{headline(o.explanation)}</h3>
+                  <span className={`${shared.pill} ${shared[tone]}`}>{SEVERITY_LABELS[o.severity]}</span>
+                </div>
+
+                <p className={styles.meta}>
+                  {categoryLabel(o.category)}
+                  <span aria-hidden>·</span>
+                  <span>
+                    {o.count} {o.count === 1 ? "finding" : "findings"}
                   </span>
-                  <span className={styles.categoryTitle}>{offence.title}</span>
-                </div>
+                  <span aria-hidden>·</span>
+                  {o.affectedPercentage}% of routes
+                </p>
 
-                {renderSeverityDots(offence.severity)}
+                <p className={styles.quip}>{o.funnySummary}</p>
+
+                {o.endpoints.length > 0 ? (
+                  <ul className={styles.routes} aria-label="Example routes">
+                    {o.endpoints.map((ep) => (
+                      <li key={`${ep.method} ${ep.path}`} className={styles.route}>
+                        <span className={`${shared.method} ${shared[`method_${ep.method.toLowerCase()}`] ?? ""}`}>
+                          {ep.method}
+                        </span>
+                        <span className={shared.path}>{ep.path}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className={styles.specWide}>Applies to the spec as a whole.</p>
+                )}
+
+                <dl className={styles.detail}>
+                  <div>
+                    <dt>Why it matters</dt>
+                    <dd>{o.whyItMatters}</dd>
+                  </div>
+                  <div>
+                    <dt>Fix</dt>
+                    <dd>{o.suggestedFix}</dd>
+                  </div>
+                </dl>
+
+                <p className={styles.rule}>
+                  Rule <code>{o.ruleId}</code>
+                </p>
               </div>
-
-              {/* Layer 2: Impact */}
-              <div className={styles.impactRow}>
-                <span className={styles.countBadge}>
-                  <MaterialIcon name="bug_report" size="sm" />
-                  {offence.count} {offence.count === 1 ? "finding" : "findings"}
-                </span>
-                <span className={styles.bulletDot}>•</span>
-                <span className={styles.affectedPercentage}>
-                  {offence.affectedPercentage}% affected
-                </span>
-              </div>
-
-              {/* Layer 3: Human Explanation */}
-              <p className={styles.funnyQuote}>&quot;{offence.funnySummary}&quot;</p>
-
-              {/* Collapsible Receipts Trigger */}
-              <button
-                type="button"
-                className={styles.toggleBtn}
-                onClick={() => toggleExpand(offence.rank)}
-                aria-expanded={isExpanded}
-              >
-                <span>{isExpanded ? "Hide receipts" : "Show the receipts"}</span>
-                <MaterialIcon
-                  name={isExpanded ? "expand_less" : "expand_more"}
-                  size="sm"
-                />
-              </button>
-
-              {/* Layer 4: Technical Detail (Collapsible) */}
-              {isExpanded ? (
-                <div className={styles.receiptsBox}>
-                  {/* Why it matters */}
-                  <div className={styles.detailBlock}>
-                    <h5 className={styles.detailLabel}>WHY SHOULD I CARE?</h5>
-                    <p className={styles.detailText}>{offence.whyItMatters}</p>
-                  </div>
-
-                  {/* Explanation */}
-                  <div className={styles.detailBlock}>
-                    <h5 className={styles.detailLabel}>WHAT WAS DETECTED</h5>
-                    <p className={styles.detailText}>{offence.explanation}</p>
-                  </div>
-
-                  {/* Endpoints */}
-                  {offence.endpoints.length > 0 ? (
-                    <div className={styles.detailBlock}>
-                      <h5 className={styles.detailLabel}>AFFECTED ENDPOINTS</h5>
-                      <div className={styles.endpointList}>
-                        {offence.endpoints.map((ep) => {
-                          const fullEpStr = `${ep.method} ${ep.path}`;
-                          const isCopied = copiedPath === fullEpStr;
-
-                          return (
-                            <div key={fullEpStr} className={styles.endpointRow}>
-                              <div className={styles.endpointLeft}>
-                                <span
-                                  className={`${styles.methodBadge} ${
-                                    styles[`method_${ep.method.toLowerCase()}`] || ""
-                                  }`}
-                                >
-                                  {ep.method}
-                                </span>
-                                <span className={styles.pathText}>{ep.path}</span>
-                              </div>
-
-                              <button
-                                type="button"
-                                className={styles.copyBtn}
-                                onClick={() => copyToClipboard(fullEpStr)}
-                                title="Copy endpoint string"
-                              >
-                                <MaterialIcon
-                                  name={isCopied ? "check" : "content_copy"}
-                                  size="sm"
-                                />
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {/* Suggested Fix */}
-                  <div className={styles.detailBlock}>
-                    <h5 className={styles.detailLabel}>SUGGESTED DIRECTION</h5>
-                    <p className={styles.suggestionText}>{offence.suggestedFix}</p>
-                  </div>
-
-                  {/* Rule ID Metadata */}
-                  <div className={styles.ruleIdRow}>
-                    <span className={styles.ruleTag}>Rule: {offence.ruleId}</span>
-                  </div>
-                </div>
-              ) : null}
-            </article>
+            </li>
           );
         })}
-      </div>
+      </ol>
 
-      {hasMore ? (
-        <div className={styles.showMoreRow}>
-          <button
-            type="button"
-            className={styles.showMoreBtn}
-            onClick={() => setShowAll(!showAll)}
-          >
-            <MaterialIcon name={showAll ? "unfold_less" : "unfold_more"} size="sm" />
-            <span>
-              {showAll
-                ? "Show top 3 offences"
-                : `+ Show all ${offences.length} issue categories`}
-            </span>
-          </button>
-        </div>
+      {hidden > 0 ? (
+        <button
+          type="button"
+          className={`${shared.btnSecondary} ${styles.more}`}
+          onClick={() => setShowAll((v) => !v)}
+          aria-expanded={showAll}
+        >
+          <MaterialIcon name={showAll ? "expand_less" : "expand_more"} size="sm" />
+          {showAll ? "Show the top 3 only" : `Show ${hidden} more`}
+        </button>
       ) : null}
     </section>
   );

@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getGuideBySlug, getAllGuides } from "@/lib/content/loader";
 import { createArticleMetadata } from "@/lib/seo/metadata";
-import { generateArticleJsonLd, generateBreadcrumbJsonLd } from "@/lib/seo/jsonld";
+import { generateArticleJsonLd, generateBreadcrumbJsonLd, generateFaqJsonLd } from "@/lib/seo/jsonld";
 import ArticleLayout from "@/components/content/ArticleLayout";
 
 export async function generateStaticParams() {
@@ -30,6 +30,7 @@ export default function GuideDetailPage({
   }
 
   const articleJsonLd = generateArticleJsonLd(guide);
+  const faqJsonLd = generateFaqJsonLd(guide.faqs);
   const breadcrumbJsonLd = generateBreadcrumbJsonLd([
     { name: "Home", url: "/" },
     { name: "Guides", url: "/guides" },
@@ -46,6 +47,12 @@ export default function GuideDetailPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
+      {faqJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        />
+      )}
       <ArticleLayout article={guide} />
     </>
   );

@@ -1,3 +1,4 @@
+/* Status bar: tonal strip, JetBrains Mono uppercase micro-text. */
 .footer {
   display: none;
   height: var(--footer-h);
@@ -6,10 +7,16 @@
   box-sizing: border-box;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-4);
+  border-top: 1px solid var(--color-divider-subtle);
   background: var(--color-surface-container);
   padding: 0 var(--space-3);
-  box-shadow: none;
   font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  color: var(--color-on-surface-subtle);
   overflow: hidden;
 }
 
@@ -19,14 +26,18 @@
   left: 0;
   z-index: var(--z-footer);
   display: flex;
-  padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
 @media (max-width: 767px) {
   .footerWorkspace {
-    bottom: max(calc(48px + env(safe-area-inset-bottom, 0px)), 0px);
-    height: 28px;
-    padding: 0 var(--space-2);
+    bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+    padding: 0 var(--space-4);
+  }
+
+  .footerFocusMode {
+    bottom: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    height: calc(var(--footer-h) + env(safe-area-inset-bottom, 0px));
   }
 }
 
@@ -34,7 +45,6 @@
   .footerWorkspace {
     left: var(--sidebar-w);
     width: calc(100% - var(--sidebar-w));
-    padding-bottom: 0;
     padding: 0 var(--space-4);
   }
 
@@ -46,48 +56,29 @@
 
 .left {
   display: flex;
-  align-items: center;
-  gap: var(--space-2);
   min-width: 0;
+  align-items: center;
+  gap: var(--space-4);
   overflow: hidden;
-}
-
-@media (min-width: 640px) {
-  .left {
-    gap: var(--space-6);
-  }
 }
 
 .statusRow {
   display: flex;
-  align-items: center;
-  gap: var(--space-2);
   flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
 }
 
 .pulse {
-  height: 6px;
   width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--color-emerald);
-  animation: pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.45;
-  }
 }
 
 .statusText {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--color-emerald);
+  font-weight: 600;
+  color: var(--color-on-surface-variant);
   white-space: nowrap;
 }
 
@@ -95,9 +86,6 @@
   display: none;
   align-items: center;
   gap: var(--space-4);
-  padding-left: var(--space-3);
-  margin-left: var(--space-1);
-  box-shadow: none;
   overflow: hidden;
   white-space: nowrap;
 }
@@ -109,46 +97,39 @@
 }
 
 .stat {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--color-muted-foreground-subtle);
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .right {
   display: flex;
-  align-items: center;
-  gap: var(--space-2);
   min-width: 0;
-  overflow: hidden;
+  align-items: center;
   justify-content: flex-end;
+  gap: var(--space-4);
+  overflow: hidden;
 }
 
-@media (min-width: 640px) {
-  .right {
-    gap: var(--space-4);
+/* The AI route chip keeps model names in their own case. */
+.aiRoute {
+  min-width: 0;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+@media (max-width: 559px) {
+  .aiRoute {
+    display: none;
   }
 }
 
-.genTime {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--color-text-accent);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
+.genTime,
 .tokens {
-  font-size: 10px;
-  letter-spacing: 0.04em;
-  color: var(--color-primary-muted);
-  text-transform: uppercase;
-  white-space: nowrap;
+  min-width: 0;
   overflow: hidden;
+  font-variant-numeric: tabular-nums;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tokensFull {

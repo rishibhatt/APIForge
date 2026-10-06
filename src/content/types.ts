@@ -298,6 +298,7 @@ export interface KnowledgeItem {
   seo?: SEOConfig;
   tags?: string[];
   keywords?: string[];
+  primaryKeyword?: string;
 }
 
 // Backward-compatibility type aliases

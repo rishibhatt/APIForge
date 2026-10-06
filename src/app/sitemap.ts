@@ -8,6 +8,11 @@ import {
   getAllReferences,
 } from "@/lib/content/loader";
 
+function toDate(value?: string): Date {
+  const d = value ? new Date(value) : new Date();
+  return Number.isNaN(d.getTime()) ? new Date() : d;
+}
+
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://apiforge.info";
   const lastModified = new Date();
@@ -15,6 +20,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: baseUrl, lastModified, changeFrequency: "weekly", priority: 1.0 },
     { url: `${baseUrl}/about`, lastModified, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${baseUrl}/support`, lastModified, changeFrequency: "monthly", priority: 0.5 },
     { url: `${baseUrl}/roast-my-api`, lastModified, changeFrequency: "daily", priority: 0.9 },
     { url: `${baseUrl}/api-score`, lastModified, changeFrequency: "weekly", priority: 0.9 },
     { url: `${baseUrl}/openapi-validator`, lastModified, changeFrequency: "weekly", priority: 0.9 },
@@ -31,42 +37,42 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const guideRoutes: MetadataRoute.Sitemap = getAllGuides().map((g) => ({
     url: `${baseUrl}/guides/${g.slug}`,
-    lastModified: g.updatedAt ? new Date(g.updatedAt) : lastModified,
+    lastModified: toDate(g.updatedAt || g.publishedAt),
     changeFrequency: "weekly",
     priority: 0.7,
   }));
 
   const glossaryRoutes: MetadataRoute.Sitemap = getAllGlossary().map((e) => ({
     url: `${baseUrl}/glossary/${e.slug}`,
-    lastModified: e.updatedAt ? new Date(e.updatedAt) : lastModified,
+    lastModified: toDate(e.updatedAt || e.publishedAt),
     changeFrequency: "monthly",
     priority: 0.6,
   }));
 
   const exampleRoutes: MetadataRoute.Sitemap = getAllExamples().map((ex) => ({
     url: `${baseUrl}/examples/${ex.slug}`,
-    lastModified: ex.updatedAt ? new Date(ex.updatedAt) : lastModified,
+    lastModified: toDate(ex.updatedAt || ex.publishedAt),
     changeFrequency: "monthly",
     priority: 0.6,
   }));
 
   const comparisonRoutes: MetadataRoute.Sitemap = getAllComparisons().map((c) => ({
     url: `${baseUrl}/compare/${c.slug}`,
-    lastModified: c.updatedAt ? new Date(c.updatedAt) : lastModified,
+    lastModified: toDate(c.updatedAt || c.publishedAt),
     changeFrequency: "monthly",
     priority: 0.7,
   }));
 
   const checklistRoutes: MetadataRoute.Sitemap = getAllChecklists().map((ch) => ({
     url: `${baseUrl}/checklists/${ch.slug}`,
-    lastModified: ch.updatedAt ? new Date(ch.updatedAt) : lastModified,
+    lastModified: toDate(ch.updatedAt || ch.publishedAt),
     changeFrequency: "weekly",
     priority: 0.7,
   }));
 
   const referenceRoutes: MetadataRoute.Sitemap = getAllReferences().map((ref) => ({
     url: `${baseUrl}/reference/${ref.slug}`,
-    lastModified: ref.updatedAt ? new Date(ref.updatedAt) : lastModified,
+    lastModified: toDate(ref.updatedAt || ref.publishedAt),
     changeFrequency: "monthly",
     priority: 0.7,
   }));

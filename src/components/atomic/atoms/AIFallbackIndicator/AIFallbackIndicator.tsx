@@ -44,14 +44,17 @@ export default function AIFallbackIndicator({
       className={`${styles.container} ${lastAiFallbackUsed ? styles.fallbackState : styles.activeState} ${className}`}
       onMouseEnter={() => setShowTooltip(true)}
       onMouseLeave={() => setShowTooltip(false)}
+      onFocus={() => setShowTooltip(true)}
+      onBlur={() => setShowTooltip(false)}
+      tabIndex={0}
     >
       <div className={styles.badge}>
-        <span className={styles.icon}>⚡</span>
+        <span className={styles.icon} aria-hidden />
         <span className={styles.modelName}>{cleanModelName}</span>
-        <span className={styles.divider}>•</span>
+        <span className={styles.divider} aria-hidden>·</span>
         <span className={styles.providerName}>{providerName}</span>
         {lastAiFallbackUsed ? (
-          <span className={styles.fallbackPill}>Auto-Routed</span>
+          <span className={styles.fallbackPill}>Auto-routed</span>
         ) : null}
       </div>
 
@@ -59,7 +62,7 @@ export default function AIFallbackIndicator({
         <div className={styles.tooltip}>
           <div className={styles.tooltipHeader}>
             <span className={styles.tooltipTitle}>
-              {lastAiFallbackUsed ? "⚡ Failover Route Engaged" : "✓ Active AI Route"}
+              {lastAiFallbackUsed ? "Failover route used" : "Active AI route"}
             </span>
             {lastMs ? <span className={styles.tooltipLatency}>{lastMs}ms</span> : null}
           </div>

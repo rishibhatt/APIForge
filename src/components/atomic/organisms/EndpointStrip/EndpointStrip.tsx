@@ -48,10 +48,10 @@ export default function EndpointStrip({ t, endpoint, className = "" }: EndpointS
         ) : null}
         <div className={styles.counts}>
           <span>
-            <strong>{nParams}</strong> {t("endpointStrip.params")}
+            <strong>{nParams}</strong> {t(nParams === 1 ? "endpointStrip.param" : "endpointStrip.params")}
           </span>
           <span>
-            <strong>{nRes}</strong> {t("endpointStrip.responses")}
+            <strong>{nRes}</strong> {t(nRes === 1 ? "endpointStrip.response" : "endpointStrip.responses")}
           </span>
         </div>
       </div>

@@ -1,0 +1,143 @@
+/* Shared landing layout: hairline list on the left (like "What comes back"), one sticky visual on the right. */
+.wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-8);
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-6) 0;
+  border-top: 1px solid var(--color-border-default);
+}
+
+.item:last-child {
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.title {
+  position: relative;
+  margin: 0;
+  font-size: clamp(1.15rem, 1rem + 0.5vw, 1.4rem);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  color: var(--color-on-surface);
+}
+
+.body {
+  max-width: 52ch;
+  margin: var(--space-2) 0 0;
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--color-on-surface-variant);
+}
+
+.inline {
+  min-width: 0;
+}
+
+.panel {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .wrap {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    gap: var(--space-12);
+    align-items: start;
+  }
+
+  .item {
+    min-height: 44vh;
+    justify-content: center;
+    transition: opacity 240ms ease;
+  }
+
+  .item:not(.itemOn) {
+    opacity: 0.45;
+  }
+
+  /* Marker: a small square that fills when the item is in focus. */
+  .title {
+    padding-left: 22px;
+  }
+
+  .title::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.42em;
+    width: 8px;
+    height: 8px;
+    border: 1.5px solid var(--color-outline-variant);
+    border-radius: 2px;
+    transition: background-color 240ms ease, border-color 240ms ease;
+  }
+
+  .itemOn .title::before {
+    border-color: var(--color-primary);
+    background: var(--color-primary);
+  }
+
+  .body {
+    padding-left: 22px;
+  }
+
+  .inline {
+    display: none;
+  }
+
+  .panel {
+    position: sticky;
+    top: calc(var(--header-h) + var(--space-8));
+    display: block;
+    min-width: 0;
+    height: min(560px, calc(100vh - var(--header-h) - 64px));
+  }
+}
+
+/* Reduced motion: no sticky tracking, so show the plain list with a visual under each item. */
+@media (prefers-reduced-motion: reduce) {
+  .wrap {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .item {
+    min-height: 0;
+    opacity: 1;
+    transition: none;
+  }
+
+  .item:not(.itemOn) {
+    opacity: 1;
+  }
+
+  .title {
+    padding-left: 0;
+  }
+
+  .title::before {
+    display: none;
+  }
+
+  .body {
+    padding-left: 0;
+  }
+
+  .inline {
+    display: block;
+  }
+
+  .panel {
+    display: none;
+  }
+}

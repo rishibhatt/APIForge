@@ -84,6 +84,46 @@ const IPV4_BLOCKED_RANGES: { cidr: string; prefix: number; reason: "LOOPBACK" | 
 ];
 
 /**
+ * Expand an IPv6 literal (optionally with zone id / embedded dotted IPv4 tail) into 8 hextets.
+ * Handles non-canonical spellings such as "0:0:0:0:0:0:0:1" or "0:0:0:0:0:ffff:7f00:1".
+ */
+function expandIPv6(ip: string): number[] | null {
+  let s = ip.split("%")[0]!;
+  const tail: number[] = [];
+  const lastColon = s.lastIndexOf(":");
+  const maybeV4 = s.slice(lastColon + 1);
+  if (maybeV4.includes(".")) {
+    const u32 = parseIPv4ToUint32(maybeV4);
+    if (u32 === null) return null;
+    tail.push((u32 >>> 16) & 0xffff, u32 & 0xffff);
+    s = s.slice(0, lastColon + 1) + "0";
+    // the placeholder "0" is replaced by the two IPv4 hextets below
+  }
+  const halves = s.split("::");
+  if (halves.length > 2) return null;
+  const parse = (part: string) =>
+    part === "" ? [] : part.split(":").map((h) => parseInt(h, 16));
+  const head = parse(halves[0]!);
+  const rest = halves.length === 2 ? parse(halves[1]!) : [];
+  if (tail.length) {
+    const target = halves.length === 2 ? rest : head;
+    target.pop();
+    target.push(...tail);
+  }
+  const fill = 8 - head.length - rest.length;
+  if (halves.length === 1 ? fill !== 0 : fill < 0) return null;
+  const out = [...head, ...new Array<number>(fill).fill(0), ...rest];
+  if (out.length !== 8 || out.some((h) => !Number.isInteger(h) || h < 0 || h > 0xffff)) {
+    return null;
+  }
+  return out;
+}
+
+function embeddedV4(high: number, low: number): string {
+  return `${high >> 8}.${high & 255}.${low >> 8}.${low & 255}`;
+}
+
+/**
  * Validates whether an IP string (IPv4 or IPv6) is a public, non-internal IP address.
  */
 export function validateIpAddress(
@@ -116,6 +156,32 @@ export function validateIpAddress(
   }
 
   if (net.isIPv6(normalized)) {
+    const h = expandIPv6(normalized);
+    if (h) {
+      const zeroPrefix = (n: number) => h.slice(0, n).every((x) => x === 0);
+      // ::  and ::1 in any spelling
+      if (zeroPrefix(7) && (h[7] === 0 || h[7] === 1)) {
+        return allowLoopback ? { allowed: true, ip } : { allowed: false, reason: "LOOPBACK", ip };
+      }
+      // IPv4-mapped ::ffff:a.b.c.d and deprecated IPv4-compatible ::a.b.c.d
+      if (zeroPrefix(5) && (h[5] === 0xffff || h[5] === 0)) {
+        return validateIpAddress(embeddedV4(h[6]!, h[7]!), options);
+      }
+      // NAT64 well-known prefix 64:ff9b::/96 routes to the embedded IPv4 on NAT64 networks
+      if (h[0] === 0x64 && h[1] === 0xff9b && h.slice(2, 6).every((x) => x === 0)) {
+        return validateIpAddress(embeddedV4(h[6]!, h[7]!), options);
+      }
+      // 6to4 2002:AABB:CCDD::/48 embeds an IPv4 address
+      if (h[0] === 0x2002) {
+        const v4 = validateIpAddress(embeddedV4(h[1]!, h[2]!), options);
+        if (!v4.allowed) return { ...v4, ip };
+      }
+      // Multicast ff00::/8 and deprecated site-local fec0::/10
+      if ((h[0]! & 0xff00) === 0xff00 || (h[0]! & 0xffc0) === 0xfec0) {
+        return allowPrivate ? { allowed: true, ip } : { allowed: false, reason: "PRIVATE_NETWORK", ip };
+      }
+    }
+
     // Check loopback ::1 / ::
     if (normalized === "::1" || normalized === "::") {
       if (allowLoopback) {

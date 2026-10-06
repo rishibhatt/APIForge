@@ -1,296 +1,166 @@
 /**
- * Design system: The Kinetic Terminal
- * Signal over noise — tonal sculpting, no structural layout borders.
+ * APIForge design tokens — "The Kinetic Terminal".
+ * Light method/status colors are tuned to pass 4.5:1 on their own 12% tint (chips).
+ * Dark-first tonal surfaces, one lavender→violet voice, JetBrains Mono for the machine layer.
+ * Light (:root) is a first-class violet-tinted paper theme; `.dark` (the default theme) overrides.
+ * Token names are shared across every CSS module: values change here, names stay.
  */
 
 :root {
-  color-scheme: dark;
-  /* —— Light · same accent philosophy (violet + method colors) —— */
-  --color-surface: #f5f3f8;
+  color-scheme: light;
+
+  /* —— Surfaces: cool violet-tinted paper —— */
+  --color-surface: #f7f5fa;
   --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #ebe6f0;
-  --color-surface-container: #e2dce8;
-  --color-surface-container-high: #d8d0e2;
-  --color-surface-container-highest: #cec4da;
-  --color-surface-dim: #ebe6f0;
+  --color-surface-container-low: #f1eef6;
+  --color-surface-container: #e9e5f0;
+  --color-surface-container-high: #dfd9e8;
+  --color-surface-container-highest: #d3cbdf;
+  --color-surface-dim: #efebf4;
 
-  --color-primary: #d0bcff;
+  /* —— Accent —— */
+  --color-primary: #6a3fd4;
   --color-primary-container: #7c4dc4;
-  --color-on-primary: #1c1028;
+  --color-on-primary: #ffffff;
+  --color-surface-tint: #6a3fd4;
 
-  --color-surface-tint: #d0bcff;
+  /* —— Text —— */
   --color-on-surface: #1a1520;
   --color-on-surface-variant: #4a4356;
-  --color-on-surface-muted: rgba(26, 21, 32, 0.9);
-  --color-on-surface-subtle: rgba(26, 21, 32, 0.72);
+  --color-on-surface-muted: #3a3344;
+  --color-on-surface-subtle: #6b6478;
+  --color-muted-foreground: #4a4356;
+  --color-muted-foreground-subtle: #6b6478;
 
-  --color-muted-foreground: #3a3344;
-  --color-muted-foreground-subtle: #45404f;
+  --color-outline-variant: #c9c0d6;
+  --color-outline-ghost: #e2dcea;
 
-  --color-outline-variant: #494454;
-  --color-outline-ghost: color-mix(
-    in srgb,
-    var(--color-outline-variant) 40%,
-    transparent
-  );
-
+  /* —— Status / methods —— */
   --color-secondary: #4a5f7a;
-  --color-secondary-container: #d4dce8;
-  --color-tertiary: #0d7a5c;
-  --color-tertiary-container: color-mix(
-    in srgb,
-    var(--color-tertiary) 18%,
-    transparent
-  );
+  --color-secondary-container: color-mix(in srgb, var(--color-method-get) 10%, #ffffff);
+  --color-on-secondary-container: #075039;
+  --color-tertiary: #096349;
+  --color-tertiary-container: color-mix(in srgb, var(--color-tertiary) 14%, transparent);
   --color-error: #ba1a1a;
-  --color-method-get: #0d7a5c;
-  --color-method-post: #c45c00;
-  --color-method-put: #2563eb;
-  --color-method-patch: #7c3aed;
-  --color-method-delete: #b91c1c;
-  --color-method-head: #0e7490;
-  --color-method-options: #64748b;
-  --color-method-put-patch: #b8860b;
+  --color-method-get: #096349;
+  --color-method-post: #8f4405;
+  --color-method-put: #1a47c4;
+  --color-method-patch: #6d28d9;
+  --color-method-delete: #a51a1a;
+  --color-method-head: #0a5c72;
+  --color-method-options: #4b5768;
+  --color-method-put-patch: #8a5306;
   --color-emerald: var(--color-method-get);
   --color-amber: var(--color-method-put-patch);
   --color-rose: #c41e3a;
 
-  --color-secondary-container: color-mix(
-    in srgb,
-    var(--color-method-get) 12%,
-    var(--color-surface-container-lowest)
-  );
-  --color-on-secondary-container: #0d5c44;
+  /* —— Roast Heat: only on Roast My API surfaces and entry points —— */
+  --color-roast-heat: #ff6b4a;
+  --color-roast-heat-deep: #e04828;
+  --color-roast-heat-text: #b5330f;
+  --color-on-roast-heat: #1a0a05;
+  --gradient-roast: linear-gradient(135deg, #ff8a5c 0%, #ff6b4a 45%, #e04828 100%);
 
-  --shadow-ambient: 0 8px 24px rgba(31, 27, 36, 0.08);
-  --shadow-float: 0 24px 48px -12px rgba(0, 0, 0, 0.35);
-  --shadow-float-tint: color-mix(
-    in srgb,
-    var(--color-surface-tint) 4%,
-    transparent
-  );
-  --shadow-glass: var(--shadow-ambient);
-  --shadow-inner-recess: inset 0 1px 0 rgba(31, 27, 36, 0.06);
+  /* —— Depth —— */
+  --shadow-ambient: 0 1px 2px rgba(31, 22, 48, 0.06), 0 4px 12px rgba(31, 22, 48, 0.05);
+  --shadow-float: 0 18px 44px -14px rgba(31, 22, 48, 0.28), 0 2px 8px rgba(31, 22, 48, 0.08);
+  --shadow-float-tint: transparent;
+  --shadow-glass: var(--shadow-float);
+  --shadow-inner-recess: inset 0 1px 0 rgba(31, 22, 48, 0.04);
+  --shadow-cta: 0 1px 0 rgba(255, 255, 255, 0.22) inset, 0 4px 14px -4px rgba(106, 63, 212, 0.45);
 
-  --color-surface-elevated: color-mix(
-    in srgb,
-    var(--color-surface-container-lowest) 88%,
-    transparent
-  );
-  --color-cyan-accent: var(--color-primary-container);
+  --color-surface-elevated: var(--color-surface-container-lowest);
+  --color-cyan-accent: var(--color-primary);
 
-  --gradient-primary: linear-gradient(
-    135deg,
-    var(--color-primary) 0%,
-    var(--color-primary-container) 100%
-  );
+  /* The signature CTA: lavender→violet. One per region. */
+  --gradient-primary: linear-gradient(135deg, #8a63f0 0%, #6a3fd4 55%, #5b2fc2 100%);
+  --gradient-wordmark: linear-gradient(135deg, #2e1065 0%, #6d28d9 55%, #7c4dc4 100%);
+  --gradient-display-accent: linear-gradient(100deg, #6a3fd4 0%, #9b5de5 55%, #d4572a 100%);
   --color-cta-fill: var(--gradient-primary);
-  --color-cta-foreground: #1a0d2e;
+  --color-cta-foreground: #ffffff;
 
-  --color-header-accent: var(--color-primary-container);
+  --color-header-accent: var(--color-primary);
 
-  --header-bg: color-mix(
-    in srgb,
-    var(--color-surface-container-lowest) 85%,
-    transparent
-  );
-  --header-backdrop-blur: 20px;
-  --header-border: transparent;
+  --header-bg: rgba(247, 245, 250, 0.84);
+  --header-backdrop-blur: 16px;
+  --header-border: var(--color-border-default);
 
   --sidebar-bg: var(--color-surface-container-low);
-  --surface-panel: var(--color-surface-container);
+  --surface-panel: var(--color-surface-container-lowest);
 
-  --color-url-bar-bg: color-mix(
-    in srgb,
-    var(--color-surface-container-high) 92%,
-    var(--color-surface-container) 8%
-  );
+  --color-url-bar-bg: var(--color-surface-container-low);
 
-  /* Neutral hovers on light surfaces — avoids muddy purple wash */
-  --color-interactive-hover: color-mix(
-    in srgb,
-    var(--color-on-surface) 6%,
-    transparent
-  );
-  --color-interactive-pressed: color-mix(
-    in srgb,
-    var(--color-on-surface) 11%,
-    transparent
-  );
+  --color-interactive-hover: rgba(58, 30, 110, 0.06);
+  --color-interactive-pressed: rgba(58, 30, 110, 0.11);
 
-  /** Accents that stay on-brand but meet contrast on light UI (tabs, links, metrics). */
-  --color-text-accent: var(--color-primary-container);
+  --color-text-accent: var(--color-primary);
 
   --color-toggle-track: var(--color-surface-container-high);
   --color-toggle-thumb: #ffffff;
-  --color-toggle-thumb-shadow: 0 2px 8px rgba(31, 27, 36, 0.12);
-  --color-toggle-icon: var(--color-primary-container);
+  --color-toggle-thumb-shadow: 0 1px 3px rgba(31, 22, 48, 0.2);
+  --color-toggle-icon: var(--color-primary);
 
-  --color-panel-border: color-mix(
-    in srgb,
-    var(--color-outline-variant) 22%,
-    transparent
-  );
-  --color-border-default: color-mix(in srgb, var(--color-on-surface) 9%, transparent);
-  --color-divider-subtle: color-mix(in srgb, var(--color-on-surface) 7%, transparent);
-  --color-toolbar-rule: color-mix(in srgb, var(--color-on-surface) 9%, transparent);
-  --color-field-bg: var(--color-surface-container-high);
-  --color-field-border: color-mix(in srgb, var(--color-on-surface) 10%, transparent);
-  --color-code-editor-bg: var(--color-surface-container-lowest);
-  --color-editor-chrome-bg: var(--color-surface-container-high);
+  --color-panel-border: #e2dcea;
+  --color-border-default: #e2dcea;
+  --color-border-strong: #cdc4da;
+  --color-divider-subtle: #ebe6f1;
+  --color-toolbar-rule: #e2dcea;
+  --color-field-bg: #ffffff;
+  --color-field-border: #cdc4da;
+  --color-code-editor-bg: #fbfafd;
+  --color-editor-chrome-bg: var(--color-surface-container-low);
   --color-editor-footer-bg: var(--color-surface-container-low);
   --color-panel-inset-glow: transparent;
-  --color-segmented-track-bg: var(--color-surface-container-low);
-  --color-segmented-border: color-mix(in srgb, var(--color-on-surface) 8%, transparent);
-  --color-primary-muted: color-mix(
-    in srgb,
-    var(--color-primary-container) 42%,
-    var(--color-on-surface-muted) 58%
-  );
-  --color-subtitle-accent: color-mix(
-    in srgb,
-    var(--color-primary-container) 58%,
-    var(--color-on-surface) 42%
-  );
-  --color-section-accent: color-mix(
-    in srgb,
-    var(--color-primary-container) 50%,
-    var(--color-on-surface-variant) 50%
-  );
-  --color-callout-info-bg: color-mix(
-    in srgb,
-    var(--color-primary-container) 9%,
-    var(--color-surface-container-lowest)
-  );
-  --color-callout-info-border: color-mix(
-    in srgb,
-    var(--color-primary-container) 22%,
-    transparent
-  );
+  --color-segmented-track-bg: var(--color-surface-container);
+  --color-segmented-border: #e2dcea;
+  --color-primary-muted: color-mix(in srgb, var(--color-primary) 70%, var(--color-on-surface-variant));
+  --color-subtitle-accent: var(--color-on-surface-variant);
+  --color-section-accent: var(--color-on-surface-variant);
+  --color-callout-info-bg: color-mix(in srgb, var(--color-primary) 6%, #ffffff);
+  --color-callout-info-border: color-mix(in srgb, var(--color-primary) 22%, transparent);
   --color-chip-surface: var(--color-surface-container-low);
   --color-chip-surface-hover: var(--color-surface-container);
   --color-result-panel-bg: var(--color-surface-container-low);
-  --color-result-panel-border: color-mix(in srgb, var(--color-on-surface) 8%, transparent);
-  --color-result-gradient: linear-gradient(
-    155deg,
-    var(--color-surface-container-low) 0%,
-    var(--color-surface-container) 100%
-  );
-  --color-response-code-fg: color-mix(
-    in srgb,
-    var(--color-primary-container) 18%,
-    var(--color-on-surface) 82%
-  );
-  --color-error-surface-bg: color-mix(
-    in srgb,
-    var(--color-error) 10%,
-    var(--color-surface-container-low)
-  );
-  --color-error-surface-border: color-mix(
-    in srgb,
-    var(--color-error) 28%,
-    transparent
-  );
+  --color-result-panel-border: var(--color-border-default);
+  --color-result-gradient: var(--color-surface-container-low);
+  --color-response-code-fg: var(--color-on-surface);
+  --color-error-surface-bg: color-mix(in srgb, var(--color-error) 6%, #ffffff);
+  --color-error-surface-border: color-mix(in srgb, var(--color-error) 26%, transparent);
   --color-error-surface-text: var(--color-error);
   --color-pill-success-fg: var(--color-method-get);
-  --color-pill-success-bg: color-mix(
-    in srgb,
-    var(--color-method-get) 14%,
-    transparent
-  );
-  --color-pill-success-border: color-mix(
-    in srgb,
-    var(--color-method-get) 28%,
-    transparent
-  );
-  --color-pill-info-fg: var(--color-primary-container);
-  --color-pill-info-bg: color-mix(
-    in srgb,
-    var(--color-primary-container) 12%,
-    transparent
-  );
-  --color-pill-info-border: color-mix(
-    in srgb,
-    var(--color-primary-container) 26%,
-    transparent
-  );
-  --color-explain-bg: color-mix(
-    in srgb,
-    var(--color-primary-container) 10%,
-    transparent
-  );
-  --color-explain-border: color-mix(
-    in srgb,
-    var(--color-primary-container) 22%,
-    transparent
-  );
-  --color-overlay-scrim: rgba(20, 18, 28, 0.45);
-  --color-status-dot-error-border: color-mix(
-    in srgb,
-    var(--color-rose) 45%,
-    transparent
-  );
-  --color-status-dot-error-fill: color-mix(
-    in srgb,
-    var(--color-rose) 22%,
-    transparent
-  );
-  --color-status-dot-warn-border: color-mix(
-    in srgb,
-    var(--color-method-put-patch) 45%,
-    transparent
-  );
-  --color-status-dot-warn-fill: color-mix(
-    in srgb,
-    var(--color-method-put-patch) 22%,
-    transparent
-  );
-  --color-status-dot-ok-border: color-mix(
-    in srgb,
-    var(--color-method-get) 45%,
-    transparent
-  );
-  --color-status-dot-ok-fill: color-mix(
-    in srgb,
-    var(--color-method-get) 22%,
-    transparent
-  );
+  --color-pill-success-bg: color-mix(in srgb, var(--color-method-get) 10%, transparent);
+  --color-pill-success-border: color-mix(in srgb, var(--color-method-get) 28%, transparent);
+  --color-pill-info-fg: var(--color-primary);
+  --color-pill-info-bg: color-mix(in srgb, var(--color-primary) 9%, transparent);
+  --color-pill-info-border: color-mix(in srgb, var(--color-primary) 26%, transparent);
+  --color-explain-bg: color-mix(in srgb, var(--color-primary) 6%, transparent);
+  --color-explain-border: color-mix(in srgb, var(--color-primary) 22%, transparent);
+  --color-overlay-scrim: rgba(20, 14, 32, 0.45);
+  --color-status-dot-error-border: color-mix(in srgb, var(--color-rose) 45%, transparent);
+  --color-status-dot-error-fill: color-mix(in srgb, var(--color-rose) 22%, transparent);
+  --color-status-dot-warn-border: color-mix(in srgb, var(--color-method-put-patch) 45%, transparent);
+  --color-status-dot-warn-fill: color-mix(in srgb, var(--color-method-put-patch) 22%, transparent);
+  --color-status-dot-ok-border: color-mix(in srgb, var(--color-method-get) 45%, transparent);
+  --color-status-dot-ok-fill: color-mix(in srgb, var(--color-method-get) 22%, transparent);
+
+  /* Engineering grid behind marketing heroes */
+  --grid-line: rgba(58, 30, 110, 0.07);
+  --grid-size: 44px;
 
   --radius-xs: 2px;
   --radius-sm: 4px;
-  --radius-md: 4px;
-  --radius-lg: 6px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
 
-  --color-assistant-accent: var(--color-primary-container);
-  --color-assistant-border: color-mix(
-    in srgb,
-    var(--color-primary-container) 22%,
-    var(--color-outline-variant) 35%
-  );
-  --color-assistant-surface: color-mix(
-    in srgb,
-    var(--color-primary-container) 6%,
-    var(--color-surface-container-lowest)
-  );
-  --color-assistant-chip-border: color-mix(
-    in srgb,
-    var(--color-primary-container) 24%,
-    transparent
-  );
+  --color-assistant-accent: var(--color-primary);
+  --color-assistant-border: var(--color-border-default);
+  --color-assistant-surface: var(--color-surface-container-lowest);
+  --color-assistant-chip-border: var(--color-border-default);
   --color-assistant-input-bg: var(--color-surface-container-lowest);
 
-  /* AI Prompt tab: readable “paper” panel (markdown / IDE prompt output) */
-  --color-workspace-prompt-bg: color-mix(
-    in srgb,
-    var(--color-surface-container-lowest) 94%,
-    var(--color-primary-container) 6%
-  );
+  --color-workspace-prompt-bg: var(--color-surface-container-low);
   --color-workspace-prompt-code-bg: #ffffff;
-  --color-workspace-prompt-code-border: color-mix(
-    in srgb,
-    var(--color-on-surface) 11%,
-    transparent
-  );
+  --color-workspace-prompt-code-border: var(--color-border-default);
   --color-workspace-prompt-fg: var(--color-on-surface);
 
   --space-1: 4px;
@@ -299,6 +169,7 @@
   --space-4: 16px;
   --space-5: 20px;
   --space-6: 24px;
+  --space-7: 28px;
   --space-8: 32px;
   --space-10: 40px;
   --space-12: 48px;
@@ -308,30 +179,33 @@
   --z-sidebar-backdrop: 45;
   --z-sidebar-drawer: 48;
   --z-footer: 50;
-  --header-h: 72px;
+  --header-h: 64px;
   --sidebar-w: 288px;
-  --footer-h: 32px;
+  --footer-h: 30px;
 
-  --font-display: var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+  --font-display: var(--font-jakarta), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", sans-serif;
-  --font-body: var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", sans-serif;
-  --font-mono: var(--font-jetbrains-mono), ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas,
+  --font-body: var(--font-display);
+  --font-sans: var(--font-display);
+  --font-mono: var(--font-jetbrains), ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas,
     monospace;
+  --font-jetbrains-mono: var(--font-mono);
 
-  --glass-bg: color-mix(
-    in srgb,
-    var(--color-surface-container) 80%,
-    transparent
-  );
-  --glass-blur: blur(12px);
-  --glass-border: 1px solid
-    color-mix(in srgb, var(--color-outline-variant) 20%, transparent);
+  /* Mono micro-label (nav, tabs, panel labels). Use with text-transform: uppercase. */
+  --label-size: 0.6875rem;
+  --label-weight: 600;
+  --label-tracking: 0.06em;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --glass-bg: var(--color-surface-container-lowest);
+  --glass-blur: none;
+  --glass-border: 1px solid var(--color-border-default);
 }
 
 .dark {
   color-scheme: dark;
-  --color-text-accent: var(--color-primary);
+
   /* —— Kinetic Terminal · dark —— */
   --color-surface: #131315;
   --color-surface-container-lowest: #0e0e10;
@@ -344,27 +218,23 @@
   --color-primary: #d0bcff;
   --color-primary-container: #a078ff;
   --color-on-primary: #1c1028;
-
   --color-surface-tint: #d0bcff;
+
   --color-on-surface: #e5e1e4;
   --color-on-surface-variant: #cbc3d7;
-  --color-on-surface-muted: rgba(229, 225, 228, 0.78);
-  --color-on-surface-subtle: rgba(229, 225, 228, 0.56);
-
-  --color-muted-foreground: var(--color-on-surface-variant);
-  --color-muted-foreground-subtle: color-mix(
-    in srgb,
-    var(--color-on-surface-variant) 88%,
-    transparent
-  );
+  --color-on-surface-muted: #d9d3de;
+  --color-on-surface-subtle: #958ea0;
+  --color-muted-foreground: #cbc3d7;
+  --color-muted-foreground-subtle: #958ea0;
 
   --color-outline-variant: #494454;
-  --color-outline-ghost: color-mix(
-    in srgb,
-    var(--color-outline-variant) 40%,
-    transparent
-  );
+  --color-outline-ghost: #2a292d;
 
+  --color-secondary: #a3b3c9;
+  --color-secondary-container: color-mix(in srgb, var(--color-method-get) 10%, transparent);
+  --color-on-secondary-container: var(--color-method-get);
+  --color-tertiary: #4edea3;
+  --color-tertiary-container: color-mix(in srgb, var(--color-tertiary) 14%, transparent);
   --color-error: #ffb4ab;
   --color-method-get: #4edea3;
   --color-method-post: #fb923c;
@@ -374,205 +244,54 @@
   --color-method-head: #22d3ee;
   --color-method-options: #94a3b8;
   --color-method-put-patch: #e8c792;
-  --color-emerald: var(--color-method-get);
-  --color-amber: var(--color-method-put-patch);
   --color-rose: #ffb4ab;
 
-  --color-secondary-container: color-mix(
-    in srgb,
-    var(--color-method-get) 10%,
-    transparent
-  );
-  --color-on-secondary-container: var(--color-method-get);
+  --color-roast-heat-text: #ff7a5c;
 
-  --shadow-ambient: 0 8px 24px rgba(0, 0, 0, 0.35);
-  --shadow-float: 0 24px 48px -12px rgba(0, 0, 0, 0.5);
-  --shadow-float-tint: color-mix(
-    in srgb,
-    var(--color-surface-tint) 4%,
-    transparent
-  );
-  --shadow-glass: var(--shadow-float);
+  --shadow-ambient: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.25);
+  --shadow-float: 0 24px 48px -12px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.35);
   --shadow-inner-recess: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --shadow-cta: 0 1px 0 rgba(255, 255, 255, 0.35) inset, 0 6px 18px -6px rgba(160, 120, 255, 0.55);
 
-  --color-surface-elevated: color-mix(
-    in srgb,
-    var(--color-surface-container) 80%,
-    transparent
-  );
-  --color-cyan-accent: var(--color-primary-container);
+  --gradient-primary: linear-gradient(135deg, #d0bcff 0%, #a078ff 100%);
+  --gradient-wordmark: linear-gradient(135deg, #ffffff 10%, #d0bcff 55%, #a078ff 100%);
+  --gradient-display-accent: linear-gradient(100deg, #d0bcff 0%, #e8b4d8 55%, #ffb38a 100%);
+  --color-cta-foreground: #1c1028;
 
-  --gradient-primary: linear-gradient(
-    135deg,
-    var(--color-primary) 0%,
-    var(--color-primary-container) 100%
-  );
-  --color-cta-fill: var(--gradient-primary);
-  --color-cta-foreground: #3c0091;
+  --header-bg: rgba(19, 19, 21, 0.84);
 
-  --color-header-accent: var(--color-primary);
+  --sidebar-bg: var(--color-surface-container-low);
+  --surface-panel: var(--color-surface-container-low);
+  --color-url-bar-bg: var(--color-surface-container);
 
-  --header-bg: var(--color-surface);
-  --header-backdrop-blur: 0px;
-  --header-border: transparent;
-
-  --sidebar-bg: var(--color-surface-container-lowest);
-  --surface-panel: var(--color-surface-container);
-
-  --color-url-bar-bg: color-mix(
-    in srgb,
-    var(--color-surface-container-high) 88%,
-    var(--color-surface-container) 12%
-  );
-
-  --color-interactive-hover: rgba(255, 255, 255, 0.06);
-  --color-interactive-pressed: rgba(255, 255, 255, 0.1);
+  --color-interactive-hover: rgba(208, 188, 255, 0.06);
+  --color-interactive-pressed: rgba(208, 188, 255, 0.11);
 
   --color-toggle-track: var(--color-surface-container-high);
-  --color-toggle-thumb: var(--gradient-primary);
-  --color-toggle-thumb-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
-  --color-toggle-icon: var(--color-on-primary);
+  --color-toggle-thumb: #e5e1e4;
+  --color-toggle-thumb-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --color-toggle-icon: #1c1028;
 
-  --color-panel-border: color-mix(in srgb, var(--color-on-surface) 11%, transparent);
-  --color-border-default: color-mix(in srgb, var(--color-on-surface) 11%, transparent);
-  --color-divider-subtle: color-mix(in srgb, var(--color-on-surface) 9%, transparent);
-  --color-toolbar-rule: color-mix(in srgb, var(--color-on-surface) 11%, transparent);
-  --color-field-bg: var(--color-surface-container-high);
-  --color-field-border: color-mix(in srgb, var(--color-on-surface) 12%, transparent);
-  --color-code-editor-bg: var(--color-surface-container-lowest);
-  --color-editor-chrome-bg: var(--color-surface-container-highest);
+  --color-panel-border: #2a292d;
+  --color-border-default: #2a292d;
+  --color-border-strong: #3a3940;
+  --color-divider-subtle: #222124;
+  --color-toolbar-rule: #2a292d;
+  --color-field-bg: var(--color-surface-container-lowest);
+  --color-field-border: #3a3940;
+  --color-code-editor-bg: #0e0e10;
+  --color-editor-chrome-bg: var(--color-surface-container);
   --color-editor-footer-bg: var(--color-surface-container-low);
-  --color-panel-inset-glow: transparent;
-  --color-segmented-track-bg: var(--color-surface-container-low);
-  --color-segmented-border: color-mix(in srgb, var(--color-on-surface) 10%, transparent);
-  --color-secondary: #b7c8e1;
-  --color-secondary-container: #3a4a5f;
-  --color-tertiary: #4edea3;
-  --color-tertiary-container: color-mix(
-    in srgb,
-    var(--color-tertiary) 20%,
-    transparent
-  );
-  --color-primary-muted: color-mix(in srgb, var(--color-primary) 78%, transparent);
-  --color-subtitle-accent: color-mix(in srgb, var(--color-primary) 68%, transparent);
-  --color-section-accent: color-mix(in srgb, var(--color-primary) 58%, transparent);
-  --color-callout-info-bg: color-mix(
-    in srgb,
-    var(--color-primary-container) 10%,
-    transparent
-  );
-  --color-callout-info-border: color-mix(
-    in srgb,
-    var(--color-primary-container) 24%,
-    transparent
-  );
-  --color-chip-surface: rgba(255, 255, 255, 0.06);
-  --color-chip-surface-hover: var(--color-surface-container-highest);
-  --color-result-panel-bg: color-mix(
-    in srgb,
-    var(--color-surface-container) 65%,
-    transparent
-  );
-  --color-result-panel-border: color-mix(in srgb, var(--color-on-surface) 10%, transparent);
-  --color-result-gradient: linear-gradient(
-    155deg,
-    var(--color-surface-container) 0%,
-    var(--color-surface-container-lowest) 100%
-  );
-  --color-response-code-fg: color-mix(in srgb, var(--color-primary) 82%, transparent);
-  --color-error-surface-bg: color-mix(
-    in srgb,
-    var(--color-error) 12%,
-    var(--color-surface-container-low)
-  );
-  --color-error-surface-border: color-mix(
-    in srgb,
-    var(--color-error) 30%,
-    transparent
-  );
-  --color-error-surface-text: var(--color-error);
-  --color-pill-success-fg: var(--color-method-get);
-  --color-pill-success-bg: color-mix(
-    in srgb,
-    var(--color-method-get) 14%,
-    transparent
-  );
-  --color-pill-success-border: color-mix(
-    in srgb,
-    var(--color-method-get) 28%,
-    transparent
-  );
-  --color-pill-info-fg: color-mix(in srgb, var(--color-primary) 88%, white 12%);
-  --color-pill-info-bg: color-mix(
-    in srgb,
-    var(--color-primary) 16%,
-    transparent
-  );
-  --color-pill-info-border: color-mix(
-    in srgb,
-    var(--color-primary) 30%,
-    transparent
-  );
-  --color-explain-bg: color-mix(
-    in srgb,
-    var(--color-primary) 12%,
-    transparent
-  );
-  --color-explain-border: color-mix(
-    in srgb,
-    var(--color-primary) 26%,
-    transparent
-  );
-  --color-overlay-scrim: rgba(0, 0, 0, 0.55);
-  --color-status-dot-error-border: color-mix(
-    in srgb,
-    var(--color-rose) 45%,
-    transparent
-  );
-  --color-status-dot-error-fill: color-mix(
-    in srgb,
-    var(--color-rose) 22%,
-    transparent
-  );
-  --color-status-dot-warn-border: color-mix(
-    in srgb,
-    var(--color-method-put-patch) 45%,
-    transparent
-  );
-  --color-status-dot-warn-fill: color-mix(
-    in srgb,
-    var(--color-method-put-patch) 22%,
-    transparent
-  );
-  --color-status-dot-ok-border: color-mix(
-    in srgb,
-    var(--color-method-get) 45%,
-    transparent
-  );
-  --color-status-dot-ok-fill: color-mix(
-    in srgb,
-    var(--color-method-get) 22%,
-    transparent
-  );
+  --color-segmented-track-bg: var(--color-surface-container-lowest);
+  --color-segmented-border: #2a292d;
+  --color-callout-info-bg: color-mix(in srgb, var(--color-primary) 7%, var(--color-surface));
+  --color-callout-info-border: color-mix(in srgb, var(--color-primary) 24%, transparent);
+  --color-chip-surface: var(--color-surface-container);
+  --color-chip-surface-hover: var(--color-surface-container-high);
+  --color-error-surface-bg: color-mix(in srgb, var(--color-error) 9%, var(--color-surface));
+  --color-overlay-scrim: rgba(0, 0, 0, 0.66);
 
-  --color-assistant-accent: color-mix(in srgb, var(--color-primary) 90%, white 10%);
-  --color-assistant-border: color-mix(in srgb, var(--color-primary) 18%, transparent);
-  --color-assistant-surface: color-mix(
-    in srgb,
-    var(--color-surface-container) 40%,
-    var(--color-surface-container-lowest)
-  );
-  --color-assistant-chip-border: color-mix(in srgb, var(--color-primary) 24%, transparent);
-  --color-assistant-input-bg: var(--color-surface-container-lowest);
+  --grid-line: rgba(208, 188, 255, 0.045);
 
-  --color-workspace-prompt-bg: var(--color-surface-container-low);
-  --color-workspace-prompt-code-bg: var(--color-surface-container);
-  --color-workspace-prompt-code-border: var(--color-panel-border);
-  --color-workspace-prompt-fg: var(--color-on-surface);
-
-  --glass-bg: color-mix(
-    in srgb,
-    var(--color-surface-container) 80%,
-    transparent
-  );
+  --color-workspace-prompt-code-bg: var(--color-surface-container-lowest);
 }

@@ -1,78 +1,328 @@
 {
   "slug": "api-naming-conventions",
-  "title": "API Naming Conventions: The Complete Cheat Sheet for REST & OpenAPI (2026)",
-  "description": "Master standard naming conventions for URIs, path parameters, JSON keys, query filters, and HTTP headers across REST APIs and OpenAPI specs.",
-  "excerpt": "A cheat sheet for consistent URI structure, casing standards, parameter naming, and HTTP header conventions.",
+  "title": "API Naming Conventions for Paths, Fields, and Headers",
+  "description": "API naming conventions with examples: lowercase plural paths, path parameter names, one casing for JSON fields and query params, and HTTP header names.",
+  "excerpt": "A naming cheat sheet for REST APIs, with the reasoning behind each rule and a scored before-and-after spec.",
   "category": "api-design",
+  "cluster": "rest-api",
+  "primaryKeyword": "api naming conventions",
+  "keywords": [
+    "rest endpoint naming",
+    "json field naming camelcase vs snake_case",
+    "query parameter naming",
+    "http header naming",
+    "path parameter naming"
+  ],
   "tags": [
     "API Naming",
     "REST API",
     "OpenAPI",
-    "API Design",
-    "Clean Code"
-  ],
-  "keywords": [
-    "api naming conventions",
-    "rest uri naming rules",
-    "json key casing standard",
-    "query parameter naming convention"
+    "API Design"
   ],
   "author": "rishab",
   "publishedAt": "2026-09-26",
-  "updatedAt": "2026-09-26",
-  "readingTime": "9 min read",
-  "featured": false,
+  "updatedAt": "2026-10-04",
   "content": [
     {
       "type": "paragraph",
-      "text": "Consistency in naming conventions separates professional enterprise APIs from ad-hoc internal endpoints. Adopting predictable casing rules across URIs, parameters, and payload keys simplifies SDK generation and client integration."
+      "text": "Good API naming conventions fit on one card. Paths are lowercase, plural nouns with hyphens between words (/v1/user-profiles), and the HTTP method carries the action, so no verbs in the path. Path parameters get short, unique names such as {id} or {orderId}. JSON fields use one casing across the whole API, either camelCase or snake_case, and query parameters use the same casing as the fields they filter. Booleans start with is or has, timestamps end in At and carry a timezone, and numbers with units say the unit. New HTTP headers drop the X- prefix. The rest of this page explains each rule, the exceptions, and how to rename things without breaking clients."
     },
     {
       "type": "heading",
       "level": 2,
-      "text": "1. Standard Casing Rules Summary",
-      "id": "casing-rules"
+      "text": "Naming cheat sheet",
+      "id": "cheat-sheet"
     },
     {
       "type": "table",
-      "headers": ["API Target", "Recommended Casing", "Correct Example", "Incorrect Example"],
-      "rows": [
-        ["URI Paths", "lower-kebab-case", "/v1/user-profiles", "/v1/userProfiles or /v1/user_profiles"],
-        ["Path Parameters", "camelCase or lower-kebab-case", "/v1/users/{userId}", "/v1/users/{user_id}"],
-        ["Query Parameters", "camelCase", "?startingAfter=usr_100", "?starting_after=usr_100"],
-        ["JSON Keys", "camelCase", "{\"firstName\": \"Jane\"}", "{\"first_name\": \"Jane\"}"],
-        ["HTTP Headers", "Train-Case (Hyphenated)", "X-Request-ID", "x_request_id or requestid"]
+      "headers": [
+        "Element",
+        "Convention",
+        "Good",
+        "Avoid"
       ],
-      "caption": "Canonical Casing Standards across API Surface"
+      "rows": [
+        [
+          "Collection path",
+          "Lowercase plural noun",
+          "/v1/orders",
+          "/v1/Order, /v1/getOrders"
+        ],
+        [
+          "Multi-word segment",
+          "kebab-case",
+          "/v1/user-profiles",
+          "/v1/userProfiles, /v1/user_profiles"
+        ],
+        [
+          "Single resource",
+          "Collection plus ID",
+          "/v1/orders/{id}",
+          "/v1/order/{id}, /v1/orders/get/{id}"
+        ],
+        [
+          "Non-CRUD action",
+          "Sub-resource noun",
+          "POST /v1/orders/{id}/cancellation",
+          "POST /v1/cancelOrder"
+        ],
+        [
+          "JSON field",
+          "One casing everywhere",
+          "customerId or customer_id",
+          "Both in one API"
+        ],
+        [
+          "Boolean field",
+          "is or has prefix",
+          "isActive, hasMore",
+          "active, more"
+        ],
+        [
+          "Timestamp field",
+          "At suffix, ISO 8601 with offset",
+          "createdAt",
+          "created, creationDate"
+        ],
+        [
+          "Value with a unit",
+          "Unit in the name",
+          "timeoutSeconds, totalCents",
+          "timeout, total"
+        ],
+        [
+          "Enum value",
+          "One casing for all enums",
+          "in_progress",
+          "InProgress next to on-hold"
+        ],
+        [
+          "Query parameter",
+          "Same casing as JSON fields",
+          "?createdAfter=",
+          "?created_after= in a camelCase API"
+        ],
+        [
+          "New HTTP header",
+          "Hyphenated words, no X- prefix",
+          "Request-Id",
+          "X_Request_ID, requestid"
+        ]
+      ],
+      "caption": "Pick the casing column once per API and apply it everywhere."
     },
     {
       "type": "heading",
       "level": 2,
-      "text": "2. Resource Path Rules",
-      "id": "path-rules"
+      "text": "Paths: lowercase, plural, no verbs",
+      "id": "paths"
+    },
+    {
+      "type": "paragraph",
+      "text": "RFC 3986 treats the scheme and host of a URI as case-insensitive but the path as case-sensitive, so /v1/Orders and /v1/orders are two different URLs. Some servers and frameworks match routes case-insensitively and others do not, and caches and gateways key on the exact string. Lowercase-only paths remove the question. Between words, use hyphens. Hyphens are the common choice in URLs, they read clearly when a link is underlined, and they keep the path visually separate from snake_case or camelCase JSON."
+    },
+    {
+      "type": "paragraph",
+      "text": "Name collections with plural nouns and address one item by appending its ID: /v1/orders and /v1/orders/{id}. Mixing /user and /users in the same API forces client developers to look up each path. The HTTP method already says what happens: GET reads, POST creates, PATCH updates part of a resource, DELETE removes it. A path such as /v1/orders/create repeats the method and invites the inconsistency of POST /create next to PUT /update. The [REST API design guide](/guides/rest-api-design-best-practices) covers method semantics in more depth."
+    },
+    {
+      "type": "paragraph",
+      "text": "Some operations are not create, read, update or delete. Cancelling an order, sending an invoice or resending a verification email are actions. Model them as a sub-resource noun that you create: POST /v1/orders/{id}/cancellation or POST /v1/invoices/{id}/delivery. That keeps the path a noun, gives you a place to return the cancellation record, and works with the same tooling as every other POST."
+    },
+    {
+      "type": "paragraph",
+      "text": "Keep nesting to one level of ownership. /v1/users/{userId}/orders reads well. /v1/users/{userId}/orders/{orderId}/line-items/{lineItemId} makes the client know the user ID to read a line item, even though the order ID already identifies it. If a child has a globally unique ID, give it a top-level path such as /v1/line-items/{id} and offer filtering by parent with a query parameter."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Path parameter names",
+      "id": "path-parameters"
+    },
+    {
+      "type": "paragraph",
+      "text": "OpenAPI identifies a parameter by its name and location together, and every template expression in a path must match a declared path parameter. Two path parameters in one path therefore need different names, which is why nested routes use {userId} and {orderId} instead of {id} twice. The spec also forbids templated paths that differ only in the parameter name: /orders/{id} and /orders/{orderId} in the same document count as the same path and make the document invalid."
+    },
+    {
+      "type": "paragraph",
+      "text": "For a single parameter, {id} is enough. Use the same casing for parameter names as for your JSON fields, so {orderId} in a camelCase API and {order_id} in a snake_case one. One thing to know if you track the APIForge score: its naming check reads the whole path string, so camelCase or underscores inside a parameter name count against kebab-case. In our example below, renaming {id} to {userId} on two operations moved the score from 100 to 95.5. Treat that deduction as a prompt to check the name, not as a rule that {userId} is wrong."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "JSON field names: one casing, chosen once",
+      "id": "fields"
+    },
+    {
+      "type": "paragraph",
+      "text": "camelCase and snake_case both work. camelCase matches JavaScript and TypeScript property names, so frontend code can destructure a response without a mapping layer. snake_case matches Python and Ruby conventions and many database column names. Pick the one your main consumers write, set your serializer to emit it everywhere, and add a test that fails if a response contains the other style. An API that returns customer_id from one endpoint and customerId from another costs every client a lookup per field."
+    },
+    {
+      "type": "badExample",
+      "title": "Four casings and no units",
+      "language": "json",
+      "code": "{\n  \"ID\": \"ord_81\",\n  \"customer_id\": \"usr_12\",\n  \"OrderStatus\": \"InProgress\",\n  \"active\": true,\n  \"created\": 1767225600,\n  \"timeout\": 30,\n  \"total\": 1999\n}",
+      "explanation": "ID, customer_id and OrderStatus use three casings. active could be a verb or a state. created is a Unix timestamp with no hint of the unit or timezone. timeout and total leave the client to guess seconds or milliseconds, dollars or cents."
+    },
+    {
+      "type": "goodExample",
+      "title": "One casing, self-describing names",
+      "language": "json",
+      "code": "{\n  \"id\": \"ord_81\",\n  \"customerId\": \"usr_12\",\n  \"status\": \"in_progress\",\n  \"isActive\": true,\n  \"createdAt\": \"2026-01-01T00:00:00Z\",\n  \"timeoutSeconds\": 30,\n  \"totalCents\": 1999\n}",
+      "explanation": "Every key is camelCase. The boolean reads as a question, the timestamp is ISO 8601 with a UTC offset, units sit in the names, and the enum value uses snake_case like every other enum in the API."
     },
     {
       "type": "list",
       "ordered": false,
       "items": [
-        "Use Plural Nouns: Represent resource collections with plural nouns (e.g. /v1/orders, /v1/products).",
-        "Avoid Verbs in Path: Use HTTP methods (POST, DELETE) to express actions instead of /v1/createOrder.",
-        "Nested Resources: Limit nested hierarchy depth to 2 levels (e.g. /v1/users/{userId}/orders). If deeper relations are needed, make sub-resources top-level with query filters."
+        "Acronyms: treat them as words. userId, htmlUrl and apiKey are easier to convert between casings than userID or HTMLURL, and code generators handle them predictably.",
+        "Do not repeat the resource name. Inside an order object, write status, not orderStatus. Keep the prefix only for references to other resources, such as customerId.",
+        "Money: store an integer in the smallest unit with the unit in the name, such as totalCents, plus a currency field with an ISO 4217 code.",
+        "Arrays: plural names (lineItems, tags). Single objects: singular names (shippingAddress).",
+        "Enums: one casing for every enum value in the API. Changing in_progress to inProgress later is a breaking change for every client that compares strings."
       ]
     },
     {
+      "type": "heading",
+      "level": 2,
+      "text": "Query parameters",
+      "id": "query"
+    },
+    {
+      "type": "paragraph",
+      "text": "Query parameters should look like the fields they filter. If the response has status and createdAt, the filters are status and createdAfter or createdBefore, not state and from_date. Reserve a few names and use them on every list endpoint: limit and cursor (or page) for [pagination](/guides/api-pagination-best-practices), sort with a minus prefix for descending order, and fields if you support sparse responses."
+    },
+    {
+      "type": "code",
+      "language": "http",
+      "code": "GET /v1/orders?status=paid&createdAfter=2026-01-01T00:00:00Z&sort=-createdAt&limit=50&cursor=b3JkXzgx\nGET /v1/orders?status=paid&status=refunded\nGET /v1/products?ids=prd_1,prd_2,prd_3",
+      "caption": "Filters named after fields, a reserved sort and pagination pair, and two ways to send multiple values. Document which one your API accepts."
+    },
+    {
+      "type": "paragraph",
+      "text": "For multiple values, choose repeated parameters (status=paid&status=refunded) or a comma-separated list (ids=prd_1,prd_2) and use the same form everywhere. In OpenAPI 3, style: form with explode: true describes the repeated form and explode: false describes the comma form, so generated clients serialize them correctly."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "HTTP header names",
+      "id": "headers"
+    },
+    {
+      "type": "paragraph",
+      "text": "RFC 9110 defines header field names as case-insensitive, so Request-Id and request-id are the same header and a client must not depend on the case it receives. Write them in documentation as hyphen-separated words with initial capitals, and never use underscores, because some proxies drop headers that contain them (nginx does by default). RFC 6648 (BCP 178) asks protocol designers to stop prefixing new parameters with X-, because experimental names leak into permanent use and then cannot be renamed. For a new header, write Request-Id or Idempotency-Key. If clients already send X-Request-ID, keep accepting it; renaming a working header breaks them for no gain."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Worked example: scoring a messy spec",
+      "id": "example"
+    },
+    {
+      "type": "paragraph",
+      "text": "Here is a small spec with naming problems that show up often: a verb in a collection path, a singular resource name, a snake_case segment and an action segment."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "filename": "before.yaml",
+      "code": "openapi: 3.0.3\ninfo:\n  title: Shop API\n  version: 1.0.0\npaths:\n  /v1/getUsers:\n    get:\n      summary: List users\n      responses:\n        \"200\":\n          description: A page of users\n        \"401\":\n          description: Missing or invalid token\n  /v1/user/{user_id}:\n    get:\n      summary: Get one user\n      parameters:\n        - name: user_id\n          in: path\n          required: true\n          schema:\n            type: string\n      responses:\n        \"200\":\n          description: The user\n        \"404\":\n          description: User not found\n  /v1/user_profiles/{id}:\n    patch:\n      summary: Update a profile\n      parameters:\n        - name: id\n          in: path\n          required: true\n          schema:\n            type: string\n      responses:\n        \"200\":\n          description: The updated profile\n        \"404\":\n          description: Profile not found\n  /v1/orders/create:\n    post:\n      summary: Create an order\n      responses:\n        \"201\":\n          description: Order created\n        \"400\":\n          description: Invalid order"
+    },
+    {
+      "type": "paragraph",
+      "text": "APIForge scored it 86.6 out of 100. Naming dropped to 8.8 of its 20 points and HTTP usage to 17.8 of 20. It reported camelCase in /v1/getUsers, the verb segment create in /v1/orders/create (flagged twice, once as naming and once as a method conflict), an underscore in user_profiles, and the underscore in the {user_id} parameter. It did not flag the singular /v1/user, because its singular-versus-plural check fires only when both /user and /users appear as segments, and getUsers is not a users segment. A rule-based checker catches what its rules describe, so a human still needs to read the paths."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "filename": "after.yaml",
+      "code": "openapi: 3.0.3\ninfo:\n  title: Shop API\n  version: 1.0.0\npaths:\n  /v1/users:\n    get:\n      summary: List users\n      responses:\n        \"200\":\n          description: A page of users\n        \"401\":\n          description: Missing or invalid token\n  /v1/users/{id}:\n    get:\n      summary: Get one user\n      parameters:\n        - name: id\n          in: path\n          required: true\n          schema:\n            type: string\n      responses:\n        \"200\":\n          description: The user\n        \"404\":\n          description: User not found\n  /v1/user-profiles/{id}:\n    patch:\n      summary: Update a profile\n      parameters:\n        - name: id\n          in: path\n          required: true\n          schema:\n            type: string\n      responses:\n        \"200\":\n          description: The updated profile\n        \"404\":\n          description: Profile not found\n  /v1/orders:\n    post:\n      summary: Create an order\n      responses:\n        \"201\":\n          description: Order created\n        \"400\":\n          description: Invalid order"
+    },
+    {
+      "type": "paragraph",
+      "text": "After renaming to /v1/users, /v1/users/{id}, /v1/user-profiles/{id} and POST /v1/orders, the score is 100 with no issues. The score does not look at JSON field names or query parameters, so check those by hand against the cheat sheet above."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Renaming without breaking clients",
+      "id": "renaming"
+    },
+    {
+      "type": "paragraph",
+      "text": "Every rename in a published API is a breaking change. Clients have the old path or field name compiled into their code. Roll renames out in three steps: add the new name next to the old one, mark the old one deprecated in the spec (OpenAPI has deprecated: true on operations, parameters and schemas) and tell consumers when it goes away, then remove it in the next major version. For fields, return both names during the overlap. The [API versioning guide](/guides/api-versioning-best-practices) covers deprecation windows and how to announce them."
+    },
+    {
+      "type": "paragraph",
+      "text": "Renames are cheapest before the first release. Write the conventions down in your repository, link them from the spec's info.description, and check new paths in review before the first client depends on them."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Check your paths in APIForge",
+      "id": "apiforge"
+    },
+    {
+      "type": "paragraph",
+      "text": "Paste a spec URL or file into the [API quality checker](/api-quality-checker). It scores the API from 0 to 100 across seven categories, with naming worth 20 points, and lists each path that uses camelCase, underscores or verb segments, along with mixed singular and plural resource names. The [glossary entry on REST APIs](/glossary/rest-api) covers the resource model these naming rules come from."
+    },
+    {
       "type": "tool",
-      "tool": "api-score",
-      "title": "Check API Naming Quality Automatically",
-      "description": "Scan your specification with APIForge to catch mixed casing, path verbs, and deeply nested URIs instantly.",
-      "buttonText": "Check Naming Score",
-      "href": "/api-score"
+      "tool": "api-quality-checker",
+      "title": "Find naming problems in your spec",
+      "description": "Score your OpenAPI or Swagger spec and see every path flagged for casing, underscores or verbs.",
+      "buttonText": "Check my API",
+      "href": "/api-quality-checker"
+    },
+    {
+      "type": "relatedContent",
+      "slugs": [
+        "rest-api-design-best-practices",
+        "api-versioning-best-practices",
+        "api-pagination-best-practices"
+      ]
+    },
+    {
+      "type": "externalReference",
+      "title": "RFC 3986: URI Generic Syntax, Section 6.2.2.1 Case Normalization",
+      "url": "https://www.rfc-editor.org/rfc/rfc3986.html#section-6.2.2.1",
+      "source": "IETF"
+    },
+    {
+      "type": "externalReference",
+      "title": "RFC 9110: HTTP Semantics, Section 5.1 Field Names",
+      "url": "https://www.rfc-editor.org/rfc/rfc9110.html#name-field-names",
+      "source": "IETF"
+    },
+    {
+      "type": "externalReference",
+      "title": "RFC 6648: Deprecating the \"X-\" Prefix",
+      "url": "https://www.rfc-editor.org/rfc/rfc6648.html",
+      "source": "IETF"
+    },
+    {
+      "type": "externalReference",
+      "title": "OpenAPI Specification 3.1.0: Path Templating and Parameter Object",
+      "url": "https://spec.openapis.org/oas/v3.1.0#path-templating",
+      "source": "OpenAPI Initiative"
     }
   ],
   "faqs": [
     {
-      "question": "Why shouldn't I use verbs in REST API path URLs?",
-      "answer": "HTTP verbs (GET, POST, PUT, DELETE, PATCH) already specify the operation. Adding verbs to paths creates redundant URIs like POST /create-user instead of clean RESTful URIs like POST /users."
+      "question": "Should REST API paths use kebab-case or snake_case?",
+      "answer": "Use kebab-case with lowercase letters, such as /v1/user-profiles. Paths are case-sensitive under RFC 3986, so lowercase avoids duplicate URLs, and hyphens keep path segments distinct from the casing you use in JSON."
+    },
+    {
+      "question": "Should JSON fields be camelCase or snake_case?",
+      "answer": "Either works if the whole API uses one. camelCase suits JavaScript and TypeScript consumers; snake_case suits Python and Ruby. Mixing them inside one API is the mistake to avoid."
+    },
+    {
+      "question": "Why shouldn't REST paths contain verbs?",
+      "answer": "The HTTP method already states the action, so POST /v1/orders creates an order without a /create segment. For actions that are not create, read, update or delete, create a sub-resource noun such as POST /v1/orders/{id}/cancellation."
+    },
+    {
+      "question": "Should custom HTTP headers start with X-?",
+      "answer": "Not for new headers. RFC 6648 deprecates the X- prefix because experimental names end up permanent anyway. Keep accepting X- headers your clients already send."
     }
   ]
 }

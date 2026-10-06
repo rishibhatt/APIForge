@@ -52,9 +52,12 @@
 
 .iconBtn {
   display: inline-flex;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  padding: var(--space-2);
+  padding: 0;
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
@@ -70,9 +73,16 @@
   background: var(--color-interactive-hover);
 }
 
+@media (max-width: 767px) {
+  .iconBtn {
+    width: 40px;
+    height: 40px;
+  }
+}
+
 .iconPlaceholder {
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 32px;
+  height: 32px;
   border-radius: var(--radius-sm);
   opacity: 0.4;
 }

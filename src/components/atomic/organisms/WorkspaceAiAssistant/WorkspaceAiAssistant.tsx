@@ -12,6 +12,18 @@ import type { TranslateFn } from "@/context/LanguageContext";
 import type { WorkspaceAssistantApiContext } from "@/lib/workspace-assistant-context";
 import type { AssistantPromptKind } from "@/lib/workspace-assistant-prompt";
 import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
+import AiLimitBanner from "@/components/ai/AiLimitBanner";
+import AiMarkdown from "@/components/ai/AiMarkdown";
+import AiShimmer from "@/components/ai/AiShimmer";
+import AssistantIcon from "@/components/ai/AssistantIcon";
+import {
+  AiRequestError,
+  handleAiErrorResponse,
+  handleAiThrown,
+  isAbortError,
+} from "@/components/ai/aiRequest";
+import { useProgressStatus } from "@/components/ai/useProgressStatus";
+import { reportAiHeaders, useAiUsage } from "@/hooks/useAiUsage";
 import styles from "./WorkspaceAiAssistant.module.css";
 
 export type { WorkspaceAssistantApiContext } from "@/lib/workspace-assistant-context";
@@ -41,13 +53,14 @@ async function typewriterReveal(
   signal: AbortSignal,
   speedMs = 12,
 ): Promise<void> {
-  for (let i = 0; i <= full.length; i++) {
+  for (let i = 0; i <= full.length; i += 3) {
     if (signal.aborted) return;
     onTick(full.slice(0, i));
     if (i < full.length) {
       await new Promise<void>((r) => setTimeout(r, speedMs));
     }
   }
+  if (!signal.aborted) onTick(full);
 }
 
 export default function WorkspaceAiAssistant({
@@ -68,12 +81,19 @@ export default function WorkspaceAiAssistant({
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const sendLockRef = useRef(false);
+  const runRef = useRef<(q: string, k: AssistantPromptKind) => Promise<void>>(async () => {});
+
+  const { exhausted, resetIn } = useAiUsage();
 
   const threadKey = apiContext.threadKey;
   const messages = useMemo(
     () => threads[threadKey] ?? [],
     [threads, threadKey],
   );
+  const lastId = messages[messages.length - 1]?.id;
+  const lastIsEmptyAssistant =
+    generating && messages[messages.length - 1]?.role === "assistant" &&
+    messages[messages.length - 1]?.content.length === 0;
 
   const scrollToBottom = useCallback(() => {
     const el = scrollRef.current;
@@ -111,10 +131,30 @@ export default function WorkspaceAiAssistant({
   const operationLine =
     apiContext.activeEndpointLine ?? t("workspace.assistant.contextNoOperation");
 
+  const progress = useProgressStatus(lastIsEmptyAssistant, [
+    apiContext.activeEndpointLine
+      ? `Reading the ${apiContext.activeEndpointLine} contract…`
+      : "Reading the API contract…",
+    "Checking the schema…",
+    "Writing the answer…",
+  ]);
+
   const stopGeneration = useCallback(() => {
     abortRef.current?.abort();
     abortRef.current = null;
   }, []);
+
+  const patchLast = useCallback(
+    (fn: (m: ChatMsg) => ChatMsg) => {
+      setThreads((prev) => {
+        const list = [...(prev[threadKey] ?? [])];
+        const last = list[list.length - 1];
+        if (last?.role === "assistant") list[list.length - 1] = fn(last);
+        return { ...prev, [threadKey]: list };
+      });
+    },
+    [threadKey],
+  );
 
   const runAssistant = useCallback(
     async (userQuery: string, kind: AssistantPromptKind) => {
@@ -138,6 +178,18 @@ export default function WorkspaceAiAssistant({
         return { ...prev, [threadKey]: list };
       });
 
+      /** Remove the failed exchange and put the question back in the input. */
+      const rollback = () => {
+        setThreads((prev) => ({
+          ...prev,
+          [threadKey]: (prev[threadKey] ?? []).filter((m) => m.id !== uid && m.id !== aid),
+        }));
+        setMessage((cur) => (cur.trim() ? cur : userQuery));
+      };
+
+      const onRetry = () => void runRef.current(userQuery, kind);
+      let gotText = false;
+
       try {
         const res = await fetch("/api/groq/assistant", {
           method: "POST",
@@ -149,47 +201,25 @@ export default function WorkspaceAiAssistant({
           }),
           signal: ctrl.signal,
         });
+        reportAiHeaders(res.headers);
 
         const ct = res.headers.get("content-type") ?? "";
 
         if (!res.ok) {
-          let errText = t("workspace.assistant.aiFailed");
-          try {
-            const j = (await res.json()) as { error?: string };
-            if (typeof j.error === "string" && j.error.trim()) errText = j.error.trim();
-          } catch {
-            /* ignore */
-          }
-          setError(errText);
-          setThreads((prev) => {
-            const list = [...(prev[threadKey] ?? [])];
-            const last = list[list.length - 1];
-            if (last?.role === "assistant") {
-              list[list.length - 1] = { ...last, content: errText };
-            }
-            return { ...prev, [threadKey]: list };
-          });
-          return;
+          throw await handleAiErrorResponse(res, { onRetry });
         }
 
         if (!res.body || !ct.includes("text/plain")) {
           const full = await res.text();
           if (!full.trim()) {
             setError(t("workspace.assistant.aiFailed"));
+            rollback();
             return;
           }
+          gotText = true;
           await typewriterReveal(
             full,
-            (slice) => {
-              setThreads((prev) => {
-                const list = [...(prev[threadKey] ?? [])];
-                const last = list[list.length - 1];
-                if (last?.role === "assistant") {
-                  list[list.length - 1] = { ...last, content: slice };
-                }
-                return { ...prev, [threadKey]: list };
-              });
-            },
+            (slice) => patchLast((m) => ({ ...m, content: slice })),
             ctrl.signal,
           );
           return;
@@ -202,55 +232,22 @@ export default function WorkspaceAiAssistant({
           const { done, value } = await reader.read();
           if (done) break;
           acc += dec.decode(value, { stream: true });
-          setThreads((prev) => {
-            const list = [...(prev[threadKey] ?? [])];
-            const last = list[list.length - 1];
-            if (last?.role === "assistant") {
-              list[list.length - 1] = { ...last, content: acc };
-            }
-            return { ...prev, [threadKey]: list };
-          });
+          if (acc) gotText = true;
+          patchLast((m) => ({ ...m, content: acc }));
         }
         acc += dec.decode();
         const finalText = acc.trim() ? acc : t("workspace.assistant.emptyReply");
-        setThreads((prev) => {
-          const list = [...(prev[threadKey] ?? [])];
-          const last = list[list.length - 1];
-          if (last?.role === "assistant") {
-            list[list.length - 1] = { ...last, content: finalText };
-          }
-          return { ...prev, [threadKey]: list };
-        });
+        patchLast((m) => ({ ...m, content: finalText }));
       } catch (e) {
-        if ((e as Error)?.name === "AbortError") {
-          setThreads((prev) => {
-            const list = [...(prev[threadKey] ?? [])];
-            const last = list[list.length - 1];
-            if (last?.role === "assistant" && last.content.length === 0) {
-              list[list.length - 1] = {
-                ...last,
-                content: t("workspace.assistant.stopped"),
-              };
-            }
-            return { ...prev, [threadKey]: list };
-          });
+        if (isAbortError(e)) {
+          patchLast((m) =>
+            m.content.length === 0 ? { ...m, content: t("workspace.assistant.stopped") } : m,
+          );
         } else {
-          const msg =
-            e instanceof Error && e.message
-              ? e.message
-              : t("workspace.assistant.aiFailed");
-          setError(msg);
-          setThreads((prev) => {
-            const list = [...(prev[threadKey] ?? [])];
-            const last = list[list.length - 1];
-            if (last?.role === "assistant") {
-              list[list.length - 1] = {
-                ...last,
-                content: last.content || msg,
-              };
-            }
-            return { ...prev, [threadKey]: list };
-          });
+          const failure = e instanceof AiRequestError ? e : handleAiThrown(e, { onRetry });
+          if (failure.kind === "off_topic") setError(null);
+          else setError(failure.message);
+          if (!gotText) rollback();
         }
       } finally {
         abortRef.current = null;
@@ -258,12 +255,16 @@ export default function WorkspaceAiAssistant({
         setGenerating(false);
       }
     },
-    [apiContext.aiContext, t, threadKey],
+    [apiContext.aiContext, patchLast, t, threadKey],
   );
+
+  useEffect(() => {
+    runRef.current = runAssistant;
+  }, [runAssistant]);
 
   const onSend = useCallback(() => {
     const q = message.trim();
-    if (!q || sendLockRef.current || generating) return;
+    if (!q || sendLockRef.current || generating || exhausted) return;
     if (!apiContext.aiContext.endpoint) {
       setError(t("workspace.assistant.noContext"));
       return;
@@ -278,6 +279,7 @@ export default function WorkspaceAiAssistant({
   }, [
     message,
     generating,
+    exhausted,
     apiContext.aiContext.endpoint,
     presetPayload,
     runAssistant,
@@ -287,105 +289,123 @@ export default function WorkspaceAiAssistant({
   const canSend =
     Boolean(apiContext.aiContext.endpoint) &&
     message.trim().length > 0 &&
-    !generating;
+    !generating &&
+    !exhausted;
+
+  const placeholder = exhausted
+    ? `AI limit reached${resetIn ? `. Resets in ${resetIn}` : ""}`
+    : t("workspace.assistant.placeholder");
 
   return (
     <section
       className={`${styles.wrap} ${variant === "sheet" ? styles.wrapSheet : ""}`}
       aria-label={t("workspace.assistant.aria")}
     >
-      <div className={styles.context}>
-        <p className={styles.contextKicker}>{t("workspace.assistant.contextHeading")}</p>
-        <p className={styles.contextLine}>
-          <span className={styles.contextLabel}>{t("workspace.assistant.contextSpec")}</span>
-          {apiContext.specTitle}
-          {versionSuffix}
-        </p>
-        <p className={styles.contextLine}>
-          <span className={styles.contextLabel}>{t("workspace.assistant.contextEndpoints")}</span>
-          {t("workspace.assistant.contextEndpointsValue", {
-            count: apiContext.endpointCount,
-          })}
-        </p>
-        <p className={styles.contextLine}>
-          <span className={styles.contextLabel}>{t("workspace.assistant.contextOperation")}</span>
-          {operationLine}
-        </p>
-        {apiContext.activeSummary ? (
-          <p className={styles.contextSummary}>{apiContext.activeSummary}</p>
-        ) : null}
-        <p className={styles.contextLine}>
-          <span className={styles.contextLabel}>{t("workspace.assistant.contextWorkspace")}</span>
-          {t("workspace.assistant.contextWorkspaceValue", {
-            tab: apiContext.activeTabLabel,
-            scope: apiContext.scopeLabel,
-          })}
-        </p>
+      <div className={styles.top}>
+        <AiLimitBanner />
+        <details className={styles.context}>
+          <summary className={styles.contextSummaryRow}>
+            <span className={styles.contextHeading}>Context</span>
+            <span className={styles.contextOp}>{operationLine}</span>
+          </summary>
+          <div className={styles.contextBody}>
+            <p className={styles.contextLine}>
+              <span className={styles.contextLabel}>{t("workspace.assistant.contextSpec")}</span>
+              {apiContext.specTitle}
+              {versionSuffix}
+            </p>
+            <p className={styles.contextLine}>
+              <span className={styles.contextLabel}>{t("workspace.assistant.contextEndpoints")}</span>
+              {t("workspace.assistant.contextEndpointsValue", {
+                count: apiContext.endpointCount,
+              })}
+            </p>
+            {apiContext.activeSummary ? (
+              <p className={styles.contextSummary}>{apiContext.activeSummary}</p>
+            ) : null}
+            <p className={styles.contextLine}>
+              <span className={styles.contextLabel}>{t("workspace.assistant.contextWorkspace")}</span>
+              {t("workspace.assistant.contextWorkspaceValue", {
+                tab: apiContext.activeTabLabel,
+                scope: apiContext.scopeLabel,
+              })}
+            </p>
+          </div>
+        </details>
       </div>
 
-      <div className={styles.head}>
-        <MaterialIcon name="auto_awesome" size="sm" className={styles.headIcon} />
-        <h2 className={styles.title}>{t("workspace.assistant.title")}</h2>
-        <span className={styles.beta}>{t("workspace.assistant.beta")}</span>
-      </div>
-      <p className={styles.lead}>{t("workspace.assistant.lead")}</p>
+      {variant !== "sheet" ? (
+        <div className={styles.head}>
+          <AssistantIcon size={20} className={styles.headIcon} />
+          <h2 className={styles.title}>APIForge Assistant</h2>
+          <span className={styles.beta}>Free model</span>
+        </div>
+      ) : null}
 
-      <div className={styles.chat} ref={scrollRef} role="log" aria-live="polite">
+      <div
+        className={styles.chat}
+        ref={scrollRef}
+        role="log"
+        aria-live="polite"
+        aria-relevant="additions text"
+        aria-busy={generating}
+        aria-label="Conversation"
+        tabIndex={0}
+      >
         {messages.length === 0 ? (
-          <p className={styles.chatEmpty}>{t("workspace.assistant.chatEmpty")}</p>
+          <div className={styles.empty}>
+            <AssistantIcon size={32} className={styles.emptyIcon} animated />
+            <p className={styles.chatEmpty}>{t("workspace.assistant.lead")}</p>
+          </div>
         ) : (
-          messages.map((m) => (
-            <div
-              key={m.id}
-              className={
-                m.role === "user" ? styles.bubbleUser : styles.bubbleAssistant
-              }
-            >
-              <span className={styles.bubbleRole}>
-                {m.role === "user"
-                  ? t("workspace.assistant.roleYou")
-                  : t("workspace.assistant.roleAssistant")}
-              </span>
-              <div className={styles.bubbleBody}>{m.content}</div>
-              {generating &&
-              m.role === "assistant" &&
-              m.id === messages[messages.length - 1]?.id ? (
-                <span className={styles.caret} aria-hidden>
-                  |
+          messages.map((m) =>
+            m.role === "user" ? (
+              <div key={m.id} className={styles.bubbleUser}>
+                <span className="srOnly">{t("workspace.assistant.roleYou")}: </span>
+                <p className={styles.userText}>{m.content}</p>
+              </div>
+            ) : (
+              <div key={m.id} className={styles.msgAssistant}>
+                <span className={styles.msgAvatar} aria-hidden>
+                  <AssistantIcon size={20} animated={false} />
                 </span>
-              ) : null}
-            </div>
-          ))
+                <div className={styles.msgBody}>
+                  <span className="srOnly">APIForge Assistant: </span>
+                  {m.content.length === 0 && generating && m.id === lastId ? (
+                    <div className={styles.waiting}>
+                      <AiShimmer lines={4} />
+                      <p className={styles.progress} role="status">
+                        {progress}
+                      </p>
+                    </div>
+                  ) : (
+                    <AiMarkdown source={m.content} streaming={generating && m.id === lastId} />
+                  )}
+                </div>
+              </div>
+            ),
+          )
         )}
       </div>
 
-      {error ? <p className={styles.errorBanner}>{error}</p> : null}
+      {error ? (
+        <p className={styles.errorBanner} role="alert">
+          {error}
+        </p>
+      ) : null}
 
-      <div className={styles.chips} role="group">
+      <div className={styles.chips} role="group" aria-label="Suggested questions">
         {PRESETS.map(({ kind, labelKey }) => (
           <button
             key={labelKey}
             type="button"
             className={`${styles.chip} focusRing`}
-            disabled={generating}
+            disabled={generating || exhausted}
             onClick={() => onPick(kind, labelKey)}
           >
             {t(labelKey)}
           </button>
         ))}
-      </div>
-
-      <div className={styles.inputRow}>
-        {generating ? (
-          <button
-            type="button"
-            className={`${styles.stopBtn} focusRing`}
-            onClick={stopGeneration}
-          >
-            <MaterialIcon name="stop_circle" size="sm" />
-            <span>{t("workspace.assistant.stop")}</span>
-          </button>
-        ) : null}
       </div>
 
       <div className={styles.inputWrap}>
@@ -406,24 +426,36 @@ export default function WorkspaceAiAssistant({
             });
           }}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
+            if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
               e.preventDefault();
               onSend();
             }
           }}
-          placeholder={t("workspace.assistant.placeholder")}
+          placeholder={placeholder}
           spellCheck={false}
-          disabled={generating}
+          disabled={generating || exhausted}
+          enterKeyHint="send"
         />
-        <button
-          type="button"
-          className={`${styles.send} ${canSend ? styles.sendActive : ""} focusRing`}
-          aria-label={t("workspace.assistant.sendAria")}
-          disabled={!canSend}
-          onClick={onSend}
-        >
-          <MaterialIcon name="send" size="sm" />
-        </button>
+        {generating ? (
+          <button
+            type="button"
+            className={`${styles.stopBtn} focusRing`}
+            onClick={stopGeneration}
+            aria-label={t("workspace.assistant.stop")}
+          >
+            <MaterialIcon name="stop_circle" size="sm" />
+          </button>
+        ) : (
+          <button
+            type="button"
+            className={`${styles.send} ${canSend ? styles.sendActive : ""} focusRing`}
+            aria-label={t("workspace.assistant.sendAria")}
+            disabled={!canSend}
+            onClick={onSend}
+          >
+            <MaterialIcon name="send" size="sm" />
+          </button>
+        )}
       </div>
       <p className={styles.disclaimer}>{t("workspace.assistant.disclaimer")}</p>
     </section>

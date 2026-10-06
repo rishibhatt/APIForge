@@ -69,7 +69,7 @@ export async function executeProxyRequest(
       requestId,
     );
   }
-  const method = methodCheck.method;
+  let method = methodCheck.method;
 
   // 2. Timeout Cap
   let timeoutMs = reqDef.timeoutMs ?? DEFAULT_TIMEOUT_MS;
@@ -141,6 +141,8 @@ export async function executeProxyRequest(
   }
 
   const outboundHeaders = new Headers(headerSanitization.cleanHeaders);
+  // Header names that carry credentials and must not follow a cross-origin redirect.
+  const credentialHeaderNames = new Set(["authorization", "x-api-key", "api-key"]);
 
   // Apply Auth if provided
   if (reqDef.auth && reqDef.auth.type !== "none") {
@@ -160,6 +162,7 @@ export async function executeProxyRequest(
         targetValidation.url.searchParams.set(ak, av);
       } else if (!outboundHeaders.has(ak)) {
         outboundHeaders.set(ak, av);
+        credentialHeaderNames.add(ak.toLowerCase());
       }
     }
   }
@@ -197,7 +200,8 @@ export async function executeProxyRequest(
         signal: controller.signal,
       });
 
-      clearTimeout(timer);
+      // Timer stays armed until the body is fully read (cleared in `finally`), so a target
+      // that sends headers and then trickles the body cannot hold the request open.
 
       // Handle Redirects manually
       if ([301, 302, 303, 307, 308].includes(res.status)) {
@@ -250,13 +254,22 @@ export async function executeProxyRequest(
           );
         }
 
-        // Strip credentials if redirecting to a different origin
+        // Strip credentials if redirecting to a different origin (incl. a custom apiKey header name)
         if (nextUrl.origin !== initialOrigin) {
-          outboundHeaders.delete("Authorization");
-          outboundHeaders.delete("X-API-Key");
-          outboundHeaders.delete("Api-Key");
+          credentialHeaderNames.forEach((name) => outboundHeaders.delete(name));
         }
 
+        // RFC 9110: 303 always becomes GET; 301/302 after POST are switched to GET by user agents.
+        if (
+          res.status === 303 ||
+          ((res.status === 301 || res.status === 302) && method === "POST")
+        ) {
+          if (method !== "HEAD") method = "GET";
+          requestBodyData = undefined;
+          outboundHeaders.delete("Content-Type");
+        }
+
+        await res.body?.cancel().catch(() => undefined);
         activeUrl = redirectCheck.url;
         continue; // Loop to execute redirect
       }
@@ -335,6 +348,8 @@ export async function executeProxyRequest(
         err instanceof Error ? err.message : "Failed to connect to target API.",
         requestId,
       );
+    } finally {
+      clearTimeout(timer);
     }
   }
 

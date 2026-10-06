@@ -1,0 +1,204 @@
+/*
+ * Cycling example roast. Same ember-dark ground as the result poster in both themes, not rotated.
+ * The --p-* values mirror RoastPoster.module.css.
+ */
+.card {
+  --p-bg: #131315;
+  --p-ink: #ffffff;
+  --p-text: #e5e1e4;
+  --p-muted: #cbc3d7;
+  --p-subtle: #958ea0;
+  --p-line: rgba(255, 255, 255, 0.09);
+  --p-accent: var(--color-roast-heat);
+  --p-grid: rgba(255, 255, 255, 0.035);
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--p-accent) 38%, var(--p-line));
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(ellipse 70% 60% at 78% -10%, color-mix(in srgb, var(--p-accent) 26%, transparent), transparent 70%),
+    linear-gradient(var(--p-grid) 1px, transparent 1px) 0 0 / 44px 44px,
+    linear-gradient(90deg, var(--p-grid) 1px, transparent 1px) 0 0 / 44px 44px,
+    var(--p-bg);
+  color: var(--p-text);
+  box-shadow: 0 30px 60px -28px color-mix(in srgb, var(--p-accent) 45%, rgba(0, 0, 0, 0.6));
+  transition: border-color 300ms ease;
+}
+
+.card[data-tone="warn"] {
+  --p-accent: #ffb547;
+}
+
+.card[data-tone="ok"] {
+  --p-accent: #4edea3;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.label,
+.foot {
+  font-family: var(--font-mono);
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+}
+
+.label {
+  color: var(--p-accent);
+}
+
+.dots {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.dot {
+  width: 16px;
+  height: 2px;
+  background: var(--p-line);
+  transition: background-color 200ms ease;
+}
+
+.dot[data-active="true"] {
+  background: var(--p-accent);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+}
+
+.score {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.num {
+  min-width: 2ch;
+  font-size: 4.5rem;
+  font-weight: 800;
+  line-height: 0.85;
+  letter-spacing: -0.055em;
+  color: var(--p-accent);
+}
+
+.denom {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--p-subtle);
+}
+
+.stamp {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 12px;
+  border: 2px solid var(--p-accent);
+  border-radius: var(--radius-sm);
+  color: var(--p-accent);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transform: rotate(-6deg);
+}
+
+/* Room for the longest example so the card never changes height while it types. */
+.line {
+  min-height: calc(5 * 1.55em);
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--p-muted);
+  overflow-wrap: anywhere;
+}
+
+.code {
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  background: color-mix(in srgb, var(--p-accent) 14%, rgba(255, 255, 255, 0.04));
+  color: var(--p-ink);
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+}
+
+.code:empty {
+  display: none;
+}
+
+.route {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--p-line);
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.32);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.method {
+  min-width: 52px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--p-accent);
+}
+
+.path {
+  color: var(--p-text);
+  overflow-wrap: anywhere;
+}
+
+.foot {
+  margin: 0;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--p-line);
+  color: var(--p-subtle);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 640px) {
+  .card {
+    padding: var(--space-5) var(--space-4);
+  }
+
+  .num {
+    font-size: 3.75rem;
+  }
+}

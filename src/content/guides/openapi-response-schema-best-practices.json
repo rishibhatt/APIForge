@@ -1,65 +1,373 @@
 {
   "slug": "openapi-response-schema-best-practices",
-  "title": "OpenAPI Response Schema Best Practices: Complete Modeling Guide (2026)",
-  "description": "Model robust, type-safe OpenAPI response schemas across 2xx, 4xx, and 5xx status codes. Master content negotiation, headers, and pagination schemas.",
-  "excerpt": "A deep dive into modeling OpenAPI response schemas for error codes, success bodies, and pagination objects.",
+  "title": "OpenAPI Response Design: Status Codes, Nullable, Errors",
+  "description": "OpenAPI response design best practices: document every status code, separate optional from nullable, reuse components, and model headers and RFC 9457 errors.",
+  "excerpt": "How to model responses in an OpenAPI document so generated clients and readers know exactly what each status code returns.",
   "category": "openapi",
+  "cluster": "openapi",
+  "primaryKeyword": "openapi response design",
+  "keywords": [
+    "openapi nullable vs optional",
+    "openapi discriminator oneof",
+    "openapi response headers",
+    "openapi problem details schema",
+    "openapi components responses"
+  ],
   "tags": [
     "OpenAPI",
     "JSON Schema",
     "API Design",
-    "REST API"
-  ],
-  "keywords": [
-    "openapi response schema best practices",
-    "openapi 3.0 response modeling",
-    "content negotiation openapi",
-    "api response headers schema"
+    "Error Handling"
   ],
   "author": "rishab",
   "publishedAt": "2026-09-26",
-  "updatedAt": "2026-09-26",
-  "readingTime": "9 min read",
-  "featured": false,
+  "updatedAt": "2026-10-04",
   "content": [
     {
       "type": "paragraph",
-      "text": "Response schemas tell API consumers exactly what data structure, data types, headers, and status codes to expect. Incomplete response schemas lead to runtime crashes and unhandled exceptions in client code."
+      "text": "A good OpenAPI response definition lists every status code the operation can return, gives each one a description and a schema, and puts the shared shapes in components so they are defined once. Inside each schema, list the fields that are always present in a required array, mark fields that can hold null as nullable, and keep the two ideas apart. Declare the headers clients depend on, such as Location after a create. Use oneOf with a discriminator when a field can take several shapes, and give every error the same body, ideally RFC 9457 problem details. This guide walks through each of those decisions on a small payments API, from a weak first draft to a finished spec."
     },
     {
       "type": "heading",
       "level": 2,
-      "text": "1. Response Schema Declaration Rules",
-      "id": "declaration-rules"
+      "text": "A typical first draft",
+      "id": "first-draft"
+    },
+    {
+      "type": "paragraph",
+      "text": "Here is a response section as it often looks after a first pass, or after a framework generated it from code with no annotations. It is structurally valid OpenAPI 3.1. The only status code is 200, the create operation returns an object with no properties, nothing is required, and method is typed as an object with no further detail."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "code": "openapi: 3.1.0\ninfo:\n  title: Payments API\n  version: 1.0.0\npaths:\n  /v1/payments:\n    post:\n      summary: Create a payment\n      responses:\n        \"200\":\n          description: OK\n          content:\n            application/json:\n              schema:\n                type: object\n  /v1/payments/{id}:\n    get:\n      summary: Get a payment\n      parameters:\n        - name: id\n          in: path\n          required: true\n          schema:\n            type: string\n      responses:\n        \"200\":\n          description: OK\n          content:\n            application/json:\n              schema:\n                type: object\n                properties:\n                  id:\n                    type: string\n                  amount:\n                    type: integer\n                  status:\n                    type: string\n                  method:\n                    type: object",
+      "filename": "payments-before.yaml"
+    },
+    {
+      "type": "paragraph",
+      "text": "A client generated from this file knows almost nothing. Every field on a payment is optional in the generated type, the create call appears to return an empty object, and there is no hint of what a failure looks like. The API probably returns 201 on create and 404 for an unknown id, but readers have to discover that by sending requests."
+    },
+    {
+      "type": "paragraph",
+      "text": "We ran this file through APIForge's deterministic scorer (the same engine behind the [API quality score](/api-score)). It scored 90 out of 100. Naming, HTTP usage, structure, consistency, versioning and documentation all received full marks, and error handling received 0 out of 10, with two issues: POST /v1/payments and GET /v1/payments/{id} each have no documented 4xx or 5xx response. The scorer checks that success and error responses exist. It does not look inside the schemas, so an untyped object and a missing required array cost nothing on the score. The rest of this guide covers the work the score cannot see."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Declare every status code the operation returns",
+      "id": "status-codes"
+    },
+    {
+      "type": "paragraph",
+      "text": "The Responses Object maps status codes to Response Objects. The OpenAPI Specification requires at least one entry and gives each entry a required description. Keys can be an exact code such as \"201\", a range such as \"4XX\" (uppercase X), or default for anything not listed. When an exact code and a range both match, the exact code wins. Quote the keys in YAML: the 3.0.3 specification says the field must be enclosed in quotation marks for compatibility between JSON and YAML."
+    },
+    {
+      "type": "paragraph",
+      "text": "Document the codes a client should handle differently, not every code HTTP defines. A reasonable set per operation type looks like this:"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Operation",
+        "Success",
+        "Errors worth declaring explicitly"
+      ],
+      "rows": [
+        [
+          "POST create",
+          "201 with a Location header and the new resource",
+          "400 or 422 for invalid input, 409 for a conflict such as a duplicate key"
+        ],
+        [
+          "GET one item",
+          "200 with the resource",
+          "404 when the id does not exist"
+        ],
+        [
+          "GET a list",
+          "200 with a page object, never a bare array if you may add paging later",
+          "400 for invalid filter or cursor values"
+        ],
+        [
+          "PUT or PATCH",
+          "200 with the updated resource, or 204 with no body",
+          "404, 409 for version conflicts, 422 for invalid changes"
+        ],
+        [
+          "DELETE",
+          "204 with no content",
+          "404, or 409 when other records still depend on it"
+        ],
+        [
+          "Any operation",
+          "",
+          "401 and 403 when auth applies, plus default for unexpected failures"
+        ]
+      ],
+      "caption": "A starting point. Declare a code when its body or its meaning differs from default."
+    },
+    {
+      "type": "paragraph",
+      "text": "Use default as the catch-all for errors, not as a substitute for the success response. A spec whose only entry is default tells a generator nothing about the happy path. The [HTTP status codes reference](/reference/http-status-codes-reference) covers the meaning of each code if you need to settle a 400 versus 422 debate."
+    },
+    {
+      "type": "paragraph",
+      "text": "A response with no body should have no content key. A 204 is described with a description only. Adding content with an empty schema suggests a JSON body that the server never sends, and some generated clients will then try to parse it."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Required, optional and nullable are separate decisions",
+      "id": "required-nullable"
+    },
+    {
+      "type": "paragraph",
+      "text": "Two questions apply to every property: is the key always present, and can its value be null? The required array answers the first. Nullability answers the second. Mixing them up produces wrong client types, because a generator has no other way to learn that a field is always there."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Contract",
+        "required array",
+        "Type in OpenAPI 3.1",
+        "Type in OpenAPI 3.0"
+      ],
+      "rows": [
+        [
+          "Always present, never null",
+          "Listed",
+          "type: string",
+          "type: string"
+        ],
+        [
+          "Always present, may be null",
+          "Listed",
+          "type: [string, \"null\"]",
+          "type: string with nullable: true"
+        ],
+        [
+          "Sometimes absent, never null",
+          "Not listed",
+          "type: string",
+          "type: string"
+        ],
+        [
+          "Sometimes absent, may be null",
+          "Not listed",
+          "type: [string, \"null\"]",
+          "type: string with nullable: true"
+        ]
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Avoid the last row. If a client must handle both a missing key and a null value, the two states usually mean the same thing, and you have doubled the checks for no gain. Pick one. In the payments example, capturedAt is always present and null until the payment is captured, which lets a client render a pending state from a single field. failureReason is absent unless the status is failed, so it stays out of the required array."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "code": "capturedAt:\n  type: [string, \"null\"]\n  format: date-time\n  description: Null until the payment is captured\nfailureReason:\n  type: string\n  description: Present only when status is failed",
+      "caption": "OpenAPI 3.1 syntax. In 3.0, write type: string and nullable: true."
+    },
+    {
+      "type": "paragraph",
+      "text": "OpenAPI 3.0 schemas only accept a single string for type and use the nullable keyword, which per the 3.0.3 specification adds null to the allowed values. OpenAPI 3.1 schemas are JSON Schema 2020-12, so null is a type like any other and nullable no longer exists. Writing a type array in a 3.0 document fails structural validation, and nullable in a 3.1 document is ignored by a 3.1 validator."
+    },
+    {
+      "type": "paragraph",
+      "text": "readOnly helps when one schema serves both the request and the response. Mark server-generated fields such as id with readOnly: true. The specification says such properties should not be sent in a request, so tools can drop them from request types while keeping them required in responses. The example uses a separate PaymentCreate schema instead, which is easier to read when the request and response differ by more than one or two fields."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Reuse shapes through components",
+      "id": "components"
+    },
+    {
+      "type": "paragraph",
+      "text": "Put each named shape in components/schemas and reference it with $ref. Put whole responses that repeat across operations, such as a standard error, in components/responses. The payment schema is then defined once and used by both the create and the get operation, and a generator emits a single Payment type instead of two anonymous ones with names like InlineResponse200."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "code": "responses:\n  \"404\":\n    $ref: \"#/components/responses/Problem\"\n  default:\n    $ref: \"#/components/responses/Problem\"",
+      "caption": "Operations point at a shared response instead of repeating it."
+    },
+    {
+      "type": "paragraph",
+      "text": "Three details trip people up. Component names must match the pattern ^[a-zA-Z0-9.\\-_]+$, so \"Payment Method\" with a space is not allowed. In OpenAPI 3.0, a Reference Object replaces the whole object: the 3.0.3 specification says other properties beside $ref must be ignored, so a description written next to a $ref disappears. In 3.1 schemas, $ref is an ordinary JSON Schema keyword and sibling keywords apply. Finally, splitting a spec into components makes typos in reference paths easy; the [common OpenAPI errors](/guides/common-openapi-errors) guide shows the exact message and fix."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Document response headers",
+      "id": "headers"
+    },
+    {
+      "type": "paragraph",
+      "text": "Headers are part of the response contract. A client that follows a 201 to the new resource needs Location, and a client that backs off politely needs your rate limit headers. Declare them under headers in the Response Object. Header Objects follow the Parameter Object structure but take their name from the map key, so name and in must not be specified. The specification also says a header named Content-Type is ignored, because the media type key under content already says what the body is."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "code": "\"201\":\n  description: Payment created\n  headers:\n    Location:\n      description: URL of the new payment\n      schema:\n        type: string\n        format: uri\n  content:\n    application/json:\n      schema:\n        $ref: \"#/components/schemas/Payment\""
+    },
+    {
+      "type": "paragraph",
+      "text": "Headers that appear on every response, such as rate limit counters, can live in components/headers and be referenced from each response. Document them where they are actually sent; if 429 responses carry Retry-After and 200 responses do not, say so per status code. The [rate limiting guide](/guides/api-rate-limiting-best-practices) covers which headers to send."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Model variants with oneOf and a discriminator",
+      "id": "oneof-discriminator"
+    },
+    {
+      "type": "paragraph",
+      "text": "A payment can be made by card or by bank transfer, and each method carries different fields. Folding them into one object with every field optional loses the rule that a card always has last4 and a transfer always has an iban. oneOf keeps the rule: each variant is its own schema with its own required list, and the discriminator tells tools which variant to pick from a property value."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "code": "PaymentMethod:\n  oneOf:\n    - $ref: \"#/components/schemas/CardMethod\"\n    - $ref: \"#/components/schemas/BankTransferMethod\"\n  discriminator:\n    propertyName: type\n    mapping:\n      card: \"#/components/schemas/CardMethod\"\n      bank_transfer: \"#/components/schemas/BankTransferMethod\"\nCardMethod:\n  type: object\n  required: [type, last4, brand]\n  properties:\n    type:\n      type: string\n      const: card\n    last4:\n      type: string\n    brand:\n      type: string",
+      "caption": "BankTransferMethod follows the same pattern with type, const bank_transfer, and iban."
+    },
+    {
+      "type": "paragraph",
+      "text": "The Discriminator Object has one required field, propertyName, and it applies only alongside oneOf, anyOf or allOf. The specification expects the named property to be present in the payload, so list it in every variant's required array. Without the mapping, tools fall back to matching the property value against schema names, which breaks as soon as the value is bank_transfer and the schema is BankTransferMethod. The const on each variant matters for validators: the discriminator is a hint for tools, while const is what makes exactly one branch of the oneOf match. Note that const is a 3.1 keyword; in a 3.0 document, use a one-item enum instead."
+    },
+    {
+      "type": "decisionTree",
+      "title": "Variants or one object?",
+      "nodes": [
+        {
+          "condition": "The shapes share most fields and differ by one or two optional ones",
+          "recommendation": "Use one object and document when the optional fields appear."
+        },
+        {
+          "condition": "Each shape has its own required fields",
+          "recommendation": "Use oneOf with a discriminator and a const on the tag property.",
+          "alternative": "Use allOf to extend a shared base if the variants also share several required fields."
+        },
+        {
+          "condition": "The variant depends on the status code, not on a field",
+          "recommendation": "Use separate response entries per status code instead of oneOf."
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Give every error the same shape",
+      "id": "error-schema"
+    },
+    {
+      "type": "paragraph",
+      "text": "Clients write one error handler. If 400 returns {\"error\": \"...\"}, 404 returns {\"message\": \"...\"} and 500 returns HTML, that handler becomes a pile of special cases. Define one error schema and use it for every 4xx and 5xx response. RFC 9457, which replaced RFC 7807, gives you a ready-made one: the application/problem+json media type with the members type, title, status, detail and instance."
+    },
+    {
+      "type": "paragraph",
+      "text": "A few rules from the RFC shape the schema. When type is missing, its value is assumed to be about:blank. status is advisory, a copy of the real HTTP status for the client's convenience, so the two should always agree. detail is meant to help the client fix the problem, so it is the wrong place for stack traces. Problem types can add extension members, which is how the ValidationProblem below adds a list of field errors without changing the base shape."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "code": "Problem:\n  type: object\n  required: [type, title, status]\n  properties:\n    type:\n      type: string\n      format: uri-reference\n      default: about:blank\n    title:\n      type: string\n    status:\n      type: integer\n    detail:\n      type: string\n    instance:\n      type: string\n      format: uri-reference\nValidationProblem:\n  allOf:\n    - $ref: \"#/components/schemas/Problem\"\n    - type: object\n      required: [errors]\n      properties:\n        errors:\n          type: array\n          items:\n            type: object\n            required: [pointer, detail]\n            properties:\n              pointer:\n                type: string\n                description: JSON Pointer to the invalid field\n              detail:\n                type: string"
+    },
+    {
+      "type": "paragraph",
+      "text": "Wrap the schema in components/responses with the content type application/problem+json, then reference it from each operation. The [REST API error handling guide](/guides/rest-api-error-handling) covers what the server should put in each field, and the [error response example](/examples/openapi-error-response-example) shows a smaller version."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The revised spec",
+      "id": "revised-spec"
+    },
+    {
+      "type": "paragraph",
+      "text": "Here is the payments API with all of the above applied. It passes structural validation as OpenAPI 3.1."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "code": "openapi: 3.1.0\ninfo:\n  title: Payments API\n  version: 1.0.0\npaths:\n  /v1/payments:\n    post:\n      operationId: createPayment\n      summary: Create a payment\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/PaymentCreate\"\n      responses:\n        \"201\":\n          description: Payment created\n          headers:\n            Location:\n              description: URL of the new payment\n              schema:\n                type: string\n                format: uri\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/Payment\"\n        \"422\":\n          $ref: \"#/components/responses/ValidationProblem\"\n        default:\n          $ref: \"#/components/responses/Problem\"\n  /v1/payments/{id}:\n    get:\n      operationId: getPayment\n      summary: Get a payment\n      parameters:\n        - name: id\n          in: path\n          required: true\n          schema:\n            type: string\n      responses:\n        \"200\":\n          description: The payment\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/Payment\"\n        \"404\":\n          $ref: \"#/components/responses/Problem\"\n        default:\n          $ref: \"#/components/responses/Problem\"\ncomponents:\n  responses:\n    Problem:\n      description: Error in RFC 9457 problem details format\n      content:\n        application/problem+json:\n          schema:\n            $ref: \"#/components/schemas/Problem\"\n    ValidationProblem:\n      description: The request body failed validation\n      content:\n        application/problem+json:\n          schema:\n            $ref: \"#/components/schemas/ValidationProblem\"\n  schemas:\n    PaymentCreate:\n      type: object\n      required: [amount, currency, method]\n      properties:\n        amount:\n          type: integer\n          minimum: 1\n        currency:\n          type: string\n          pattern: \"^[A-Z]{3}$\"\n        method:\n          $ref: \"#/components/schemas/PaymentMethod\"\n    Payment:\n      type: object\n      required: [id, amount, currency, status, method, capturedAt]\n      properties:\n        id:\n          type: string\n          readOnly: true\n        amount:\n          type: integer\n          description: Amount in the smallest currency unit\n        currency:\n          type: string\n          pattern: \"^[A-Z]{3}$\"\n        status:\n          type: string\n          enum: [pending, succeeded, failed]\n        capturedAt:\n          type: [string, \"null\"]\n          format: date-time\n          description: Null until the payment is captured\n        failureReason:\n          type: string\n          description: Present only when status is failed\n        method:\n          $ref: \"#/components/schemas/PaymentMethod\"\n    PaymentMethod:\n      oneOf:\n        - $ref: \"#/components/schemas/CardMethod\"\n        - $ref: \"#/components/schemas/BankTransferMethod\"\n      discriminator:\n        propertyName: type\n        mapping:\n          card: \"#/components/schemas/CardMethod\"\n          bank_transfer: \"#/components/schemas/BankTransferMethod\"\n    CardMethod:\n      type: object\n      required: [type, last4, brand]\n      properties:\n        type:\n          type: string\n          const: card\n        last4:\n          type: string\n        brand:\n          type: string\n    BankTransferMethod:\n      type: object\n      required: [type, iban]\n      properties:\n        type:\n          type: string\n          const: bank_transfer\n        iban:\n          type: string\n    Problem:\n      type: object\n      required: [type, title, status]\n      properties:\n        type:\n          type: string\n          format: uri-reference\n          default: about:blank\n        title:\n          type: string\n        status:\n          type: integer\n        detail:\n          type: string\n        instance:\n          type: string\n          format: uri-reference\n    ValidationProblem:\n      allOf:\n        - $ref: \"#/components/schemas/Problem\"\n        - type: object\n          required: [errors]\n          properties:\n            errors:\n              type: array\n              items:\n                type: object\n                required: [pointer, detail]\n                properties:\n                  pointer:\n                    type: string\n                    description: JSON Pointer to the invalid field\n                  detail:\n                    type: string",
+      "filename": "payments-after.yaml"
+    },
+    {
+      "type": "paragraph",
+      "text": "APIForge's scorer gives this version 100 out of 100, up from 90, because both operations now document error responses. The bigger change is one the score does not measure. A generated client now has a Payment type with six required fields, a nullable capturedAt, a PaymentMethod union it can switch on, and one Problem type for every failure."
     },
     {
       "type": "list",
       "ordered": false,
       "items": [
-        "Explicit Status Codes: Model specific HTTP status codes ('200', '201', '400', '401', '404', '500') rather than relying solely on default.",
-        "Strict Required Arrays: Specify the required array on all component schemas so client SDK generators do not mark all properties as optional.",
-        "Model Response Headers: Declare rate-limiting (X-RateLimit-Remaining) and location headers (Location) inside the response definition."
+        "Each operation lists its success code and the error codes a client handles differently, plus default.",
+        "Every object schema has a required array, and nullable fields use the syntax for the document's version.",
+        "Shared shapes live in components/schemas and shared responses in components/responses.",
+        "Headers such as Location are declared on the status codes that send them.",
+        "Variant fields use oneOf with a discriminator and a const tag.",
+        "All errors use one problem details schema under application/problem+json."
       ]
     },
     {
-      "type": "code",
-      "language": "yaml",
-      "filename": "response-schema-example.yaml",
-      "code": "responses:\n  '201':\n    description: Resource successfully created\n    headers:\n      Location:\n        description: URI of the newly created resource\n        schema:\n          type: string\n          format: uri\n    content:\n      application/json:\n        schema:\n          $ref: '#/components/schemas/CustomerAccount'\n  '400':\n    description: Invalid payload syntax or validation error\n    content:\n      application/problem+json:\n        schema:\n          $ref: '#/components/schemas/ProblemDetails'"
+      "type": "heading",
+      "level": 2,
+      "text": "Then check the server against it",
+      "id": "next"
+    },
+    {
+      "type": "paragraph",
+      "text": "A carefully modeled response schema only helps if the running API matches it. Once the spec is in shape, compare real responses to it: the guide on how to [validate API responses against the OpenAPI schema](/guides/validate-api-response-against-openapi-schema) shows how to do that in the browser and in CI. For the rest of the document, the [OpenAPI production checklist](/checklists/openapi-production-checklist) covers what to review before publishing."
     },
     {
       "type": "tool",
       "tool": "api-score",
-      "title": "Analyze Response Schema Completeness",
-      "description": "Run APIForge to check if your API endpoints define explicit response schemas for all expected HTTP success and error status codes.",
-      "buttonText": "Check Response Schemas",
+      "title": "Score your response coverage",
+      "description": "Paste a spec URL to see which operations are missing success or error responses, with the full 0-100 design score.",
+      "buttonText": "Check my API score",
       "href": "/api-score"
+    },
+    {
+      "type": "relatedContent",
+      "slugs": [
+        "validate-api-response-against-openapi-schema",
+        "rest-api-error-handling",
+        "common-openapi-errors",
+        "api-pagination-best-practices"
+      ]
+    },
+    {
+      "type": "externalReference",
+      "title": "OpenAPI Specification 3.1.0: Responses, Header and Discriminator Objects",
+      "url": "https://spec.openapis.org/oas/v3.1.0",
+      "source": "OpenAPI Initiative"
+    },
+    {
+      "type": "externalReference",
+      "title": "OpenAPI Specification 3.0.3: nullable and the Reference Object",
+      "url": "https://spec.openapis.org/oas/v3.0.3",
+      "source": "OpenAPI Initiative"
+    },
+    {
+      "type": "externalReference",
+      "title": "RFC 9457: Problem Details for HTTP APIs",
+      "url": "https://www.rfc-editor.org/rfc/rfc9457.html",
+      "source": "IETF"
     }
   ],
   "faqs": [
     {
-      "question": "Why is the required array critical in OpenAPI response schemas?",
-      "answer": "Without explicit required fields in OpenAPI schemas, TypeScript/Go code generators treat every JSON field as optional (string | undefined), forcing developer consumers to add tedious null checks everywhere."
+      "question": "What is the difference between optional and nullable in OpenAPI?",
+      "answer": "Optional means the key may be missing, which you express by leaving the property out of the required array. Nullable means the key may hold null, which is nullable: true in OpenAPI 3.0 and a type list that includes \"null\" in 3.1. They are independent, and a property can be required and nullable at the same time."
+    },
+    {
+      "question": "Should I use default or explicit error codes in responses?",
+      "answer": "Use both. Declare the codes a client reacts to differently, such as 404 or 409, and add default for anything unexpected. A spec with only default hides the errors clients most need to plan for."
+    },
+    {
+      "question": "Do I need a discriminator if I already use oneOf?",
+      "answer": "Validators do not need it, because each variant's const or required fields already decide which branch matches. Code generators and documentation tools use the discriminator to pick the variant type without trying each one, so add it with an explicit mapping."
     }
   ]
 }

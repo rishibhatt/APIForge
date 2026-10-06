@@ -1,4 +1,5 @@
 import Link from "next/link";
+import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
 import styles from "./content.module.css";
 
 export interface ArticleCTAProps {
@@ -8,21 +9,23 @@ export interface ArticleCTAProps {
   href?: string;
 }
 
+/** The article's single way back into the product: tonal panel, one primary gradient action. */
 export default function ArticleCTA({
-  title = "Ready to score and validate your API?",
-  description = "Paste any OpenAPI specification URL or YAML file into APIForge for instant 0-100 quality scoring, schema linting, and zero-CORS proxy testing.",
-  buttonText = "Try APIForge Workbench",
+  title = "Score and validate your own API",
+  description = "Paste an OpenAPI or Swagger URL into APIForge for a 0–100 quality score, schema linting, and request testing without CORS errors.",
+  buttonText = "Open APIForge",
   href = "/api-score",
 }: ArticleCTAProps) {
   return (
-    <div className={styles.ctaCard}>
+    <aside className={styles.ctaCard}>
       <div className={styles.ctaContent}>
-        <h3 className={styles.ctaTitle}>{title}</h3>
-        <p className={styles.ctaDescription}>{description}</p>
+        <p className={styles.ctaTitle}>{title}</p>
+        {description && <p className={styles.ctaDescription}>{description}</p>}
       </div>
       <Link href={href} className={styles.ctaButton}>
-        {buttonText} →
+        {buttonText}
+        <MaterialIcon name="arrow_forward" size="sm" />
       </Link>
-    </div>
+    </aside>
   );
 }

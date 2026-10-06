@@ -1,5 +1,4 @@
 @import "../styles/variables.css";
-@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap");
 
 *,
 *::before,
@@ -14,7 +13,7 @@ html {
   font-family: var(--font-body);
   width: 100%;
   max-width: 100vw;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -30,7 +29,7 @@ body {
   line-height: 1.5;
   width: 100%;
   max-width: 100vw;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 img,
@@ -74,12 +73,15 @@ button {
 }
 
 .materialSymbols {
-  font-family: "Material Symbols Outlined", sans-serif;
+  font-family: var(--font-icons), "Material Symbols Outlined";
   font-weight: 400;
   font-style: normal;
   font-size: 1.25rem;
   line-height: 1;
   display: inline-block;
+  /* Ligature names must stay lowercase even inside uppercase mono labels. */
+  text-transform: none;
+  letter-spacing: 0;
   font-variation-settings:
     "FILL" 0,
     "wght" 400,
@@ -90,4 +92,238 @@ button {
 .focusRing:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+
+/* —— Browser surfaces themed from the palette —— */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-primary) 22%, transparent);
+  color: inherit;
+}
+
+input,
+textarea {
+  caret-color: var(--color-primary);
+}
+
+a {
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1px;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-outline-variant) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-outline-variant);
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+table,
+.tabularNums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* —— Kinetic Terminal shared patterns —— */
+
+/* Mono micro-label: names a panel, control group, or status. Never a kicker above a heading. */
+.monoLabel {
+  font-family: var(--font-mono);
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  line-height: 1.2;
+  color: var(--color-on-surface-subtle);
+}
+
+/* Engineering grid that fades out toward the edges; used behind marketing heroes only. */
+.gridBackdrop {
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: var(--grid-size) var(--grid-size);
+  background-position: center top;
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 0%, #000 40%, transparent 100%);
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 0%, #000 40%, transparent 100%);
+}
+
+/* —— Roast zone ——
+ * On /roast-my-api and /roast/[id] the whole theme turns ember: orange voice, warm surfaces,
+ * orange wordmark and grid. Applied by `html[data-zone="roast"]` (ZoneController, client) and by
+ * the `.roastZone` class on the roast page shells (first server render). Method colors stay put.
+ * Contrast (WCAG): light primary #b23c0c is 5.5:1 on surface, 5.1:1 on container-low; dark primary
+ * #ff8f6b is 8.5:1 on surface. CTA ink #1a0a05 is >= 4.7:1 on every --gradient-roast stop. */
+html[data-zone="roast"]:not(.dark),
+html:not(.dark) .roastZone {
+  --color-surface: #fbf6f2;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f6ece5;
+  --color-surface-container: #f0e1d7;
+  --color-surface-container-high: #e8d3c6;
+  --color-surface-container-highest: #dcc2b2;
+  --color-surface-dim: #f3e9e2;
+
+  --color-primary: #b23c0c;
+  --color-primary-container: #a8380b;
+  --color-on-primary: #ffffff;
+  --color-surface-tint: #b23c0c;
+  --color-roast-heat-text: #b5330f;
+
+  --color-on-surface: #1f1410;
+  --color-on-surface-variant: #5a463c;
+  --color-on-surface-muted: #463730;
+  --color-on-surface-subtle: #705a4e;
+  --color-muted-foreground: #5a463c;
+  --color-muted-foreground-subtle: #705a4e;
+
+  --color-outline-variant: #d8bfae;
+  --color-outline-ghost: #ecdcd1;
+  --color-panel-border: #ecdcd1;
+  --color-border-default: #ecdcd1;
+  --color-border-strong: #dcc5b6;
+  --color-divider-subtle: #f2e6de;
+  --color-toolbar-rule: #ecdcd1;
+  --color-segmented-border: #ecdcd1;
+  --color-field-bg: #ffffff;
+  --color-field-border: #d4b9a8;
+  --color-code-editor-bg: #fdfaf8;
+
+  --shadow-ambient: 0 1px 2px rgba(48, 24, 14, 0.06), 0 4px 12px rgba(48, 24, 14, 0.05);
+  --shadow-float: 0 18px 44px -14px rgba(48, 24, 14, 0.28), 0 2px 8px rgba(48, 24, 14, 0.08);
+  --shadow-cta: 0 1px 0 rgba(255, 255, 255, 0.3) inset, 0 4px 14px -4px rgba(224, 72, 40, 0.5);
+
+  --gradient-wordmark: linear-gradient(135deg, #9a2a0e 0%, #e04828 55%, #ff6b4a 100%);
+  --gradient-display-accent: linear-gradient(100deg, #9a2a0e 0%, #b23c0c 50%, #e04828 100%);
+
+  --header-bg: rgba(251, 246, 242, 0.84);
+  --grid-line: rgba(194, 65, 12, 0.08);
+  --color-interactive-hover: rgba(194, 65, 12, 0.06);
+  --color-interactive-pressed: rgba(194, 65, 12, 0.11);
+  --color-overlay-scrim: rgba(32, 16, 10, 0.45);
+
+  /* var()-derived tokens, re-resolved here so .roastZone descendants inherit the ember values */
+  --surface-panel: var(--color-surface-container-lowest);
+  --color-url-bar-bg: var(--color-surface-container-low);
+  --color-toggle-icon: var(--color-primary);
+  --color-editor-chrome-bg: var(--color-surface-container-low);
+  --color-segmented-track-bg: var(--color-surface-container);
+  --color-callout-info-bg: color-mix(in srgb, var(--color-primary) 6%, #ffffff);
+  --color-callout-info-border: color-mix(in srgb, var(--color-primary) 22%, transparent);
+  --color-chip-surface: var(--color-surface-container-low);
+  --color-chip-surface-hover: var(--color-surface-container);
+  --color-workspace-prompt-code-bg: #ffffff;
+}
+
+html.dark[data-zone="roast"],
+html.dark .roastZone {
+  --color-surface: #140f0d;
+  --color-surface-container-lowest: #0f0b09;
+  --color-surface-container-low: #1b1411;
+  --color-surface-container: #241a16;
+  --color-surface-container-high: #2e211b;
+  --color-surface-container-highest: #3a2a22;
+  --color-surface-dim: #0f0b09;
+
+  --color-primary: #ff8f6b;
+  --color-primary-container: #ff6b4a;
+  --color-on-primary: #1a0a05;
+  --color-surface-tint: #ff8f6b;
+
+  --color-on-surface: #f0e4de;
+  --color-on-surface-variant: #d9c6bc;
+  --color-on-surface-muted: #e6d6ce;
+  --color-on-surface-subtle: #a8958b;
+  --color-muted-foreground: #d9c6bc;
+  --color-muted-foreground-subtle: #a8958b;
+
+  --color-outline-variant: #5a4338;
+  --color-outline-ghost: #2e211b;
+  --color-panel-border: #33261f;
+  --color-border-default: #33261f;
+  --color-border-strong: #45332a;
+  --color-divider-subtle: #221915;
+  --color-toolbar-rule: #33261f;
+  --color-segmented-border: #33261f;
+  --color-field-border: #45332a;
+  --color-code-editor-bg: #0f0b09;
+  --color-toggle-thumb: #f0e4de;
+
+  --shadow-cta: 0 1px 0 rgba(255, 255, 255, 0.35) inset, 0 6px 18px -6px rgba(255, 107, 74, 0.6);
+
+  --gradient-wordmark: linear-gradient(135deg, #ffffff 10%, #ffb38a 55%, #ff6b4a 100%);
+  --gradient-display-accent: linear-gradient(100deg, #ffd0b0 0%, #ffb38a 45%, #ff6b4a 100%);
+
+  --header-bg: rgba(20, 15, 13, 0.84);
+  --grid-line: rgba(255, 138, 92, 0.06);
+  --color-interactive-hover: rgba(255, 138, 92, 0.07);
+  --color-interactive-pressed: rgba(255, 138, 92, 0.13);
+
+  --surface-panel: var(--color-surface-container-low);
+  --color-url-bar-bg: var(--color-surface-container);
+  --color-toggle-icon: var(--color-on-roast-heat);
+  --color-editor-chrome-bg: var(--color-surface-container);
+  --color-segmented-track-bg: var(--color-surface-container-lowest);
+  --color-field-bg: var(--color-surface-container-lowest);
+  --color-callout-info-bg: color-mix(in srgb, var(--color-primary) 7%, var(--color-surface));
+  --color-callout-info-border: color-mix(in srgb, var(--color-primary) 24%, transparent);
+  --color-chip-surface: var(--color-surface-container);
+  --color-chip-surface-hover: var(--color-surface-container-high);
+  --color-error-surface-bg: color-mix(in srgb, var(--color-error) 9%, var(--color-surface));
+  --color-workspace-prompt-code-bg: var(--color-surface-container-lowest);
+}
+
+/* Theme-agnostic roast-zone tokens (and var() chains re-resolved at the zone element). */
+html[data-zone="roast"],
+.roastZone {
+  --gradient-primary: var(--gradient-roast);
+  --color-cta-fill: var(--gradient-primary);
+  --color-cta-foreground: var(--color-on-roast-heat);
+  --color-text-accent: var(--color-primary);
+  --color-cyan-accent: var(--color-primary);
+  --color-header-accent: var(--color-primary);
+  --color-assistant-accent: var(--color-primary);
+  --color-surface-elevated: var(--color-surface-container-lowest);
+  --header-border: var(--color-border-default);
+  --sidebar-bg: var(--color-surface-container-low);
+  --color-toggle-track: var(--color-surface-container-high);
+  --color-editor-footer-bg: var(--color-surface-container-low);
+  --color-primary-muted: color-mix(in srgb, var(--color-primary) 70%, var(--color-on-surface-variant));
+  --color-subtitle-accent: var(--color-on-surface-variant);
+  --color-section-accent: var(--color-on-surface-variant);
+  --color-result-panel-bg: var(--color-surface-container-low);
+  --color-result-panel-border: var(--color-border-default);
+  --color-result-gradient: var(--color-surface-container-low);
+  --color-response-code-fg: var(--color-on-surface);
+  --color-pill-info-fg: var(--color-primary);
+  --color-pill-info-bg: color-mix(in srgb, var(--color-primary) 9%, transparent);
+  --color-pill-info-border: color-mix(in srgb, var(--color-primary) 26%, transparent);
+  --color-explain-bg: color-mix(in srgb, var(--color-primary) 6%, transparent);
+  --color-explain-border: color-mix(in srgb, var(--color-primary) 22%, transparent);
+  --color-assistant-border: var(--color-border-default);
+  --color-assistant-surface: var(--color-surface-container-lowest);
+  --color-assistant-chip-border: var(--color-border-default);
+  --color-assistant-input-bg: var(--color-surface-container-lowest);
+  --color-workspace-prompt-bg: var(--color-surface-container-low);
+  --color-workspace-prompt-code-border: var(--color-border-default);
+  --color-workspace-prompt-fg: var(--color-on-surface);
+  --glass-bg: var(--color-surface-container-lowest);
+  --glass-border: 1px solid var(--color-border-default);
 }

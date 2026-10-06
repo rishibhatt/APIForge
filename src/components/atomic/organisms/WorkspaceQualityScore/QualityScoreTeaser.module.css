@@ -1,149 +1,211 @@
 .teaser {
   position: relative;
-  display: flex;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
   width: 100%;
+  min-height: 72px;
   align-items: center;
-  gap: var(--space-4);
-  margin-bottom: var(--space-4);
-  padding: var(--space-4) var(--space-4);
-  border: none;
+  column-gap: var(--space-4);
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+  overflow: hidden;
+  border: 1px solid var(--color-border-default);
   border-radius: var(--radius-lg);
   text-align: left;
+  font: inherit;
+  color: inherit;
+  background: var(--color-surface-container-low);
   cursor: pointer;
-  overflow: hidden;
-  background: linear-gradient(
-    118deg,
-    color-mix(in srgb, var(--color-primary-container) 12%, var(--color-surface-container-low)) 0%,
-    color-mix(in srgb, var(--color-surface-container) 94%, transparent) 55%,
-    color-mix(in srgb, var(--color-primary) 10%, var(--color-surface-container-high)) 100%
-  );
-  border: 1px solid color-mix(in srgb, var(--color-primary) 26%, transparent);
-  box-shadow:
-    var(--shadow-ambient),
-    0 0 0 1px color-mix(in srgb, var(--color-on-surface) 5%, transparent) inset;
-  transition:
-    transform 0.25s ease,
-    border-color 0.25s ease,
-    box-shadow 0.25s ease;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  box-sizing: border-box;
 }
 
 .teaser:hover {
-  transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--color-primary) 42%, transparent);
-  box-shadow:
-    var(--shadow-float),
-    0 0 40px color-mix(in srgb, var(--color-primary-container) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border-default));
+  background: var(--color-surface-container);
 }
 
-.teaser:focus-visible {
-  outline-offset: 3px;
-}
-
-.shimmer {
-  pointer-events: none;
+/* Diagonal highlight swept across the banner by GSAP. */
+.shine {
   position: absolute;
-  inset: 0;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 40%;
+  pointer-events: none;
   background: linear-gradient(
     105deg,
-    transparent 40%,
-    color-mix(in srgb, var(--color-primary) 14%, transparent) 50%,
-    transparent 60%
+    transparent 0%,
+    color-mix(in srgb, var(--color-on-surface) 7%, transparent) 50%,
+    transparent 100%
   );
-  transform: translateX(-100%);
-  animation: sweep 2.8s ease-in-out infinite;
+  transform: translateX(-130%) skewX(-18deg);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .shimmer {
-    animation: none;
-    opacity: 0;
-  }
+.dial {
+  grid-column: 1;
+  grid-row: 1;
+  width: 48px;
+  height: 48px;
 }
 
-@keyframes sweep {
-  0% {
-    transform: translateX(-100%);
-  }
-  55% {
-    transform: translateX(100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
+.dialTrack {
+  fill: none;
+  stroke: var(--color-surface-container-highest);
+  stroke-width: 3;
 }
 
-.iconCluster {
-  flex-shrink: 0;
+.dialArc {
+  fill: none;
+  stroke: var(--color-text-accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.dialNum {
+  grid-column: 1;
+  grid-row: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: var(--gradient-primary);
-  color: var(--color-on-primary);
-  box-shadow:
-    0 8px 20px color-mix(in srgb, var(--color-primary-container) 30%, transparent),
-    inset 0 1px 0 color-mix(in srgb, white 15%, transparent);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-on-surface);
+  pointer-events: none;
 }
 
 .copy {
-  flex: 1;
-  min-width: 0;
   display: flex;
+  min-width: 0;
   flex-direction: column;
-  gap: 4px;
-}
-
-.kicker {
-  font-size: 0.625rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--color-text-accent);
+  gap: 2px;
 }
 
 .headline {
-  font-family: var(--font-display);
   font-size: 1rem;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.03em;
-  line-height: 1.2;
+  line-height: 1.3;
   color: var(--color-on-surface);
 }
 
 .sub {
-  font-size: 0.75rem;
-  line-height: 1.4;
-  color: var(--color-on-surface-muted);
+  min-width: 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--color-on-surface-variant);
 }
 
 .cta {
-  flex-shrink: 0;
+  position: relative;
   display: inline-flex;
+  min-height: 40px;
+  flex-shrink: 0;
   align-items: center;
+  justify-content: center;
   gap: 4px;
-  padding: 8px 14px;
-  border-radius: 9999px;
+  padding: 0 12px 0 16px;
+  border-radius: var(--radius-sm);
   font-size: 0.8125rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-weight: 600;
   color: var(--color-cta-foreground);
-  background: var(--color-cta-fill);
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-primary-container) 26%, transparent);
+  background: var(--gradient-primary);
+  transition: filter 150ms var(--ease-out), transform 100ms ease;
+}
+
+/* Breathing glow: only the opacity of a pre-painted shadow changes. */
+.cta::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 55%, transparent), 0 4px 16px -2px var(--color-primary);
+  opacity: 0.15;
+  pointer-events: none;
+  animation: breathe 2.8s ease-in-out infinite;
+}
+
+.teaser:hover .cta {
+  filter: brightness(1.1) saturate(1.05);
+}
+
+.teaser:active .cta {
+  transform: translateY(1px);
 }
 
 .ctaText {
   white-space: nowrap;
 }
 
-@media (max-width: 520px) {
+.arrow {
+  animation: nudge 2.2s var(--ease-out) infinite;
+}
+
+.teaser:hover .arrow {
+  animation-duration: 0.9s;
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.12;
+  }
+  50% {
+    opacity: 0.65;
+  }
+}
+
+@keyframes nudge {
+  0%,
+  55%,
+  100% {
+    transform: translateX(0);
+  }
+  70% {
+    transform: translateX(4px);
+  }
+  85% {
+    transform: translateX(0);
+  }
+}
+
+@media (max-width: 640px) {
   .teaser {
-    flex-wrap: wrap;
+    grid-template-columns: 44px minmax(0, 1fr);
+    row-gap: var(--space-3);
+    column-gap: var(--space-3);
+    padding: var(--space-3);
+  }
+
+  .dial,
+  .dialNum {
+    width: 44px;
+    height: 44px;
+  }
+
+  .headline {
+    font-size: 0.9375rem;
   }
 
   .cta {
+    grid-column: 1 / -1;
+    min-height: 44px;
     width: 100%;
-    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shine {
+    display: none;
+  }
+
+  .cta::after {
+    animation: none;
+    opacity: 0;
+  }
+
+  .arrow {
+    animation: none;
   }
 }

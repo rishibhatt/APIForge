@@ -3,7 +3,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { TranslateFn } from "@/context/LanguageContext";
 import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
+import btn from "@/components/atomic/atoms/Button/Button.module.css";
+import HighlightedCode from "@/components/atomic/molecules/HighlightedCode/HighlightedCode";
+import AiLimitBanner from "@/components/ai/AiLimitBanner";
+import AiShimmer from "@/components/ai/AiShimmer";
+import {
+  AiRequestError,
+  handleAiErrorResponse,
+  handleAiThrown,
+  isAbortError,
+} from "@/components/ai/aiRequest";
+import { copyWithToast } from "@/components/ai/clipboard";
+import { useProgressStatus } from "@/components/ai/useProgressStatus";
+import { reportAiHeaders, useAiUsage } from "@/hooks/useAiUsage";
 import { parseUsageFromResponseHeaders } from "@/lib/groq-token-usage";
+import { parameterType } from "@/lib/openapi-parameter-defaults";
+import { getRequestBodyInfo } from "@/lib/request-body-example";
 import { endpointToJsonSafe } from "@/lib/serialize-endpoint";
 import { useWorkspaceStore } from "@/store/workspaceStore";
 import type { Endpoint } from "@/types/api";
@@ -15,31 +30,21 @@ function isObject(v: unknown): v is Json {
   return v !== null && typeof v === "object" && !Array.isArray(v);
 }
 
-/** Flatten top-level schema properties for a compact preview */
-function extractBodyFields(requestBody: unknown): { name: string; hint: string }[] {
-  if (!isObject(requestBody)) return [];
-  const content = requestBody.content;
-  if (!isObject(content)) return [];
-  const json =
-    (content["application/json"] as unknown) ??
-    (content["application/*+json"] as unknown);
-  if (!isObject(json)) return [];
-  const schema = json.schema;
+/** Top-level body properties, required first (OpenAPI 3 `requestBody` and Swagger 2 `in: body`). */
+function extractBodyFields(endpoint: Endpoint): { name: string; hint: string }[] {
+  const schema = getRequestBodyInfo(endpoint)?.schema;
   if (!isObject(schema)) return [];
   const props = schema.properties;
-  const required = Array.isArray(schema.required)
-    ? (schema.required as string[])
-    : [];
   if (!isObject(props)) return [];
-  return Object.keys(props).map((name) => {
+  const required = Array.isArray(schema.required) ? (schema.required as string[]) : [];
+  const names = [
+    ...Object.keys(props).filter((n) => required.includes(n)),
+    ...Object.keys(props).filter((n) => !required.includes(n)),
+  ];
+  return names.map((name) => {
     const p = props[name];
-    const req = required.includes(name);
-    let hint = req ? "required" : "optional";
-    if (isObject(p)) {
-      const t = typeof p.type === "string" ? p.type : "object";
-      hint += ` • ${t}`;
-    }
-    return { name, hint };
+    const type = isObject(p) && typeof p.type === "string" ? p.type : "object";
+    return { name, hint: `${required.includes(name) ? "required" : "optional"} · ${type}` };
   });
 }
 
@@ -49,14 +54,13 @@ function extractParamRows(endpoint: Endpoint): { name: string; hint: string }[] 
   return p
     .map((item) => {
       if (!isObject(item)) return null;
-      const name = typeof item.name === "string" ? item.name : "?";
       const inn = typeof item.in === "string" ? item.in : "";
+      if (inn === "body") return null;
+      const name = typeof item.name === "string" ? item.name : "?";
       const req = item.required === true;
-      let hint = [inn, req ? "required" : "optional"].filter(Boolean).join(" • ");
-      const schema = item.schema;
-      if (isObject(schema) && typeof schema.type === "string") {
-        hint += ` • ${schema.type}`;
-      }
+      const hint = [inn, req ? "required" : "optional", parameterType(item)]
+        .filter(Boolean)
+        .join(" · ");
       return { name, hint };
     })
     .filter((x): x is { name: string; hint: string } => x !== null);
@@ -79,34 +83,50 @@ export default function SchemaInsightPanel({
 }: SchemaInsightPanelProps) {
   const setLastGroqUsage = useWorkspaceStore((s) => s.setLastGroqUsage);
   const setLastGenerationMs = useWorkspaceStore((s) => s.setLastGenerationMs);
+  const setPendingRequestBody = useWorkspaceStore((s) => s.setPendingRequestBody);
+  const activeTab = useWorkspaceStore((s) => s.activeTab);
+  const setActiveTab = useWorkspaceStore((s) => s.setActiveTab);
   const [nlPrompt, setNlPrompt] = useState("");
   const [nlLoading, setNlLoading] = useState(false);
   const [payloadCopied, setPayloadCopied] = useState(false);
+  const [usedAsBody, setUsedAsBody] = useState(false);
   const copyResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [nlError, setNlError] = useState<string | null>(null);
   const [nlOutput, setNlOutput] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const runRef = useRef<() => Promise<void>>(async () => {});
+  const { exhausted, resetIn } = useAiUsage();
 
   useEffect(() => {
     setNlPrompt("");
     setNlOutput(null);
     setNlError(null);
+    abortRef.current?.abort();
     setNlLoading(false);
     setPayloadCopied(false);
+    setUsedAsBody(false);
     if (copyResetRef.current) {
       clearTimeout(copyResetRef.current);
       copyResetRef.current = null;
     }
   }, [endpoint.id]);
 
-  const bodyFields = extractBodyFields(endpoint.requestBody);
+  const bodyFields = extractBodyFields(endpoint);
   const paramRows = extractParamRows(endpoint);
+  const acceptsBody =
+    getRequestBodyInfo(endpoint) != null &&
+    !["GET", "HEAD"].includes(endpoint.method.toUpperCase());
 
   const onGeneratePayload = useCallback(async () => {
     const instruction = nlPrompt.trim();
-    if (!instruction) return;
+    if (!instruction || exhausted) return;
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
     setNlLoading(true);
     setNlError(null);
     setNlOutput(null);
+    setUsedAsBody(false);
     const t0 = performance.now();
     try {
       const res = await fetch("/api/groq/payload", {
@@ -116,55 +136,72 @@ export default function SchemaInsightPanel({
           endpoint: endpointToJsonSafe(endpoint),
           instruction,
         }),
+        signal: ctrl.signal,
       });
-      const usage = parseUsageFromResponseHeaders(res.headers);
-      const data = (await res.json()) as {
-        payload?: unknown;
-        error?: string;
-        rawPreview?: string;
-      };
+      reportAiHeaders(res.headers);
       if (!res.ok) {
-        throw new Error(
-          data.error ||
-            data.rawPreview ||
-            `HTTP ${res.status}`,
-        );
+        throw await handleAiErrorResponse(res, { onRetry: () => void runRef.current() });
       }
+      const usage = parseUsageFromResponseHeaders(res.headers);
+      const data = (await res.json()) as { payload?: unknown };
       setNlOutput(JSON.stringify(data.payload, null, 2));
       setLastGenerationMs(Math.round(performance.now() - t0));
       if (usage) setLastGroqUsage(usage);
     } catch (e) {
-      setNlError(e instanceof Error ? e.message : t("schemaInsight.payloadError"));
+      if (isAbortError(e)) return;
+      const failure = e instanceof AiRequestError ? e : handleAiThrown(e, { onRetry: () => void runRef.current() });
+      // Off-topic is a nudge, not a failure: keep the text so it can be edited.
+      setNlError(failure.kind === "off_topic" ? null : failure.message || t("schemaInsight.payloadError"));
       setLastGroqUsage(null);
     } finally {
-      setNlLoading(false);
+      if (abortRef.current === ctrl) {
+        abortRef.current = null;
+        setNlLoading(false);
+      }
     }
-  }, [
-    endpoint,
-    nlPrompt,
-    setLastGroqUsage,
-    setLastGenerationMs,
-    t,
+  }, [endpoint, nlPrompt, exhausted, setLastGroqUsage, setLastGenerationMs, t]);
+
+  useEffect(() => {
+    runRef.current = onGeneratePayload;
+  }, [onGeneratePayload]);
+
+  const onStopPayload = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setNlLoading(false);
+  }, []);
+
+  const opLabel = `${endpoint.method.toUpperCase()} ${endpoint.path}`;
+  const progress = useProgressStatus(nlLoading, [
+    `Reading the ${opLabel} schema…`,
+    "Writing a payload that fits it…",
+    "Checking required fields…",
   ]);
 
   const onCopyPayload = useCallback(async () => {
     if (!nlOutput) return;
-    try {
-      await navigator.clipboard.writeText(nlOutput);
-      if (copyResetRef.current) clearTimeout(copyResetRef.current);
-      setPayloadCopied(true);
-      copyResetRef.current = setTimeout(() => {
-        setPayloadCopied(false);
-        copyResetRef.current = null;
-      }, 2000);
-    } catch {
-      /* ignore */
-    }
+    const ok = await copyWithToast(nlOutput, "Payload");
+    if (!ok) return;
+    if (copyResetRef.current) clearTimeout(copyResetRef.current);
+    setPayloadCopied(true);
+    copyResetRef.current = setTimeout(() => {
+      setPayloadCopied(false);
+      copyResetRef.current = null;
+    }, 2000);
   }, [nlOutput]);
+
+  const onUseAsBody = useCallback(() => {
+    if (!nlOutput) return;
+    setPendingRequestBody(endpoint.id, nlOutput);
+    if (activeTab !== "runApi") setActiveTab("runApi");
+    setUsedAsBody(true);
+    document.getElementById("workspace-code")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [nlOutput, endpoint.id, setPendingRequestBody, activeTab, setActiveTab]);
 
   useEffect(() => {
     return () => {
       if (copyResetRef.current) clearTimeout(copyResetRef.current);
+      abortRef.current?.abort();
     };
   }, []);
 
@@ -207,38 +244,88 @@ export default function SchemaInsightPanel({
       <section className={styles.payloadSection}>
         <h3 className={styles.sectionTitle}>{t("schemaInsight.payloadTitle")}</h3>
         <p className={styles.hintBlock}>{t("schemaInsight.payloadHint")}</p>
+        <AiLimitBanner className={styles.banner} />
         <textarea
           className={styles.nlArea}
           rows={compact ? 2 : 3}
           value={nlPrompt}
           onChange={(e) => setNlPrompt(e.target.value)}
-          placeholder={t("schemaInsight.payloadPlaceholder")}
-          disabled={nlLoading}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+              e.preventDefault();
+              void onGeneratePayload();
+            }
+          }}
+          placeholder={
+            exhausted
+              ? `AI limit reached${resetIn ? `. Resets in ${resetIn}` : ""}`
+              : t("schemaInsight.payloadPlaceholder")
+          }
+          disabled={nlLoading || exhausted}
           aria-label={t("schemaInsight.payloadPlaceholder")}
         />
         <div className={styles.payloadActions}>
           <button
             type="button"
-            className={styles.payloadBtn}
+            className={`${btn.btn} ${nlOutput ? btn.secondary : btn.primary} ${btn.sm} focusRing`}
             onClick={() => void onGeneratePayload()}
-            disabled={nlLoading || !nlPrompt.trim()}
+            disabled={nlLoading || exhausted || !nlPrompt.trim()}
+            aria-busy={nlLoading}
           >
             <MaterialIcon name="auto_awesome" size="xs" />
-            {nlLoading ? t("common.loading") : t("schemaInsight.generatePayload")}
+            {t("schemaInsight.generatePayload")}
           </button>
-          {nlOutput ? (
+          {nlLoading ? (
             <button
               type="button"
-              className={styles.payloadBtnGhost}
-              onClick={() => void onCopyPayload()}
+              className={`${btn.btn} ${btn.ghost} ${btn.sm} focusRing`}
+              onClick={onStopPayload}
             >
-              <MaterialIcon name={payloadCopied ? "check" : "content_copy"} size="xs" />
-              {payloadCopied ? t("workspace.copied") : t("schemaInsight.payloadCopy")}
+              <MaterialIcon name="stop_circle" size="xs" />
+              Stop
             </button>
           ) : null}
         </div>
-        {nlError ? <p className={styles.nlError}>{nlError}</p> : null}
-        {nlOutput ? <pre className={styles.nlPre}>{nlOutput}</pre> : null}
+        {nlLoading ? (
+          <div className={styles.waiting}>
+            <AiShimmer lines={4} />
+            <p className={styles.progress} role="status">
+              {progress}
+            </p>
+          </div>
+        ) : null}
+        {nlError ? (
+          <p className={styles.nlError} role="alert">
+            {nlError}
+          </p>
+        ) : null}
+        {nlOutput ? (
+          <div className={styles.result}>
+            <div className={styles.nlPre}>
+              <HighlightedCode code={nlOutput} language="json" wrap={false} />
+            </div>
+            <div className={styles.payloadActions}>
+              {acceptsBody ? (
+                <button
+                  type="button"
+                  className={`${btn.btn} ${btn.primary} ${btn.sm} focusRing`}
+                  onClick={onUseAsBody}
+                >
+                  <MaterialIcon name={usedAsBody ? "check" : "input"} size="xs" />
+                  {usedAsBody ? t("schemaInsight.usedAsBody") : t("schemaInsight.useAsBody")}
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className={`${btn.btn} ${btn.ghost} ${btn.sm} focusRing`}
+                onClick={() => void onCopyPayload()}
+              >
+                <MaterialIcon name={payloadCopied ? "check" : "content_copy"} size="xs" />
+                {payloadCopied ? t("workspace.copied") : t("schemaInsight.payloadCopy")}
+              </button>
+            </div>
+          </div>
+        ) : null}
       </section>
     </aside>
   );

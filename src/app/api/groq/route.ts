@@ -4,9 +4,22 @@ import type {
   GroqStreamTab,
   IdePromptScope,
 } from "@/types/api";
-import { buildGroqPrompt } from "@/lib/groq-prompts";
+import {
+  buildGroqPrompt,
+  buildGroqSystem,
+  buildPromptOverrides,
+  type PromptApiMeta,
+} from "@/lib/groq-prompts";
+import {
+  aiBurstGuard,
+  aiErrorResponse,
+  aiUpstreamErrorResponse,
+  applyAiUsageHeaders,
+  consumeAiQuota,
+} from "@/lib/ai/quota";
+import { extractTypeScriptBlock, normalizePromptMarkdown } from "@/lib/ai/output";
+import { sanitizeUserText } from "@/lib/ai/guardrails";
 import { ai } from "@/lib/ai/service";
-import { getAIErrorMessage, isAIRateLimitError } from "@/lib/ai/errors";
 import { applyAIResponseHeaders } from "@/lib/groq-token-usage";
 import {
   isEndpoint,
@@ -14,6 +27,8 @@ import {
   isGenerationScope,
   isIdePromptScope,
 } from "@/lib/validate-endpoint";
+
+import { readJsonObject } from "@/lib/http/read-json-body";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -23,12 +38,19 @@ function isGroqStreamTab(v: unknown): v is GroqStreamTab {
 }
 
 export async function POST(req: Request) {
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return Response.json({ error: "Invalid JSON body" }, { status: 400 });
+  const burst = aiBurstGuard(req);
+  if (burst) return burst;
+
+  const parsedBody = await readJsonObject(req);
+  if (!parsedBody.ok) {
+    return aiErrorResponse(
+      req,
+      parsedBody.status,
+      parsedBody.error,
+      parsedBody.status === 400 ? "AI_BAD_INPUT" : undefined,
+    );
   }
+  const body: unknown = parsedBody.body;
 
   const raw = body as {
     endpoint?: unknown;
@@ -37,10 +59,13 @@ export async function POST(req: Request) {
     type?: unknown;
     idePrompt?: unknown;
     allEndpoints?: unknown;
+    specTitle?: unknown;
+    serverUrls?: unknown;
+    securitySchemes?: unknown;
   };
 
   if (!isGroqStreamTab(raw.type)) {
-    return Response.json({ error: "Invalid type" }, { status: 400 });
+    return aiErrorResponse(req, 400, "Invalid type", "AI_BAD_INPUT");
   }
 
   let scopedList: Endpoint[];
@@ -49,10 +74,7 @@ export async function POST(req: Request) {
   } else if (isEndpoint(raw.endpoint)) {
     scopedList = [raw.endpoint];
   } else {
-    return Response.json(
-      { error: "Invalid endpoint or endpoints" },
-      { status: 400 },
-    );
+    return aiErrorResponse(req, 400, "Invalid endpoint or endpoints", "AI_BAD_INPUT");
   }
 
   const primary = isEndpoint(raw.endpoint) ? raw.endpoint : scopedList[0]!;
@@ -77,25 +99,58 @@ export async function POST(req: Request) {
     }
   }
 
+  // Optional API-level facts (the client may send them; absent => "Not specified in the spec").
+  const meta: PromptApiMeta = {
+    specTitle: sanitizeUserText(raw.specTitle, 200) || undefined,
+    serverUrls: Array.isArray(raw.serverUrls)
+      ? raw.serverUrls
+          .filter((u): u is string => typeof u === "string")
+          .map((u) => sanitizeUserText(u, 300))
+          .filter(Boolean)
+          .slice(0, 5)
+      : undefined,
+    securitySchemes:
+      raw.securitySchemes &&
+      typeof raw.securitySchemes === "object" &&
+      !Array.isArray(raw.securitySchemes)
+        ? (raw.securitySchemes as Record<string, unknown>)
+        : undefined,
+  };
+
   const prompt = buildGroqPrompt(primary, raw.type, ide, allEndpoints, {
     scoped: scopedList,
     scope,
+    meta,
   });
+
+  // Validation passed: count this request against the visitor quota before the model call.
+  const gate = consumeAiQuota(req);
+  if (!gate.ok) return gate.response;
 
   try {
     const res = await ai.generate({
       capability: "general",
+      system: buildGroqSystem(raw.type),
       prompt,
-      temperature: raw.type === "prompt" ? 0.35 : 0.2,
-      maxOutputTokens: raw.type === "prompt" ? 3072 : 2560,
+      temperature: raw.type === "prompt" ? 0.3 : 0.1,
+      maxOutputTokens: raw.type === "prompt" ? 3072 : 4096,
       maxRetries: 1,
       signal: req.signal,
     });
+
+    const text =
+      raw.type === "typescript"
+        ? extractTypeScriptBlock(res.text)
+        : normalizePromptMarkdown(
+            res.text,
+            buildPromptOverrides(ide?.operations?.length ? ide.operations : scopedList, meta),
+          );
 
     const headers = new Headers({
       "Content-Type": "text/plain; charset=utf-8",
       "Cache-Control": "no-store",
     });
+    applyAiUsageHeaders(headers, gate.usage);
     applyAIResponseHeaders(headers, {
       usage: res.usage,
       model: res.model,
@@ -104,15 +159,11 @@ export async function POST(req: Request) {
       attemptedModels: res.attemptedModels,
     });
 
-    return new Response(res.text, {
+    return new Response(text, {
       status: 200,
       headers,
     });
   } catch (e) {
-    const status = isAIRateLimitError(e) ? 429 : 502;
-    return Response.json(
-      { error: getAIErrorMessage(e) },
-      { status },
-    );
+    return aiUpstreamErrorResponse(req, e, gate.usage);
   }
 }

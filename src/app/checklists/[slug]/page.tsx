@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getChecklistBySlug, getAllChecklists } from "@/lib/content/loader";
 import { createBaseMetadata } from "@/lib/seo/metadata";
-import { generateBreadcrumbJsonLd } from "@/lib/seo/jsonld";
+import { generateArticleJsonLd, generateBreadcrumbJsonLd, generateFaqJsonLd } from "@/lib/seo/jsonld";
 import ArticleLayout from "@/components/content/ArticleLayout";
 
 export async function generateStaticParams() {
@@ -17,15 +17,14 @@ export async function generateMetadata({
   const item = getChecklistBySlug(params.slug);
   if (!item) return {};
   return createBaseMetadata({
-    title: `${item.title} | APIForge Checklist`,
+    title: item.title,
     description: item.description,
     path: `/checklists/${item.slug}`,
-    category: item.category,
+    ogType: "article",
+    publishedAt: item.publishedAt,
+    updatedAt: item.updatedAt,
+    ogLabel: "Checklist",
     keywords: item.keywords || [],
-    ogImageParams: {
-      type: "checklist",
-      slug: item.slug,
-    },
   });
 }
 
@@ -39,6 +38,8 @@ export default function ChecklistDetailPage({
     notFound();
   }
 
+  const articleJsonLd = generateArticleJsonLd(item, "checklists");
+  const faqJsonLd = generateFaqJsonLd(item.faqs);
   const breadcrumbJsonLd = generateBreadcrumbJsonLd([
     { name: "Home", url: "/" },
     { name: "Checklists", url: "/checklists" },
@@ -49,8 +50,18 @@ export default function ChecklistDetailPage({
     <>
       <script
         type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
+      {faqJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        />
+      )}
       <ArticleLayout article={item} />
     </>
   );

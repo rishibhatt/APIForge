@@ -1,11 +1,13 @@
+/* Editor chrome: file name (mono) on the left, mono uppercase meta + toolbar on the right. */
 .row {
   display: flex;
+  min-height: 40px;
   flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
   background: var(--color-editor-chrome-bg);
   border-bottom: 1px solid var(--color-divider-subtle);
-  box-shadow: none;
+  box-sizing: border-box;
 }
 
 @media (min-width: 640px) {
@@ -16,14 +18,28 @@
   }
 }
 
+.left {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: var(--space-3);
+}
+
 .right {
   display: flex;
   min-width: 0;
   flex-shrink: 0;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: var(--space-3);
+}
+
+@media (min-width: 640px) {
+  .right {
+    justify-content: flex-end;
+  }
 }
 
 .actions {
@@ -33,54 +49,23 @@
   gap: var(--space-1);
 }
 
-.left {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: var(--space-4);
-}
-
-.dots {
-  display: flex;
-  gap: 6px;
-}
-
-.dotR {
-  height: 10px;
-  width: 10px;
-  border-radius: 50%;
-  border: 1px solid var(--color-status-dot-error-border);
-  background: var(--color-status-dot-error-fill);
-}
-
-.dotA {
-  height: 10px;
-  width: 10px;
-  border-radius: 50%;
-  border: 1px solid var(--color-status-dot-warn-border);
-  background: var(--color-status-dot-warn-fill);
-}
-
-.dotG {
-  height: 10px;
-  width: 10px;
-  border-radius: 50%;
-  border: 1px solid var(--color-status-dot-ok-border);
-  background: var(--color-status-dot-ok-fill);
-}
-
 .fileLabel {
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  letter-spacing: 0.06em;
-  color: var(--color-on-surface-subtle);
+  min-width: 0;
   overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-on-surface-variant);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .fileMeta {
   font-family: var(--font-mono);
-  font-size: 0.6875rem;
+  font-size: 10.5px;
+  font-weight: var(--label-weight);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
   color: var(--color-on-surface-subtle);
+  white-space: nowrap;
 }

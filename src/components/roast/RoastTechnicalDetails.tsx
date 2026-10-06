@@ -1,8 +1,7 @@
-"use client";
-
-import { useState } from "react";
 import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
 import type { RoastSummary } from "@/lib/roast/types";
+import { CATEGORY_MAX, categoryLabel } from "./labels";
+import shared from "./RoastSection.module.css";
 import styles from "./RoastTechnicalDetails.module.css";
 
 export interface RoastTechnicalDetailsProps {
@@ -11,84 +10,113 @@ export interface RoastTechnicalDetailsProps {
   suggestions?: string[];
 }
 
-export default function RoastTechnicalDetails({
-  summary,
-  breakdown,
-  suggestions = [],
-}: RoastTechnicalDetailsProps) {
-  const [isOpen, setIsOpen] = useState(false);
+function formatPoints(n: number): string {
+  return Number.isInteger(n) ? String(n) : n.toFixed(1);
+}
+
+export default function RoastTechnicalDetails({ summary, breakdown, suggestions = [] }: RoastTechnicalDetailsProps) {
+  const rows = Object.entries(breakdown);
 
   return (
-    <section className={styles.container}>
-      <button
-        type="button"
-        className={styles.headerToggle}
-        onClick={() => setIsOpen(!isOpen)}
-        aria-expanded={isOpen}
-      >
-        <div className={styles.headerLeft}>
-          <MaterialIcon name="code" className={styles.codeIcon} />
-          <div>
-            <h3 className={styles.title}>UNDER THE HOOD</h3>
-            <p className={styles.subTitle}>For the people who actually want to know what happened.</p>
-          </div>
-        </div>
+    <section id="details" className={shared.section} aria-labelledby="details-title">
+      <div className={shared.head} data-reveal>
+        <h2 id="details-title" className={shared.title}>
+          Technical details
+        </h2>
+        <p className={shared.lede}>The numbers behind the jokes.</p>
+      </div>
 
-        <MaterialIcon
-          name={isOpen ? "expand_less" : "expand_more"}
-          className={styles.toggleIcon}
-        />
-      </button>
+      <h3 className={styles.subhead}>Score by category</h3>
+      <div className={styles.tableWrap} data-reveal>
+        <table className={styles.table}>
+          <thead>
+            <tr>
+              <th scope="col">Category</th>
+              <th scope="col" className={styles.num}>
+                Points
+              </th>
+              <th scope="col" className={styles.barCol}>
+                <span className={styles.srOnly}>Share of available points</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(([key, points]) => {
+              const max = CATEGORY_MAX[key];
+              const ratio = max ? Math.min(1, points / max) : 0;
+              const tone = ratio >= 0.85 ? shared.ok : ratio >= 0.6 ? shared.warn : shared.bad;
+              return (
+                <tr key={key}>
+                  <th scope="row">{categoryLabel(key)}</th>
+                  <td className={styles.num}>
+                    {formatPoints(points)}
+                    {max ? <span className={styles.max}> / {max}</span> : null}
+                  </td>
+                  <td className={styles.barCol}>
+                    {max ? (
+                      <div className={shared.meter} aria-hidden>
+                        <div
+                          className={`${shared.meterFill} ${tone}`}
+                          data-grow={ratio}
+                          style={{ transform: `scaleX(${ratio})` }}
+                        />
+                      </div>
+                    ) : null}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
 
-      {isOpen ? (
-        <div className={styles.contentBody}>
-          {/* Category Scores Grid */}
-          <h4 className={styles.sectionHeading}>Category Score Breakdown</h4>
-          <div className={styles.breakdownGrid}>
-            {Object.entries(breakdown).map(([category, score]) => (
-              <div key={category} className={styles.breakdownCard}>
-                <span className={styles.catLabel}>{category.toUpperCase()}</span>
-                <span className={styles.catScore}>{score} pts</span>
-              </div>
+      {suggestions.length > 0 ? (
+        <>
+          <h3 className={styles.subhead}>Recommendations</h3>
+          <ul className={styles.recs} data-reveal-group>
+            {suggestions.map((s) => (
+              <li key={s} data-reveal-item>
+                <MaterialIcon name="arrow_right_alt" size="sm" className={styles.recIcon} />
+                {s}
+              </li>
             ))}
-          </div>
+          </ul>
+        </>
+      ) : null}
 
-          {/* Suggestions */}
-          {suggestions.length > 0 ? (
-            <>
-              <h4 className={styles.sectionHeading}>Deterministic Recommendations</h4>
-              <div className={styles.issueList}>
-                {suggestions.map((sug, i) => (
-                  <div key={i} className={styles.issueItem}>
-                    <MaterialIcon name="check_circle" className={styles.checkIcon} size="sm" />
-                    <span className={styles.issueMsg}>{sug}</span>
-                  </div>
+      {summary.topPatterns.length > 0 ? (
+        <details className={styles.evidence}>
+          <summary>
+            <MaterialIcon name="chevron_right" size="sm" className={styles.chevron} />
+            Rule evidence ({summary.topPatterns.length} rules)
+          </summary>
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th scope="col">Rule</th>
+                  <th scope="col">Category</th>
+                  <th scope="col" className={styles.num}>
+                    Hits
+                  </th>
+                  <th scope="col">Example</th>
+                </tr>
+              </thead>
+              <tbody>
+                {summary.topPatterns.map((p) => (
+                  <tr key={p.ruleId}>
+                    <th scope="row">
+                      <code>{p.ruleId}</code>
+                    </th>
+                    <td>{categoryLabel(p.category)}</td>
+                    <td className={styles.num}>{p.count}</td>
+                    <td className={styles.example}>{p.technicalExplanation}</td>
+                  </tr>
                 ))}
-              </div>
-            </>
-          ) : null}
-
-          {/* Detailed Evidence Table */}
-          <h4 className={styles.sectionHeading}>Aggregated Rule Evidence</h4>
-          <div className={styles.issueList}>
-            {summary.topPatterns.map((pat) => (
-              <div key={pat.ruleId} className={styles.issueItem}>
-                <div className={styles.issueHeaderRow}>
-                  <span className={styles.ruleBadge}>Rule: {pat.ruleId}</span>
-                  <span className={styles.countTag}>{pat.count} occurrences</span>
-                </div>
-                <span className={styles.issueMsg}>
-                  <strong>[{pat.category.toUpperCase()}]</strong> {pat.technicalExplanation}
-                </span>
-                {pat.representativeEndpoints.length > 0 ? (
-                  <span className={styles.issueFix}>
-                    Sample Endpoints: {pat.representativeEndpoints.join(", ")}
-                  </span>
-                ) : null}
-              </div>
-            ))}
+              </tbody>
+            </table>
           </div>
-        </div>
+        </details>
       ) : null}
     </section>
   );

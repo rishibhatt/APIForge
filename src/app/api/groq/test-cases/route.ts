@@ -1,6 +1,5 @@
 import { buildTestCasesPrompt } from "@/lib/groq-prompts";
 import { ai } from "@/lib/ai/service";
-import { getAIErrorMessage, isAIRateLimitError } from "@/lib/ai/errors";
 import { applyAIResponseHeaders } from "@/lib/groq-token-usage";
 import { parseTestCasesFromModelText } from "@/lib/parse-test-cases-json";
 import type { Endpoint, GenerationScope } from "@/types/api";
@@ -9,17 +8,39 @@ import {
   isEndpointArray,
   isGenerationScope,
 } from "@/lib/validate-endpoint";
+import {
+  AI_INPUT_LIMITS,
+  classifyAiRequest,
+  sanitizeUserText,
+} from "@/lib/ai/guardrails";
+import { TEST_CASES_SYSTEM } from "@/lib/ai/system-prompts";
+import {
+  aiBurstGuard,
+  aiErrorResponse,
+  aiUpstreamErrorResponse,
+  applyAiUsageHeaders,
+  consumeAiQuota,
+} from "@/lib/ai/quota";
+
+import { readJsonObject } from "@/lib/http/read-json-body";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
 
 export async function POST(req: Request) {
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return Response.json({ error: "Invalid JSON body" }, { status: 400 });
+  const burst = aiBurstGuard(req);
+  if (burst) return burst;
+
+  const parsedBody = await readJsonObject(req);
+  if (!parsedBody.ok) {
+    return aiErrorResponse(
+      req,
+      parsedBody.status,
+      parsedBody.error,
+      parsedBody.status === 400 ? "AI_BAD_INPUT" : undefined,
+    );
   }
+  const body: unknown = parsedBody.body;
 
   const raw = body as {
     endpoints?: unknown;
@@ -38,18 +59,27 @@ export async function POST(req: Request) {
     !isGenerationScope(scopeRaw) ||
     (raw.active != null && !isEndpoint(raw.active))
   ) {
-    return Response.json({ error: "Invalid request body" }, { status: 400 });
+    return aiErrorResponse(req, 400, "Invalid request body", "AI_BAD_INPUT");
   }
 
   const endpoints = raw.endpoints as Endpoint[];
   const allEndpoints = raw.allEndpoints as Endpoint[];
   const scope = scopeRaw as GenerationScope;
   const active = (raw.active ?? null) as Endpoint | null;
-  const userInstruction =
-    typeof raw.userInstruction === "string" ? raw.userInstruction.trim() : "";
+  const userInstruction = sanitizeUserText(
+    raw.userInstruction,
+    AI_INPUT_LIMITS.testCaseInstruction,
+  );
 
   if (endpoints.length === 0) {
-    return Response.json({ error: "No endpoints in scope" }, { status: 400 });
+    return aiErrorResponse(req, 400, "No endpoints in scope", "AI_BAD_INPUT");
+  }
+
+  if (userInstruction) {
+    const verdict = classifyAiRequest(userInstruction, { hasEndpoint: true });
+    if (!verdict.allowed) {
+      return aiErrorResponse(req, 422, verdict.message, "AI_OFF_TOPIC");
+    }
   }
 
   const prompt = buildTestCasesPrompt(
@@ -60,12 +90,14 @@ export async function POST(req: Request) {
     userInstruction || undefined,
   );
 
+  const gate = consumeAiQuota(req);
+  if (!gate.ok) return gate.response;
+
   try {
     const res = await ai.generateJSON(
       {
         capability: "structured",
-        system:
-          'You are a QA engineer. Reply with ONLY one valid JSON array (RFC 8259). No markdown fences or commentary. Every string must escape " and \\\\; no raw newlines inside strings; no trailing commas. Each array item MUST include string fields id, type (only "valid", "invalid", or "edge"), description, reason; number field expectedStatus; and key payload (object or null).',
+        system: TEST_CASES_SYSTEM,
         prompt,
         temperature: 0.15,
         maxOutputTokens: 4096,
@@ -74,7 +106,10 @@ export async function POST(req: Request) {
       (txt) => parseTestCasesFromModelText(txt as string),
     );
 
-    const headers = new Headers({ "Content-Type": "application/json; charset=utf-8" });
+    const headers = applyAiUsageHeaders(
+      new Headers({ "Content-Type": "application/json; charset=utf-8" }),
+      gate.usage,
+    );
     applyAIResponseHeaders(headers, {
       usage: res.usage,
       model: res.model,
@@ -83,14 +118,14 @@ export async function POST(req: Request) {
     });
     return new Response(JSON.stringify({ testCases: res.data }), { status: 200, headers });
   } catch (e) {
-    const msg = getAIErrorMessage(e);
-    const status = isAIRateLimitError(e) ? 429 : 422;
+    const msg = e instanceof Error ? e.message : "";
     const hint =
       msg.includes("No output") ||
       msg.includes("No content") ||
       msg.includes("NoContentGenerated")
         ? " Try **Endpoint** level first; ensure schemas are not larger than your model context."
         : "";
-    return Response.json({ error: `${msg}${hint}` }, { status });
+    // Non-upstream failures here are unparseable model output: keep the historical 422.
+    return aiUpstreamErrorResponse(req, e, gate.usage, { fallbackStatus: 422, hint });
   }
 }

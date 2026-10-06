@@ -1,0 +1,225 @@
+/* Shared report primitives for the Roast pages: sections, pills, method tags, buttons. */
+
+.section {
+  padding-top: var(--space-12);
+  scroll-margin-top: calc(var(--header-h) + var(--subnav-h, 48px) + var(--space-4));
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-4);
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(1.25rem, 1.05rem + 0.7vw, 1.6rem);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+  color: var(--color-on-surface);
+  text-wrap: balance;
+}
+
+/* Right-aligned muted meta line; wraps under the title on narrow widths. */
+.lede {
+  min-width: 0;
+  max-width: 52ch;
+  margin: 0 0 0 auto;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: left;
+  color: var(--color-on-surface-subtle);
+}
+
+@media (max-width: 639px) {
+  .lede {
+    max-width: none;
+    margin-left: 0;
+  }
+}
+
+/* —— Pills —— */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-xs);
+  background: var(--color-surface-container-low);
+  color: var(--color-on-surface-variant);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.pill::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.ok {
+  border-color: color-mix(in srgb, var(--color-method-get) 28%, transparent);
+  background: color-mix(in srgb, var(--color-method-get) 9%, transparent);
+  color: var(--color-method-get);
+}
+
+.warn {
+  border-color: color-mix(in srgb, var(--color-method-put-patch) 32%, transparent);
+  background: color-mix(in srgb, var(--color-method-put-patch) 10%, transparent);
+  color: var(--color-method-put-patch);
+}
+
+.bad {
+  border-color: color-mix(in srgb, var(--color-error) 28%, transparent);
+  background: color-mix(in srgb, var(--color-error) 8%, transparent);
+  color: var(--color-error);
+}
+
+/* —— HTTP method tag —— */
+.method {
+  display: inline-block;
+  min-width: 52px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--color-method-options);
+}
+
+.method_get { color: var(--color-method-get); }
+.method_post { color: var(--color-method-post); }
+.method_put { color: var(--color-method-put); }
+.method_patch { color: var(--color-method-patch); }
+.method_delete { color: var(--color-method-delete); }
+.method_head { color: var(--color-method-head); }
+
+.path {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--color-on-surface);
+  overflow-wrap: anywhere;
+}
+
+/* —— Buttons —— */
+.btn,
+.btnSecondary,
+.btnGhost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.btn {
+  background: var(--gradient-roast);
+  color: var(--color-on-roast-heat);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.3) inset, 0 6px 18px -8px color-mix(in srgb, var(--color-roast-heat) 70%, transparent);
+}
+
+.btn:hover {
+  filter: brightness(1.06);
+}
+
+.btnSecondary {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-container);
+  color: var(--color-on-surface);
+  font-weight: 600;
+}
+
+.btnSecondary:hover {
+  border-color: var(--color-roast-heat);
+  color: var(--color-roast-heat-text);
+}
+
+.btnGhost {
+  height: 32px;
+  padding: 0 10px;
+  background: transparent;
+  color: var(--color-on-surface-variant);
+}
+
+.btnGhost:hover {
+  background: var(--color-interactive-hover);
+  color: var(--color-on-surface);
+}
+
+.btn:focus-visible,
+.btnSecondary:focus-visible,
+.btnGhost:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.btn:disabled,
+.btnSecondary:disabled,
+.btnGhost:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* —— Meter: a track with a transform-scaled fill —— */
+.meter {
+  position: relative;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-surface-container-high);
+}
+
+.meterFill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--color-on-surface-subtle);
+  transform-origin: left center;
+  transition: transform 900ms var(--ease-out);
+}
+
+.meterFill[data-grow] {
+  transition: none;
+}
+
+.meterFill.ok { background: var(--color-method-get); }
+.meterFill.warn { background: var(--color-method-put-patch); }
+.meterFill.bad { background: var(--color-error); }
+.meterFill.accent { background: var(--color-primary); }
+
+@media (prefers-reduced-motion: reduce) {
+  .meterFill {
+    transition: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .btn,
+  .btnSecondary,
+  .btnGhost {
+    height: 40px;
+  }
+}

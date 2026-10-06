@@ -5,10 +5,12 @@ import { createComparisonMetadata } from "@/lib/seo/metadata";
 import { generateBreadcrumbJsonLd, generateFaqJsonLd } from "@/lib/seo/jsonld";
 import LandingHeader from "@/components/sections/LandingHeader/LandingHeader";
 import LandingFooter from "@/components/sections/LandingFooter/LandingFooter";
-import Breadcrumbs from "@/components/content/Breadcrumbs";
+import ArticleHero from "@/components/content/ArticleHero";
 import ArticleCTA from "@/components/content/ArticleCTA";
 import FAQSection from "@/components/content/FAQSection";
 import ShareButtons from "@/components/content/ShareButtons";
+import MetaRow from "@/components/content/MetaRow";
+import { formatDate } from "@/components/content/labels";
 import styles from "@/components/content/content.module.css";
 
 
@@ -57,34 +59,45 @@ export default function ComparisonDetailPage({
         />
       )}
       <LandingHeader minimal />
-      <main className={styles.container}>
-        <Breadcrumbs
-          items={[
+      <ArticleHero
+        breadcrumbs={[
             { label: "Compare", href: "/compare" },
             { label: comparison.title, href: `/compare/${comparison.slug}` },
           ]}
-        />
-        <header className={styles.header}>
-          <span className={styles.categoryBadge}>FEATURE COMPARISON</span>
-          <h1 className={styles.title}>{comparison.title}</h1>
-          <p className={styles.description}>{comparison.description}</p>
-        </header>
+        title={<>{comparison.title}</>}
+        description={<>{comparison.description}</>}
+        meta={
+          <MetaRow
+            items={[
+              "Comparison",
+              `APIForge vs ${comparison.competitorName}`,
+              <>
+                {comparison.updatedAt && comparison.updatedAt !== comparison.publishedAt ? "Updated " : "Published "}
+                <time dateTime={comparison.updatedAt ?? comparison.publishedAt}>
+                  {formatDate(comparison.updatedAt ?? comparison.publishedAt)}
+                </time>
+              </>,
+            ]}
+          />
+        }
+      />
+      <main className={`${styles.container} ${styles.containerAfterHero}`}>
 
         <section className={styles.articleBody}>
-          <div className={`${styles.callout} ${styles.callout_info}`}>
-            <h3 className={styles.calloutTitle}>Verdict Summary</h3>
-            <p className={styles.calloutText}>{comparison.verdict}</p>
-          </div>
+          <aside className={styles.answerFirst} aria-label="Verdict">
+            <p className={styles.answerLabel}>Verdict</p>
+            <p className={styles.answerText}>{comparison.verdict}</p>
+          </aside>
 
-          <h2 className={styles.heading2}>Capability Breakdown</h2>
-          <div className={styles.tableWrapper}>
+          <h2 className={styles.heading2}>Capability breakdown</h2>
+          <div className={styles.tableWrapper} tabIndex={0} role="region" aria-label="Capability breakdown">
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>Capability</th>
-                  <th>APIForge</th>
-                  <th>{comparison.competitorName}</th>
-                  <th>Notes</th>
+                  <th scope="col">Capability</th>
+                  <th scope="col">APIForge</th>
+                  <th scope="col">{comparison.competitorName}</th>
+                  <th scope="col">Notes</th>
                 </tr>
               </thead>
               <tbody>
@@ -104,12 +117,12 @@ export default function ComparisonDetailPage({
             <div key={idx}>
               <h2 className={styles.heading2}>{section.title}</h2>
               <p className={styles.paragraph}>{section.description}</p>
-              <div className={styles.tableWrapper}>
+              <div className={styles.tableWrapper} tabIndex={0} role="region" aria-label={section.title}>
                 <table className={styles.table}>
                   <thead>
                     <tr>
-                      <th>APIForge Approach</th>
-                      <th>{comparison.competitorName} Approach</th>
+                      <th scope="col">APIForge approach</th>
+                      <th scope="col">{comparison.competitorName} approach</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -126,7 +139,7 @@ export default function ComparisonDetailPage({
 
         <ArticleCTA
           title="Try APIForge directly in your browser"
-          buttonText="Explore APIForge Workbench"
+          buttonText="Open workspace"
           href="/api-score"
         />
 

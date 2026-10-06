@@ -1,0 +1,89 @@
+.banner {
+  --banner-accent: var(--color-primary);
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px var(--space-3) 8px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--banner-accent) 5%, transparent);
+}
+
+.low {
+  --banner-accent: var(--color-method-put-patch);
+  border-color: color-mix(in srgb, var(--banner-accent) 40%, transparent);
+  background: color-mix(in srgb, var(--banner-accent) 9%, transparent);
+}
+
+.out {
+  --banner-accent: var(--color-error);
+  border-color: var(--color-error-surface-border);
+  background: var(--color-error-surface-bg);
+}
+
+.row {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px var(--space-3);
+}
+
+.text {
+  margin: 0;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-on-surface-variant);
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--color-on-surface);
+}
+
+.link {
+  flex-shrink: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+}
+
+.link:hover {
+  text-decoration-thickness: 2px;
+}
+
+.track {
+  height: 3px;
+  overflow: hidden;
+  border-radius: var(--radius-xs);
+  background: color-mix(in srgb, var(--color-on-surface) 12%, transparent);
+}
+
+.fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--banner-accent);
+  transition: width 0.4s var(--ease-out);
+}
+
+@media (max-width: 639px) {
+  .link {
+    display: inline-flex;
+    min-height: 24px;
+    align-items: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fill {
+    transition: none;
+  }
+}

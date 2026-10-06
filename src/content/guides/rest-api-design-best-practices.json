@@ -1,136 +1,350 @@
 {
   "slug": "rest-api-design-best-practices",
-  "title": "REST API Design Best Practices: Architectural Blueprints & Standards (2026)",
-  "description": "Comprehensive design guide for building developer-friendly, scalable, and secure RESTful web APIs using standard HTTP semantics, RFC guidelines, and OpenAPI schemas.",
-  "excerpt": "Architectural guidelines for REST API URI design, HTTP verbs, payload modeling, pagination standards, and status code selection.",
+  "title": "REST API Design Best Practices: Resources and Methods",
+  "description": "REST API design best practices for modeling resources, choosing HTTP methods, safe retries, and success codes, with a sample API scored before and after.",
+  "excerpt": "Model nouns, let the HTTP method carry the action, and design every write for retries. A sample API goes from 55.3 to 100.",
   "category": "api-design",
+  "cluster": "rest-api",
+  "primaryKeyword": "rest api design best practices",
+  "keywords": [
+    "rest resource modeling",
+    "http method semantics",
+    "idempotent http methods",
+    "put vs patch",
+    "idempotency key"
+  ],
   "tags": [
     "REST API",
     "API Design",
     "HTTP Semantics",
-    "OpenAPI",
-    "API Architecture",
-    "Developer Experience"
-  ],
-  "keywords": [
-    "rest api design best practices",
-    "restful api guidelines",
-    "http status code selection",
-    "api pagination standards",
-    "rest api architecture"
+    "Idempotency"
   ],
   "author": "rishab",
   "publishedAt": "2026-09-26",
-  "updatedAt": "2026-09-26",
-  "readingTime": "12 min read",
+  "updatedAt": "2026-10-04",
   "featured": true,
   "content": [
     {
       "type": "paragraph",
-      "text": "Designing a modern REST API requires balancing developer experience, consistency, backward compatibility, and system performance. Following established web standards guarantees that client integrators can intuitively predict API behavior without constantly consulting documentation."
+      "text": "REST API design best practices come down to a few decisions you make for every endpoint. Model the domain as resources named with nouns, such as /v1/books and /v1/loans, and let the HTTP method say what happens to them. Use each method the way RFC 9110 defines it: GET reads without side effects, PUT replaces, DELETE removes, POST creates or processes. Design every write so a client can retry it safely after a timeout. Return a status code that tells the client what happened without reading the body. Naming, versioning, and pagination follow from those choices and have their own guides, linked below."
     },
     {
       "type": "heading",
       "level": 2,
-      "text": "1. Adhere Strictly to HTTP Method Semantics",
-      "id": "http-methods"
+      "text": "Model resources, not actions",
+      "id": "resources"
     },
     {
       "type": "paragraph",
-      "text": "HTTP verbs communicate action intent. RFC 9110 cleanly defines safe, idempotent, and state-modifying operations:"
-    },
-    {
-      "type": "table",
-      "headers": ["Method", "Safety", "Idempotence", "Primary Target Use Case"],
-      "rows": [
-        ["GET", "Safe (No state change)", "Idempotent", "Fetch resource representations or collections."],
-        ["POST", "Unsafe (Mutates state)", "Non-Idempotent", "Create new resources, trigger complex operations."],
-        ["PUT", "Unsafe (Mutates state)", "Idempotent", "Full resource replacement or create with client ID."],
-        ["PATCH", "Unsafe (Mutates state)", "Non-Idempotent", "Apply delta modifications to target resource."],
-        ["DELETE", "Unsafe (Mutates state)", "Idempotent", "Remove specified resource from state store."]
-      ],
-      "caption": "HTTP Method Semantics Matrix"
-    },
-    {
-      "type": "heading",
-      "level": 2,
-      "text": "2. Utilize Proper HTTP Status Codes",
-      "id": "status-codes"
-    },
-    {
-      "type": "paragraph",
-      "text": "Never return a 200 OK status code with an inline status: 'error' payload. Choose precise status codes to convey execution results:"
+      "text": "A resource is anything a client can name and act on: a book, a member, a loan, an export job. Each one gets two URL shapes, a collection such as /v1/books and an item such as /v1/books/{id}. The set of operations then falls out of the methods: list, create, read, replace, update, delete. When you catch yourself writing a verb into a path, like /book/create or /books/{id}/lend, there is usually a noun hiding in the verb."
     },
     {
       "type": "list",
       "ordered": false,
       "items": [
-        "200 OK: Successful GET, PUT, or PATCH call returning data.",
-        "201 Created: Successful POST creation, returning Location header pointing to new resource URI.",
-        "202 Accepted: Asynchronous job processing initiated; returns status poll location.",
-        "204 No Content: Successful DELETE or action returning no body.",
-        "400 Bad Request: Malformed JSON syntax or schema validation failure.",
-        "401 Unauthorized: Missing or invalid authentication credential (JWT/API key).",
-        "403 Forbidden: Authenticated identity lacks required scope or permissions.",
-        "404 Not Found: Requested resource URI does not exist.",
-        "409 Conflict: State collision (e.g., duplicate unique constraint or optimistic locking error).",
-        "422 Unprocessable Entity: Valid JSON syntax but semantic business rule violation.",
-        "429 Too Many Requests: Rate limit quota exceeded; include Retry-After header."
+        "Turn actions into resources. Lending a book creates a loan, so POST /v1/loans with the book and member IDs in the body. Returning it updates the loan: PATCH /v1/loans/{id} with a returnedAt timestamp. The loan now has its own history, permissions, and URL.",
+        "Turn long-running work into a job resource. POST /v1/exports returns 202 Accepted with a Location pointing to /v1/exports/{id}, which the client polls until the status is done.",
+        "Nest only to show ownership, and only one level. /v1/members/{id}/loans reads well. /branches/{branchId}/shelves/{shelfId}/books/{id}/loans forces the client to know three IDs to reach one loan, and breaks the day a book moves shelves. Give every resource a top-level URL by its own ID and use nesting or query filters for the views.",
+        "Keep a resource's shape the same everywhere it appears. If a book embedded in a loan has different field names from GET /v1/books/{id}, clients need two models for one thing."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Some operations do not map to create, read, update, or delete, such as sending a password reset email or recalculating a quote. A sub-resource that records the action, POST /v1/password-resets, usually reads better than a verb segment and gives you a place to return status. If no noun fits, a single controller-style POST endpoint is acceptable; document it clearly and keep it rare."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Use each HTTP method for its defined meaning",
+      "id": "methods"
+    },
+    {
+      "type": "paragraph",
+      "text": "HTTP clients, caches, proxies, and crawlers make decisions from the method alone. RFC 9110 defines a method as safe when the client does not request any state change, and idempotent when sending the same request several times has the same intended effect on the server as sending it once. PATCH is defined separately in RFC 5789, which states that PATCH is neither safe nor idempotent."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Method",
+        "Safe",
+        "Idempotent",
+        "Use it for"
+      ],
+      "rows": [
+        [
+          "GET",
+          "Yes",
+          "Yes",
+          "Read a resource or a collection. Filters go in the query string."
+        ],
+        [
+          "HEAD",
+          "Yes",
+          "Yes",
+          "Same as GET without a body, for checking existence or headers."
+        ],
+        [
+          "POST",
+          "No",
+          "No",
+          "Create a resource in a collection, or ask a resource to process something."
+        ],
+        [
+          "PUT",
+          "No",
+          "Yes",
+          "Replace the whole resource with the request body, or create it at a URL the client chose."
+        ],
+        [
+          "PATCH",
+          "No",
+          "No (can be made so)",
+          "Change some fields of a resource."
+        ],
+        [
+          "DELETE",
+          "No",
+          "Yes",
+          "Remove the resource. A second DELETE has no further effect, even if it returns 404."
+        ]
+      ],
+      "caption": "Safe and idempotent properties from RFC 9110 section 9.2; PATCH from RFC 5789."
+    },
+    {
+      "type": "paragraph",
+      "text": "A GET request with a JSON body is the most common method mistake. RFC 9110 says content in a GET request has no generally defined semantics and might lead some implementations to reject the request, and it tells clients not to send it unless the origin server has said it accepts one. Put filters in query parameters. If a search query is too large or too sensitive for a URL, make it a POST to a search resource, such as POST /v1/book-searches, and accept that it is not cacheable."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "PUT or PATCH",
+      "id": "put-vs-patch"
+    },
+    {
+      "type": "paragraph",
+      "text": "PUT sends the complete new state, and the server replaces what it had. Any field the client leaves out is gone or reset, so a client must read the resource first and send it all back. PATCH sends instructions for a change. With JSON Merge Patch (RFC 7396, application/merge-patch+json) the body is a partial object: fields you omit stay as they are, and a field set to null is removed. Offer PATCH for normal edits, because clients rarely hold the full resource and two clients editing different fields would otherwise overwrite each other. Offer PUT when the client owns the whole document, such as a settings object or a file at a known path."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Design every write for retries",
+      "id": "retries"
+    },
+    {
+      "type": "paragraph",
+      "text": "Networks fail after the server has done the work but before the client sees the response. The client then has to guess whether to send the request again. RFC 9110 notes that idempotent requests can be repeated automatically when a communication failure occurs before the client reads the response, so automatic retry logic in clients and gateways should stay limited to idempotent methods. A design that is safe to retry saves you from duplicate orders and double charges. The [idempotency glossary entry](/glossary/idempotency) has a short definition you can share with your team."
+    },
+    {
+      "type": "steps",
+      "title": "Make each write method safe to repeat",
+      "steps": [
+        {
+          "title": "PUT and DELETE",
+          "description": "Keep them idempotent in your implementation. A PUT that also appends an audit row is fine, since RFC 9110 allows side effects such as logging. A PUT that increments a counter is not."
+        },
+        {
+          "title": "POST",
+          "description": "Accept a client-generated key in a request header, commonly named Idempotency-Key. Store the key with the response for a fixed period. When the same key arrives again, return the stored response instead of creating a second resource. Reject a reused key that comes with a different body."
+        },
+        {
+          "title": "PATCH",
+          "description": "RFC 5789 recommends conditional requests: the client sends the ETag it last saw in If-Match, and the server applies the patch only if the resource has not changed. A stale ETag gets 412 Precondition Failed, which also stops two editors from silently overwriting each other."
+        },
+        {
+          "title": "Client-chosen IDs",
+          "description": "If the client can generate the ID, PUT /v1/books/{id} becomes an idempotent create. Sending it twice leaves one book."
+        }
       ]
     },
     {
       "type": "heading",
       "level": 2,
-      "text": "3. Standardize Naming Conventions & Case Sensitivity",
-      "id": "naming-conventions"
+      "text": "Return status codes that match the method",
+      "id": "status-codes"
     },
     {
       "type": "paragraph",
-      "text": "Enforce strict consistency across URIs, query parameters, headers, and payload keys. Mixing camelCase and snake_case creates friction for SDK generators and typescript clients."
-    },
-    {
-      "type": "code",
-      "language": "json",
-      "filename": "canonical-user-payload.json",
-      "code": "{\n  \"id\": \"usr_8492049281\",\n  \"firstName\": \"Alex\",\n  \"lastName\": \"Morgan\",\n  \"emailAddress\": \"alex.morgan@example.com\",\n  \"accountStatus\": \"active\",\n  \"createdAt\": \"2026-09-26T18:30:00Z\"\n}"
+      "text": "Success codes carry information too. Use 200 for a GET, PUT, or PATCH that returns the resource. Use 201 when a POST creates something; RFC 9110 says the server SHOULD send a Location header that identifies the new resource. Use 202 when work is accepted but not finished, with a URL to poll. Use 204 when there is nothing to return, such as a DELETE. Never send 200 with an error object inside: monitoring will count the failure as a success. Error codes, the 400 versus 422 question, and the problem details body format are covered in [REST API error handling](/guides/rest-api-error-handling), and every code is listed in the [HTTP status codes reference](/reference/http-status-codes-reference)."
     },
     {
       "type": "heading",
       "level": 2,
-      "text": "4. Enforce Filtering, Sorting, and Cursor Pagination",
-      "id": "pagination"
+      "text": "Naming, versioning, and pagination in brief",
+      "id": "conventions"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Naming: plural nouns for collections, lowercase kebab-case for multi-word segments such as /v1/book-searches, and one casing for JSON fields across the whole API. The [API naming conventions guide](/guides/api-naming-conventions) covers paths, fields, query parameters, and headers.",
+        "Versioning: decide before launch where the major version lives, in the path as /v1 or in a header, and what counts as a breaking change. The [API versioning guide](/guides/api-versioning-best-practices) compares the options.",
+        "Pagination: never return an unbounded collection. Pick offset or cursor pagination before the first list endpoint ships, because changing it later breaks every client. The [pagination guide](/guides/api-pagination-best-practices) explains the trade-offs."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Worked example: a library API, scored before and after",
+      "id": "worked-example"
     },
     {
       "type": "paragraph",
-      "text": "Collection endpoints must never return unbounded arrays. For high-volume collections, prefer cursor-based pagination over offset-limit to avoid database performance penalties and drift during writes."
+      "text": "Here is a small library API written the way many first versions are: verbs in paths, a GET with a body, a delete done with POST, singular and plural mixed, and loans buried under branches and shelves."
     },
     {
-      "type": "code",
+      "type": "badExample",
+      "title": "Before: actions in paths, no versioning, no error responses",
       "language": "yaml",
-      "filename": "cursor-pagination.yaml",
-      "code": "/v1/audit-logs:\n  get:\n    summary: Retrieve paginated audit logs\n    parameters:\n      - name: limit\n        in: query\n        schema:\n          type: integer\n          default: 25\n          maximum: 100\n      - name: startingAfter\n        in: query\n        description: Cursor for pagination (ID of last item in previous page)\n        schema:\n          type: string"
+      "code": "openapi: 3.0.3\ninfo:\n  title: Library API\n  version: 1.0.0\npaths:\n  /getBooks:\n    get:\n      summary: List books\n      requestBody:\n        content:\n          application/json:\n            schema:\n              type: object\n              properties:\n                author: { type: string }\n      responses:\n        \"200\":\n          description: Books\n  /book/create:\n    post:\n      summary: Add a book\n      responses:\n        \"200\":\n          description: Created\n  /books/{id}:\n    get:\n      summary: Get a book\n      parameters:\n        - name: id\n          in: path\n          required: true\n          schema: { type: string }\n      responses:\n        \"200\":\n          description: The book\n  /book/delete/{id}:\n    post:\n      summary: Delete a book\n      parameters:\n        - name: id\n          in: path\n          required: true\n          schema: { type: string }\n      responses:\n        \"200\":\n          description: Deleted\n  /branches/{branchId}/shelves/{shelfId}/books/{id}/loans:\n    post:\n      summary: Lend a book\n      parameters:\n        - { name: branchId, in: path, required: true, schema: { type: string } }\n        - { name: shelfId, in: path, required: true, schema: { type: string } }\n        - { name: id, in: path, required: true, schema: { type: string } }\n      responses:\n        \"200\":\n          description: Loan recorded",
+      "explanation": "APIForge scored this spec 55.3 out of 100 and reported 15 issues."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Category",
+        "Before",
+        "After",
+        "What the score flagged"
+      ],
+      "rows": [
+        [
+          "Naming (max 20)",
+          "12",
+          "20",
+          "Verb segments create and delete; camelCase in /getBooks and in the deep loans path"
+        ],
+        [
+          "HTTP (max 20)",
+          "12.4",
+          "20",
+          "GET /getBooks carries a request body; action verbs in two paths"
+        ],
+        [
+          "Structure (max 15)",
+          "12.4",
+          "15",
+          "The loans path is nested 7 segments deep"
+        ],
+        [
+          "Consistency (max 15)",
+          "7.5",
+          "15",
+          "Both book and books appear as path segments"
+        ],
+        [
+          "Versioning (max 10)",
+          "1",
+          "10",
+          "No /v1 or other version segment"
+        ],
+        [
+          "Error handling (max 10)",
+          "0",
+          "10",
+          "None of the five operations documents a 4xx or default response"
+        ],
+        [
+          "Documentation (max 10)",
+          "10",
+          "10",
+          "Every operation already had a summary"
+        ],
+        [
+          "Total",
+          "55.3",
+          "100",
+          ""
+        ]
+      ],
+      "caption": "Output of npm run content:score on both files, which runs APIForge's deterministic scoring engine."
+    },
+    {
+      "type": "goodExample",
+      "title": "After: resources, methods, versioning, and documented failures",
+      "language": "yaml",
+      "code": "openapi: 3.0.3\ninfo:\n  title: Library API\n  version: 1.0.0\npaths:\n  /v1/books:\n    get:\n      summary: List books, optionally filtered by author\n      parameters:\n        - name: author\n          in: query\n          schema: { type: string }\n      responses:\n        \"200\":\n          description: A page of books\n        \"400\":\n          description: Invalid filter value\n    post:\n      summary: Add a book\n      responses:\n        \"201\":\n          description: Created. The Location header holds the new book URL.\n        \"409\":\n          description: A book with this ISBN already exists\n        \"422\":\n          description: The ISBN checksum is wrong\n  /v1/books/{id}:\n    parameters:\n      - name: id\n        in: path\n        required: true\n        schema: { type: string }\n    get:\n      summary: Get a book\n      responses:\n        \"200\":\n          description: The book\n        \"404\":\n          description: No book with this id\n    delete:\n      summary: Remove a book\n      responses:\n        \"204\":\n          description: Removed\n        \"404\":\n          description: No book with this id\n  /v1/loans:\n    post:\n      summary: Lend a book to a member\n      responses:\n        \"201\":\n          description: Loan created\n        \"409\":\n          description: The book is already on loan\n        \"422\":\n          description: The member has reached the loan limit",
+      "explanation": "The author filter moved to a query parameter, creation became POST on the collection, deletion became DELETE on the item, and lending became a loans resource. The same spec scored 100."
+    },
+    {
+      "type": "paragraph",
+      "text": "The score flagged /getBooks for camelCase rather than for a verb, because it matches verbs only as whole segments; renaming it to /get-books would clear the casing issue and still be wrong. The score also cannot see several fixes in the after version: switching the create response from 200 to 201, using 204 for DELETE, and choosing 409 versus 422 earn no points, and it has no view of idempotency at all. Treat 100 as the floor for a design review, then check methods, success codes, and retry behavior by hand."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "A design review before you ship",
+      "id": "review"
+    },
+    {
+      "type": "list",
+      "ordered": true,
+      "items": [
+        "Every path is a noun, and every action that needs a verb has become a resource or a documented exception.",
+        "No resource is nested more than one level, and every resource has a URL of its own.",
+        "GET and HEAD change nothing and carry no body. PUT and DELETE are idempotent in the implementation, not only on paper.",
+        "Every POST that creates something accepts an idempotency key, and every PATCH supports If-Match.",
+        "Each operation documents its success code and at least the error codes a client must handle.",
+        "Collections are paginated, the major version is visible, and naming is consistent across paths and fields."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Paste your spec into the [API quality score](/api-score) to get the same seven-category breakdown for your own API, then run a few of the changed endpoints in the [API testing workbench](/api-testing) to confirm the server returns the codes the spec now promises."
     },
     {
       "type": "tool",
       "tool": "api-score",
-      "title": "Evaluate Your REST API Quality",
-      "description": "Benchmark your REST API against industry standards for URI structure, HTTP verb usage, error schemas, and response consistency.",
-      "buttonText": "Check REST API Score",
+      "title": "Score your REST API design",
+      "description": "Get a 0-100 score across naming, HTTP methods, structure, consistency, versioning, error handling, and documentation, with each issue listed by operation.",
+      "buttonText": "Score my API",
       "href": "/api-score"
+    },
+    {
+      "type": "relatedContent",
+      "slugs": [
+        "api-naming-conventions",
+        "api-versioning-best-practices",
+        "api-pagination-best-practices",
+        "rest-api-error-handling"
+      ]
+    },
+    {
+      "type": "externalReference",
+      "title": "RFC 9110: HTTP Semantics, section 9 (Methods)",
+      "url": "https://www.rfc-editor.org/rfc/rfc9110.html#name-methods",
+      "source": "IETF"
+    },
+    {
+      "type": "externalReference",
+      "title": "RFC 5789: PATCH Method for HTTP",
+      "url": "https://www.rfc-editor.org/rfc/rfc5789.html",
+      "source": "IETF"
+    },
+    {
+      "type": "externalReference",
+      "title": "RFC 7396: JSON Merge Patch",
+      "url": "https://www.rfc-editor.org/rfc/rfc7396.html",
+      "source": "IETF"
+    },
+    {
+      "type": "externalReference",
+      "title": "RFC 9110: 201 Created and the Location header (POST, section 9.3.3)",
+      "url": "https://www.rfc-editor.org/rfc/rfc9110.html#name-post",
+      "source": "IETF"
     }
   ],
   "faqs": [
     {
-      "question": "Should I use camelCase or snake_case for REST API JSON keys?",
-      "answer": "Both are acceptable, but camelCase is preferred in JavaScript/TypeScript ecosystems. The key requirement is 100% strict consistency throughout all request and response bodies."
+      "question": "Is PATCH idempotent?",
+      "answer": "Not by definition. RFC 5789 says PATCH is neither safe nor idempotent, because a patch such as add 1 to the counter changes the result each time. You can make a PATCH safe to retry by requiring If-Match with an ETag, so a repeated request fails with 412 instead of applying twice."
     },
     {
-      "question": "When should I use PUT versus PATCH?",
-      "answer": "Use PUT when replacing the entire resource payload (omitted fields are set to null/default). Use PATCH to apply partial updates where omitted fields remain untouched."
+      "question": "Should I ever put a verb in a REST URL?",
+      "answer": "Rarely. Most actions become resources: lending a book creates a loan, and starting an export creates an export job. When no noun fits, a single POST endpoint for that action is acceptable if you document it and keep such endpoints few."
     },
     {
-      "question": "Why is cursor pagination better than page offset pagination?",
-      "answer": "Cursor pagination performs SQL queries using indexed WHERE id > cursor conditions (O(1) complexity), avoiding expensive OFFSET skips (O(N) complexity) and preventing missed or duplicated items when records are inserted concurrently."
+      "question": "What is the difference between safe and idempotent methods?",
+      "answer": "A safe method, such as GET or HEAD, does not ask the server to change anything. An idempotent method can change state, but repeating it has the same intended effect as sending it once, so PUT and DELETE are idempotent without being safe. All safe methods are also idempotent."
     }
   ]
 }

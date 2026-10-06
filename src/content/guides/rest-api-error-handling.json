@@ -1,82 +1,343 @@
 {
   "slug": "rest-api-error-handling",
-  "title": "REST API Error Handling: RFC 7807 Implementation Guide (2026)",
-  "description": "Design clean, machine-readable HTTP error objects using RFC 7807 Problem Details format. Includes OpenAPI schemas and code samples across languages.",
-  "excerpt": "A deep dive into RFC 7807 Problem Details specification for modeling standardized REST API error payloads.",
+  "title": "REST API Error Handling: Status Codes and Problem Details",
+  "description": "REST API error handling that clients can parse: choose the right 4xx or 5xx status code, return RFC 9457 problem details, and document each error.",
+  "excerpt": "Pick the status code first, then return one problem details body that clients can branch on. Worked example with a scored spec.",
   "category": "api-design",
+  "cluster": "api-errors",
+  "primaryKeyword": "rest api error handling",
+  "keywords": [
+    "rfc 9457 problem details",
+    "application/problem+json",
+    "400 vs 422",
+    "401 vs 403",
+    "http error response format"
+  ],
   "tags": [
     "Error Handling",
-    "RFC 7807",
-    "REST API",
-    "OpenAPI",
-    "JSON Schema"
-  ],
-  "keywords": [
-    "rfc 7807 problem details",
-    "rest api error handling best practices",
-    "http error response schema",
-    "openapi error modeling"
+    "RFC 9457",
+    "HTTP Status Codes",
+    "REST API"
   ],
   "author": "rishab",
   "publishedAt": "2026-09-26",
-  "updatedAt": "2026-09-26",
-  "readingTime": "9 min read",
-  "featured": false,
+  "updatedAt": "2026-10-04",
   "content": [
     {
       "type": "paragraph",
-      "text": "Inconsistent error payloads frustrate API developers and increase client-side error handling boilerplate. Standardizing error structures using RFC 7807 (Problem Details for HTTP APIs) ensures every error response is machine-parsable and self-describing."
+      "text": "Good REST API error handling comes down to two decisions made in order. First, pick the HTTP status code that matches what went wrong, because clients, proxies, and retry logic read the status line before anything else. Second, return the details in one predictable body format, and the format with a standard behind it is problem details from RFC 9457, sent as application/problem+json. A client should be able to decide what to do from the status code alone, then use the body's type URI to tell one 422 from another and show the detail text to a person."
     },
     {
       "type": "heading",
       "level": 2,
-      "text": "1. Core RFC 7807 Attributes",
-      "id": "rfc7807-attributes"
+      "text": "Choose the status code first",
+      "id": "status-code"
     },
     {
       "type": "paragraph",
-      "text": "RFC 7807 establishes five standard top-level JSON fields for all API error responses:"
+      "text": "The status code is the part of an error that every piece of HTTP software understands. A load balancer counts 5xx responses, a browser surfaces a 401 challenge, and an HTTP client library retries some failures and not others. If the code is wrong, a perfect error body cannot fix it. The table covers the client and server errors a typical JSON API returns. For the full list of codes and their names, see the [HTTP status codes reference](/reference/http-status-codes-reference) and the [status code glossary entry](/glossary/http-status-code)."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Situation",
+        "Status",
+        "What the spec requires or suggests"
+      ],
+      "rows": [
+        [
+          "Body is not valid JSON, or a required query parameter is missing",
+          "400 Bad Request",
+          "Generic client error; the server will not process the request"
+        ],
+        [
+          "No credentials, or the token is expired or invalid",
+          "401 Unauthorized",
+          "RFC 9110: the server MUST send a WWW-Authenticate header with at least one challenge"
+        ],
+        [
+          "Valid credentials, but this caller may not do this",
+          "403 Forbidden",
+          "The client should not retry with the same credentials"
+        ],
+        [
+          "The resource does not exist, or you do not want to reveal that it exists",
+          "404 Not Found",
+          "RFC 9110 allows 404 instead of 403 to hide a forbidden resource"
+        ],
+        [
+          "The path exists but not for this method",
+          "405 Method Not Allowed",
+          "The server MUST send an Allow header listing the supported methods"
+        ],
+        [
+          "Duplicate unique value, or the resource changed state underneath the request",
+          "409 Conflict",
+          "The body SHOULD explain enough for the user to resolve the conflict"
+        ],
+        [
+          "If-Match or another precondition failed",
+          "412 Precondition Failed",
+          "Used with ETags to stop lost updates"
+        ],
+        [
+          "Content-Type the endpoint does not accept",
+          "415 Unsupported Media Type",
+          "Send this before trying to parse the body"
+        ],
+        [
+          "Well-formed JSON that breaks a business or validation rule",
+          "422 Unprocessable Content",
+          "Syntax and media type are fine; the instructions cannot be processed"
+        ],
+        [
+          "Rate limit exceeded",
+          "429 Too Many Requests",
+          "RFC 6585: MAY include Retry-After; the response MUST NOT be cached"
+        ],
+        [
+          "Unhandled exception in your code",
+          "500 Internal Server Error",
+          "Log the cause; return a generic message"
+        ],
+        [
+          "Overload or planned maintenance",
+          "503 Service Unavailable",
+          "MAY include Retry-After"
+        ]
+      ],
+      "caption": "Requirements quoted from RFC 9110 unless another RFC is named."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "400 or 422 for validation failures",
+      "id": "400-vs-422"
+    },
+    {
+      "type": "paragraph",
+      "text": "RFC 9110 defines 422 as the case where the server understands the content type and the syntax is correct, but it cannot process the instructions inside. That gives a clean split. Send 400 when the server cannot read the request at all: broken JSON, a string where the parser needs an object, a missing required query parameter. Send 422 when the JSON parses and matches the schema's shape, but a value breaks a rule, such as a quantity of zero, an end date before the start date, or a coupon that expired yesterday. Some teams send 400 for everything and that works too. Pick one rule, write it down, and apply it on every endpoint, because clients write code against the pattern."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "401 or 403 for access failures",
+      "id": "401-vs-403"
+    },
+    {
+      "type": "paragraph",
+      "text": "401 means the server does not know who is calling: the Authorization header is missing, the bearer token expired, or the signature is wrong. A 401 must carry a WWW-Authenticate header, for example WWW-Authenticate: Bearer error=\"invalid_token\", and the client's usual reaction is to refresh the token and try once more. 403 means the server knows who is calling and refuses anyway. Retrying with the same token will fail again, so the client should show a message or ask for a different account. When the existence of the resource is itself private, such as another tenant's invoice, return 404 so a caller cannot probe IDs to learn which ones exist."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Return problem details in the body",
+      "id": "problem-details"
+    },
+    {
+      "type": "paragraph",
+      "text": "RFC 9457 defines a small JSON object for HTTP errors and the media type application/problem+json. It replaced RFC 7807 in July 2023. The member names are the same, so a body written for RFC 7807 is still valid. RFC 9457 added a registry for common problem types, guidance on reporting multiple problems, and guidance for type URIs that cannot be dereferenced. Every member is optional, which means a client must handle a body that has only some of them."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Member",
+        "Type",
+        "How to use it"
+      ],
+      "rows": [
+        [
+          "type",
+          "URI reference",
+          "The problem type's primary identifier and the field clients switch on. Defaults to about:blank when absent."
+        ],
+        [
+          "title",
+          "string",
+          "Short summary of the problem type. It SHOULD NOT change between occurrences, except for localization."
+        ],
+        [
+          "status",
+          "integer",
+          "Copy of the HTTP status code, for convenience only. It must match the real status line."
+        ],
+        [
+          "detail",
+          "string",
+          "Explanation of this occurrence, written for a person. Clients SHOULD NOT parse it."
+        ],
+        [
+          "instance",
+          "URI reference",
+          "Identifies this occurrence, for example a path that support staff can look up in logs."
+        ]
+      ],
+      "caption": "Members defined in RFC 9457 section 3.1."
+    },
+    {
+      "type": "paragraph",
+      "text": "Anything else in the object is an extension member. RFC 9457 says clients MUST ignore extensions they do not recognize, which is what lets you add fields such as balance or errors later without breaking older clients. Put machine-readable data in extensions, never only in detail. If a client has to run a regex over detail to find which field failed, the error format has already failed."
+    },
+    {
+      "type": "code",
+      "language": "http",
+      "filename": "409-response.http",
+      "code": "HTTP/1.1 409 Conflict\nContent-Type: application/problem+json\n\n{\n  \"type\": \"https://api.example.com/problems/order-already-paid\",\n  \"title\": \"Order is already paid\",\n  \"status\": 409,\n  \"detail\": \"Order ord_7731 was paid on 2026-10-01 and cannot be edited.\",\n  \"instance\": \"/v1/orders/ord_7731\",\n  \"orderId\": \"ord_7731\"\n}",
+      "caption": "orderId is an extension member, so a client can read the ID without parsing detail."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Design type URIs clients can switch on",
+      "id": "type-uris"
+    },
+    {
+      "type": "paragraph",
+      "text": "The type URI is the contract. Client code reads it the way it would read an error code enum: if type ends in order-already-paid, show the receipt; if it ends in insufficient-stock, offer a smaller quantity. That only works when type values are stable. Treat a type URI like a public field name: never rename one, and add new ones instead of changing what an old one means. Pair each type with one fixed title, and change titles only to localize them."
     },
     {
       "type": "list",
       "ordered": false,
       "items": [
-        "type (string - URI): A absolute URI reference identifying the specific error condition type.",
-        "title (string): A short, human-readable summary of the problem type (should not change between occurrences of the error).",
-        "status (integer): The HTTP status code generated by the origin server (matches response header).",
-        "detail (string): A human-readable explanation specific to this occurrence of the problem.",
-        "instance (string - URI): A relative or absolute URI reference identifying the specific request attempt (e.g. request ID or log trace path)."
+        "Use about:blank, or leave type out, when the problem adds nothing beyond the status code. A plain 404 for an unknown ID does not need a custom type. RFC 9457 says the title should then match the status phrase, such as Not Found.",
+        "Use an https URI you control for every problem type a client might handle differently. If the URI resolves, it SHOULD point to documentation for that problem type.",
+        "Clients SHOULD NOT fetch the type URI at runtime. It is an identifier, and the documentation behind it is for developers.",
+        "Keep one problem type per decision a client has to make. Separate types for card-declined and card-expired are useful if the UI says different things; ten types that all lead to the same message are noise."
       ]
     },
     {
       "type": "heading",
       "level": 2,
-      "text": "2. Production RFC 7807 Response Example",
-      "id": "json-example"
+      "text": "Report many validation errors in one response",
+      "id": "validation-errors"
+    },
+    {
+      "type": "paragraph",
+      "text": "A form submission with three bad fields should get one response listing all three, not three round trips. RFC 9457 shows how: define a validation problem type with an errors extension, where each entry has a detail string and a pointer to the field. The pointer is a JSON Pointer into the request body, which lets a frontend put the message next to the right input without guessing from field names."
     },
     {
       "type": "code",
       "language": "json",
-      "filename": "problem-details-response.json",
-      "code": "{\n  \"type\": \"https://api.example.com/errors/invalid-credit-card\",\n  \"title\": \"Credit Card Charging Failed\",\n  \"status\": 422,\n  \"detail\": \"The expiration date provided (08/2024) is in the past.\",\n  \"instance\": \"/v1/charges/req_92837410293\",\n  \"invalidParams\": [\n    {\n      \"name\": \"expMonth\",\n      \"reason\": \"Month must be equal to or greater than current calendar month.\"\n    }\n  ]\n}"
+      "filename": "422-validation-problem.json",
+      "code": "{\n  \"type\": \"https://api.example.com/problems/validation-error\",\n  \"title\": \"Your request is not valid\",\n  \"status\": 422,\n  \"detail\": \"2 fields failed validation.\",\n  \"errors\": [\n    {\n      \"pointer\": \"#/quantity\",\n      \"detail\": \"must be 1 or more\"\n    },\n    {\n      \"pointer\": \"#/shippingAddress/postalCode\",\n      \"detail\": \"is not a valid postal code for country DE\"\n    }\n  ]\n}",
+      "caption": "The errors shape follows the example in RFC 9457 section 3."
+    },
+    {
+      "type": "paragraph",
+      "text": "The errors array is for many occurrences of the same problem type. When one request hits problems of different types, say a validation failure and an exhausted quota, RFC 9457 recommends returning the most relevant or urgent one. A generic batch type that wraps unrelated problems does not map well to a single status code, and the client would have to inspect every entry to know whether it can retry."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Document every error response in OpenAPI",
+      "id": "openapi"
+    },
+    {
+      "type": "paragraph",
+      "text": "Error responses belong in the spec as much as success responses do. Clients generated from a spec with no error schemas end up typing every failure as unknown. The pattern below defines one Problem schema, one ValidationProblem that extends it with allOf, and reusable responses under components so each operation lists its error codes in one line each. For a smaller standalone version, see the [OpenAPI error response example](/examples/openapi-error-response-example)."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "filename": "orders-errors.yaml",
+      "code": "openapi: 3.1.0\ninfo:\n  title: Orders API\n  version: 1.0.0\npaths:\n  /v1/orders:\n    post:\n      summary: Create an order\n      operationId: createOrder\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/NewOrder\"\n      responses:\n        \"201\":\n          description: Order created\n        \"400\":\n          $ref: \"#/components/responses/Problem\"\n        \"401\":\n          $ref: \"#/components/responses/Problem\"\n        \"409\":\n          $ref: \"#/components/responses/Problem\"\n        \"422\":\n          $ref: \"#/components/responses/ValidationProblem\"\n        default:\n          $ref: \"#/components/responses/Problem\"\n  /v1/orders/{id}:\n    get:\n      summary: Get one order\n      operationId: getOrder\n      parameters:\n        - name: id\n          in: path\n          required: true\n          schema:\n            type: string\n      responses:\n        \"200\":\n          description: The order\n        \"404\":\n          $ref: \"#/components/responses/Problem\"\n        default:\n          $ref: \"#/components/responses/Problem\"\ncomponents:\n  schemas:\n    NewOrder:\n      type: object\n      required: [sku, quantity]\n      properties:\n        sku:\n          type: string\n        quantity:\n          type: integer\n          minimum: 1\n    Problem:\n      type: object\n      properties:\n        type:\n          type: string\n          format: uri-reference\n          default: about:blank\n        title:\n          type: string\n        status:\n          type: integer\n          minimum: 400\n          maximum: 599\n        detail:\n          type: string\n        instance:\n          type: string\n          format: uri-reference\n    ValidationProblem:\n      allOf:\n        - $ref: \"#/components/schemas/Problem\"\n        - type: object\n          required: [errors]\n          properties:\n            errors:\n              type: array\n              items:\n                type: object\n                required: [pointer, detail]\n                properties:\n                  pointer:\n                    type: string\n                  detail:\n                    type: string\n  responses:\n    Problem:\n      description: Problem details (RFC 9457)\n      content:\n        application/problem+json:\n          schema:\n            $ref: \"#/components/schemas/Problem\"\n    ValidationProblem:\n      description: One or more request fields failed validation\n      content:\n        application/problem+json:\n          schema:\n            $ref: \"#/components/schemas/ValidationProblem\"",
+      "caption": "No member of Problem is required, matching RFC 9457, where every member is optional."
+    },
+    {
+      "type": "paragraph",
+      "text": "We scored two versions of this spec with APIForge's design score. The first version declared only a 200 response on each operation, with descriptions saying the body might contain an error object with success set to false. It scored 90 out of 100: full marks in six categories and 0 out of 10 for error handling, with one issue per operation saying no 4xx or 5xx response was documented. The version above, with the error responses added, scored 100. The two paths are identical, so the whole 10-point gap comes from documenting errors."
+    },
+    {
+      "type": "callout",
+      "variant": "info",
+      "title": "What the score checks",
+      "text": "The error handling category counts operations that declare at least one 4xx, 5xx, or default response. It does not inspect the schema behind those responses, so a 400 whose body is a bare string earns the same points as one using problem+json. Review the shape yourself, or validate real error bodies against the schema."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Failure modes to test for",
+      "id": "failure-modes"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "200 OK with an error body. Monitoring counts it as success, HTTP caches may store it, and clients have to parse every body to find out whether the call worked.",
+        "HTML error pages from the edge. A gateway timeout or a framework's default 404 page often returns text/html, and a client calling response.json() crashes. Configure the gateway and the framework's fallback handlers to emit problem+json too.",
+        "Status line and status member disagree. RFC 9457 calls the status member advisory, and a proxy can rewrite the status line, so clients should trust the real status code.",
+        "Stack traces, SQL fragments, or internal hostnames in detail. RFC 9457 asks generators to vet what goes into a problem. Log the internals with a request ID and return the ID in instance or an extension.",
+        "Localized titles used as keys. If a client branches on title and you translate it, the client breaks. Branch on type.",
+        "A 429 or 503 with no Retry-After. Clients then retry on their own schedule, often immediately. The [rate limiting guide](/guides/api-rate-limiting-best-practices) covers the headers to send."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Handle problem details on the client",
+      "id": "client"
+    },
+    {
+      "type": "paragraph",
+      "text": "On the client, branch in three steps. Check the status code first: retry 503 and 429 after the Retry-After delay, refresh credentials on 401, and stop on other 4xx codes. Then check whether Content-Type is application/problem+json; if it is not, treat the body as opaque text. Finally, switch on type for the cases your UI handles specially, show detail to the user for the rest, and ignore extension members you do not know. A client written this way keeps working when the server adds new problem types."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Check your error responses with APIForge",
+      "id": "apiforge"
+    },
+    {
+      "type": "paragraph",
+      "text": "Paste your spec into the [API quality score](/api-score) to list every operation that has no error response documented. To see what the server really returns, send a failing request from the [API testing workbench](/api-testing) and validate the body against the declared error schema; the guide to [validating responses against an OpenAPI schema](/guides/validate-api-response-against-openapi-schema) explains how that check picks the schema for each status code."
     },
     {
       "type": "tool",
       "tool": "api-score",
-      "title": "Validate Your Error Response Schemas",
-      "description": "Check if your OpenAPI specification declares explicit error status codes (400, 401, 403, 404, 500) and adheres to RFC 7807 schemas.",
-      "buttonText": "Audit Error Schemas",
+      "title": "Find operations with no error responses",
+      "description": "Score your OpenAPI or Swagger spec from 0 to 100 and see which operations declare no 4xx, 5xx, or default response.",
+      "buttonText": "Score my API",
       "href": "/api-score"
+    },
+    {
+      "type": "relatedContent",
+      "slugs": [
+        "validate-api-response-against-openapi-schema",
+        "openapi-response-schema-best-practices",
+        "rest-api-design-best-practices"
+      ]
+    },
+    {
+      "type": "externalReference",
+      "title": "RFC 9457: Problem Details for HTTP APIs",
+      "url": "https://www.rfc-editor.org/rfc/rfc9457.html",
+      "source": "IETF"
+    },
+    {
+      "type": "externalReference",
+      "title": "RFC 9110: HTTP Semantics, section 15 (Status Codes)",
+      "url": "https://www.rfc-editor.org/rfc/rfc9110.html#name-status-codes",
+      "source": "IETF"
+    },
+    {
+      "type": "externalReference",
+      "title": "RFC 6585: Additional HTTP Status Codes (429 Too Many Requests)",
+      "url": "https://www.rfc-editor.org/rfc/rfc6585.html#section-4",
+      "source": "IETF"
     }
   ],
   "faqs": [
     {
-      "question": "What Content-Type header should be used for RFC 7807 errors?",
-      "answer": "Use Content-Type: application/problem+json for JSON error responses, or application/problem+xml for XML representations."
+      "question": "Is RFC 7807 still valid?",
+      "answer": "RFC 9457 obsoleted RFC 7807 in July 2023, but it kept the same members and the same application/problem+json media type. A body that follows RFC 7807 is still a valid problem details object. Cite RFC 9457 in new documentation."
     },
     {
-      "question": "Can I add custom fields to an RFC 7807 error object?",
-      "answer": "Yes! RFC 7807 explicitly allows extending the base schema with domain-specific properties such as invalidParams, traceId, or retryAfterSeconds."
+      "question": "Should I return 400 or 422 for validation errors?",
+      "answer": "Use 400 when the request cannot be parsed, such as broken JSON or a missing required parameter. Use 422 when the JSON is well formed but a value breaks a rule, such as a quantity of zero. Whichever split you choose, apply it the same way on every endpoint."
+    },
+    {
+      "question": "Can I add my own fields to a problem details object?",
+      "answer": "Yes. RFC 9457 calls them extension members, and clients must ignore extensions they do not recognize. Put any data a client needs to act on, such as a resource ID or a list of invalid fields, in an extension rather than in the detail text."
     }
   ]
 }

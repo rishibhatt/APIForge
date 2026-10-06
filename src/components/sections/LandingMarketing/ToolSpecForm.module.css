@@ -1,0 +1,42 @@
+/* Visuals come from HeroSection/SpecUrlForm.module.css (field) and HeroSection.module.css (chips).
+ * Only product-page layout lives here: left-aligned, wrapping chips. */
+.wrap {
+  margin-top: var(--space-8);
+}
+
+.samples {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-4);
+  margin-top: var(--space-5);
+}
+
+.chipList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip {
+  text-decoration: none;
+  max-width: 100%;
+}
+
+@media (max-width: 560px) {
+  .samples {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .chipList {
+    width: 100%;
+  }
+
+  .chipList li {
+    max-width: 100%;
+  }
+}

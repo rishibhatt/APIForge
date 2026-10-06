@@ -1,0 +1,105 @@
+/* Next-step row under the share composer. The composer owns the share buttons. */
+
+.bar {
+  display: flex;
+  flex-direction: column;
+}
+
+.next {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.ghost,
+.heat {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, transform 100ms ease;
+}
+
+.ghost:active,
+.heat:active {
+  transform: translateY(1px);
+}
+
+.ghost {
+  padding: 0 10px;
+  background: transparent;
+  color: var(--color-on-surface-variant);
+  font-weight: 600;
+}
+
+.ghost:hover:not(:disabled) {
+  background: var(--color-interactive-hover);
+  color: var(--color-on-surface);
+}
+
+.ghost:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+.heat {
+  border-color: color-mix(in srgb, var(--color-roast-heat) 60%, transparent);
+  background: color-mix(in srgb, var(--color-roast-heat) 8%, transparent);
+  color: var(--color-roast-heat-text);
+}
+
+.heat:hover {
+  border-color: var(--color-roast-heat);
+  background: color-mix(in srgb, var(--color-roast-heat) 14%, transparent);
+}
+
+.ghost:focus-visible,
+.heat:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 767px) {
+  .next {
+    justify-content: space-between;
+  }
+
+  .ghost {
+    height: 44px;
+  }
+
+  .next .heat {
+    flex: 1 1 100%;
+    height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation-duration: 2.5s;
+  }
+}

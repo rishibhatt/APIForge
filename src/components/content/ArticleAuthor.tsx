@@ -1,4 +1,6 @@
+import Link from "next/link";
 import type { Author } from "@/content/types";
+import { formatDate } from "./labels";
 import styles from "./content.module.css";
 
 export interface ArticleAuthorProps {
@@ -6,58 +8,69 @@ export interface ArticleAuthorProps {
   publishedAt: string;
   updatedAt?: string;
   readingTime?: string;
+  topic?: string;
+  topicHref?: string;
 }
 
+/**
+ * Article header metadata, placed below the title and lede:
+ * a mono micro-label row (updated date, reading time, topic) and the author line.
+ */
 export default function ArticleAuthor({
   author,
   publishedAt,
   updatedAt,
   readingTime,
+  topic,
+  topicHref,
 }: ArticleAuthorProps) {
+  const showUpdated = Boolean(updatedAt && updatedAt !== publishedAt);
+  const stampDate = showUpdated ? (updatedAt as string) : publishedAt;
+
   return (
-    <div className={styles.authorBox}>
-      {author.avatar ? (
-        /* eslint-disable-next-line @next/next/no-img-element */
-        <img
-          src={author.avatar}
-          alt={author.name}
-          className={styles.authorAvatarImg}
-        />
-      ) : (
-        <div className={styles.authorAvatar}>
-          {author.name.charAt(0)}
-        </div>
-      )}
-      <div className={styles.authorInfo}>
-        <div className={styles.authorHeader}>
-          <span className={styles.authorName}>{author.name}</span>
-          {author.role && <span className={styles.authorRole}>{author.role}</span>}
-        </div>
-        <div className={styles.authorMeta}>
-          <span>Published: {publishedAt}</span>
-          {updatedAt && <span> · Updated: {updatedAt}</span>}
-          {readingTime && <span> · {readingTime}</span>}
-        </div>
-        <div className={styles.authorLinks}>
-          {author.website && (
-            <a href={author.website} target="_blank" rel="noopener noreferrer">
-              Website
-            </a>
-          )}
-          {author.github && (
-            <a href={author.github} target="_blank" rel="noopener noreferrer">
-              GitHub
-            </a>
-          )}
-          {author.linkedin && (
-            <a href={author.linkedin} target="_blank" rel="noopener noreferrer">
-              LinkedIn
-            </a>
-          )}
-          {author.x && (
-            <a href={author.x} target="_blank" rel="noopener noreferrer">
-              X (Twitter)
-            </a>
+    <div className={styles.byline}>
+      <ul className={styles.metaRow} aria-label="Article details">
+        <li>
+          {showUpdated ? "Updated " : "Published "}
+          <time dateTime={stampDate}>{formatDate(stampDate)}</time>
+        </li>
+        {readingTime && <li>{readingTime}</li>}
+        {topic && (
+          <li>
+            {topicHref ? (
+              <Link href={topicHref} className={styles.topicTag}>
+                {topic}
+              </Link>
+            ) : (
+              <span className={styles.topicTag}>{topic}</span>
+            )}
+          </li>
+        )}
+      </ul>
+
+      <div className={styles.bylineAuthor}>
+        {author.avatar ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img src={author.avatar} alt="" className={styles.bylineAvatar} width={36} height={36} />
+        ) : (
+          <span className={styles.bylineAvatarFallback} aria-hidden>
+            {author.name.charAt(0)}
+          </span>
+        )}
+        <div className={styles.bylineText}>
+          <span className={styles.bylineName}>
+            {author.website ? (
+              <a href={author.website} rel="author">
+                {author.name}
+              </a>
+            ) : (
+              author.name
+            )}
+          </span>
+          {showUpdated && (
+            <span className={styles.bylineMeta}>
+              First published <time dateTime={publishedAt}>{formatDate(publishedAt)}</time>
+            </span>
           )}
         </div>
       </div>

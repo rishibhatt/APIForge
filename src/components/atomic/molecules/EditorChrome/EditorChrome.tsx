@@ -16,11 +16,6 @@ export default function EditorChrome({
   return (
     <div className={styles.row}>
       <div className={styles.left}>
-        <div className={styles.dots} aria-hidden>
-          <span className={styles.dotR} />
-          <span className={styles.dotA} />
-          <span className={styles.dotG} />
-        </div>
         <span className={styles.fileLabel}>{fileLabel}</span>
       </div>
       <div className={styles.right}>

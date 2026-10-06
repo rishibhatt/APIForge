@@ -14,6 +14,8 @@ export interface AppLogoProps {
   priority?: boolean;
   /** Next/Image quality (1–100); higher keeps fine marks sharp when scaled up */
   quality?: number;
+  /** Custom logo source path, defaults to APP_LOGO_PATH */
+  src?: string;
 }
 
 export default function AppLogo({
@@ -22,6 +24,7 @@ export default function AppLogo({
   className = "",
   priority = false,
   quality = 95,
+  src = APP_LOGO_PATH,
 }: AppLogoProps) {
   return (
     <span
@@ -34,7 +37,7 @@ export default function AppLogo({
       }
     >
       <Image
-        src={APP_LOGO_PATH}
+        src={src}
         alt=""
         width={size}
         height={size}

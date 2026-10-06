@@ -1,41 +1,29 @@
-"use client";
-
-import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
+import Link from "next/link";
 import styles from "./RoastFinalCTA.module.css";
 
 export interface RoastFinalCTAProps {
-  onReset: () => void;
-  onOpenWorkspace?: () => void;
+  /** Opens the support modal. Omit where the modal isn't mounted. */
+  onSupport?: () => void;
 }
 
-export default function RoastFinalCTA({ onReset, onOpenWorkspace }: RoastFinalCTAProps) {
+export default function RoastFinalCTA({ onSupport }: RoastFinalCTAProps) {
   return (
-    <section className={styles.section}>
-      <h2 className={styles.heading}>SO... ARE YOU FIXING THIS</h2>
-      <div className={styles.subHeading}>OR ARE WE KEEPING THE RECEIPTS?</div>
-
-      <div className={styles.buttonGroup}>
-        {onOpenWorkspace ? (
-          <button type="button" onClick={onOpenWorkspace} className={styles.primaryBtn}>
-            <MaterialIcon name="build" size="sm" />
-            <span>FIX THE DAMAGE</span>
+    <aside className={styles.wrap} data-reveal>
+      <p className={styles.text}>
+        The roast uses the same rule engine as the APIForge workspace, where you can run requests,
+        validate responses and generate TypeScript types from the same spec.{" "}
+        <Link href="/" className={styles.link}>
+          Open the workspace
+        </Link>
+      </p>
+      {onSupport ? (
+        <p className={styles.text}>
+          APIForge is free and open source.{" "}
+          <button type="button" className={styles.link} onClick={onSupport}>
+            Support the project
           </button>
-        ) : (
-          <a href="/" className={styles.primaryBtn}>
-            <MaterialIcon name="build" size="sm" />
-            <span>FIX THE DAMAGE</span>
-          </a>
-        )}
-
-        <button type="button" onClick={onReset} className={styles.secondaryBtn}>
-          <MaterialIcon name="refresh" size="sm" />
-          <span>ROAST ANOTHER API</span>
-        </button>
-      </div>
-
-      <div className={styles.footerText}>
-        Build APIs worth bragging about with APIForge.
-      </div>
-    </section>
+        </p>
+      ) : null}
+    </aside>
   );
 }

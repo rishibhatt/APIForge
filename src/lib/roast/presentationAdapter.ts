@@ -1,4 +1,5 @@
 import type { RoastCategory, RoastPattern, RoastSeverity, RoastSummary } from "./types";
+import { hashSeed, pick, RULE_LINES } from "./roastTemplates";
 
 export interface RoastOffence {
   rank: number;
@@ -68,6 +69,22 @@ const CATEGORY_SUGGESTIONS: Record<string, string> = {
   structure: "Simplify payload nesting and explicitly define array item schemas.",
 };
 
+/** Rule-specific fixes win over the generic category suggestion. */
+const RULE_SUGGESTIONS: Record<string, string> = {
+  ACTION_IN_PATH: "Move the verb into the HTTP method: POST /orders instead of POST /createOrder.",
+  CAMEL_CASE_PATH: "Use lowercase kebab-case path segments: /order-items instead of /orderItems.",
+  UNDERSCORE_PATH: "Replace underscores with hyphens in path segments: /order-items instead of /order_items.",
+  SINGULAR_PLURAL_MIX: "Pick plural collection names everywhere: /users and /users/{id}, not /user and /users.",
+  DEEP_NESTING: "Keep nesting to one parent level (/users/{id}/orders) and link deeper resources by ID.",
+  DUPLICATE_OPERATIONS: "Merge duplicate operations into one path and method, and remove the copy from the spec.",
+  GET_WITH_BODY: "Move GET request bodies into query parameters, or switch the operation to POST.",
+  VERB_METHOD_MISMATCH: "Match the method to the action: GET reads, POST creates, PUT/PATCH update, DELETE removes.",
+  MISSING_ERROR_RESPONSE: "Declare 4xx and 5xx responses with a shared error schema, such as RFC 9457 problem details.",
+  MISSING_SUCCESS_RESPONSE: "Declare the 2xx response for every operation, with its response schema.",
+  MISSING_VERSIONING: "Add a version to the base path (/v1) or document a version header.",
+  UNDOCUMENTED_OPERATIONS: "Add a summary and description to each operation and its parameters.",
+};
+
 function parseEndpointString(ep: string): { method: string; path: string } {
   const parts = ep.trim().split(/\s+/);
   if (parts.length >= 2) {
@@ -117,9 +134,21 @@ export function adaptRoastSummaryToPresentation(summary: RoastSummary): RoastPre
   // Build ranked offences
   const offences: RoastOffence[] = summary.topPatterns.map((pattern: RoastPattern, idx: number) => {
     const cat = pattern.category;
-    const funnySummary = CATEGORY_FUNNY_SUMMARIES[cat] || `Architectural offence detected in ${cat}.`;
+    // Rule-specific line about this offence's real path; offset from the main roast's pick.
+    const ruleLines = RULE_LINES[pattern.ruleId];
+    const funnySummary = ruleLines
+      ? pick(ruleLines, hashSeed(`${pattern.ruleId}|${pattern.representativeEndpoints[0] ?? ""}`), 1)({
+          title: "",
+          path: pattern.representativeEndpoints[0] ?? "this endpoint",
+          count: pattern.count,
+          pct: Math.min(100, pattern.percentage),
+          total: summary.totalEndpoints,
+          issues: summary.totalFindings,
+          score: summary.score,
+        }).replace(/`/g, "")
+      : CATEGORY_FUNNY_SUMMARIES[cat] || `Architectural offence detected in ${cat}.`;
     const whyItMatters = CATEGORY_WHY_IT_MATTERS[cat] || "This issue reduces API maintainability and developer experience.";
-    const suggestedFix = CATEGORY_SUGGESTIONS[cat] || "Refactor endpoint to adhere to standard OpenAPI specifications.";
+    const suggestedFix = RULE_SUGGESTIONS[pattern.ruleId] || CATEGORY_SUGGESTIONS[cat] || "Refactor endpoint to adhere to standard OpenAPI specifications.";
 
     const endpoints = pattern.representativeEndpoints.map(parseEndpointString);
 

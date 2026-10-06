@@ -1,80 +1,360 @@
 {
   "slug": "swagger-vs-openapi",
-  "title": "Swagger vs OpenAPI: Key Differences Explained (2026)",
-  "description": "Clear technical breakdown of the differences between Swagger 2.0 and OpenAPI 3.0/3.1. Learn when to upgrade and how to migrate specs.",
-  "excerpt": "Understand the history, structural changes, and feature enhancements separating Swagger 2.0 from modern OpenAPI 3.x standards.",
+  "title": "Swagger vs OpenAPI: Names, Versions, and Differences",
+  "description": "Swagger vs OpenAPI explained: how the names relate, what changed from Swagger 2.0 to OpenAPI 3.0 and 3.1, and the same API written in both formats.",
+  "excerpt": "Swagger 2.0 and OpenAPI 2.0 are the same spec. Here is what changed in 3.0 and 3.1, with one API written in both formats.",
   "category": "swagger",
+  "cluster": "openapi",
+  "primaryKeyword": "swagger vs openapi",
+  "keywords": [
+    "swagger 2.0 vs openapi 3",
+    "openapi 3.0 vs 3.1",
+    "is swagger the same as openapi",
+    "convert swagger 2 to openapi 3"
+  ],
   "tags": [
     "Swagger",
     "OpenAPI",
     "API Specs",
-    "Migration",
-    "Developer Tools"
-  ],
-  "keywords": [
-    "swagger vs openapi",
-    "difference between swagger and openapi",
-    "convert swagger 2 to openapi 3",
-    "swagger 2.0 vs openapi 3.1"
+    "Migration"
   ],
   "author": "rishab",
   "publishedAt": "2026-09-26",
-  "updatedAt": "2026-09-26",
-  "readingTime": "9 min read",
-  "featured": false,
+  "updatedAt": "2026-10-04",
   "content": [
     {
       "type": "paragraph",
-      "text": "The terms 'Swagger' and 'OpenAPI' are often used interchangeably, leading to confusion. Swagger refers to SmartBear's open-source and commercial tooling ecosystem (Swagger UI, Swagger Editor), whereas OpenAPI refers to the open Linux Foundation specification standard."
+      "text": "Swagger and OpenAPI are two names for one specification line. Up to version 2.0 the format was called the Swagger Specification. SmartBear Software donated it in 2015, and it continued as the OpenAPI Specification under the OpenAPI Initiative, a Linux Foundation project. Swagger 2.0 and OpenAPI 2.0 are the same document format; a file that starts with swagger: \"2.0\" is one. OpenAPI 3.0 and 3.1 are the newer versions, and they start with openapi: instead. Today \"Swagger\" mostly names SmartBear's tools, such as Swagger UI and Swagger Editor, which read OpenAPI files. What you usually need to know is which version your file is: 2.0, 3.0 or 3.1."
     },
     {
       "type": "heading",
       "level": 2,
-      "text": "1. Technical Feature Comparison Matrix",
-      "id": "feature-matrix"
+      "text": "Names and versions at a glance",
+      "id": "versions"
     },
     {
       "type": "table",
-      "headers": ["Feature", "Swagger 2.0 (Legacy)", "OpenAPI 3.0", "OpenAPI 3.1"],
-      "rows": [
-        ["Specification Root", "swagger: '2.0'", "openapi: '3.0.3'", "openapi: '3.1.0'"],
-        ["Base URL Structure", "host, basePath, schemes", "servers array with templates", "servers array with templates"],
-        ["JSON Schema Version", "Custom schema subset", "Draft 05 alignment", "100% JSON Schema 2020-12"],
-        ["Request Payload", "parameters (in: body)", "requestBody object", "requestBody object"],
-        ["Nullable Fields", "x-nullable extension", "nullable: true keyword", "type: ['string', 'null']"],
-        ["Webhooks Support", "Not supported", "Callbacks per operation", "Native top-level webhooks object"]
+      "headers": [
+        "What people say",
+        "What it is",
+        "First line of the file"
       ],
-      "caption": "Swagger 2.0 vs OpenAPI 3.x Feature Matrix"
+      "rows": [
+        [
+          "Swagger 2.0, OpenAPI 2.0, \"a Swagger file\"",
+          "The last version published under the Swagger name",
+          "swagger: \"2.0\""
+        ],
+        [
+          "OpenAPI 3.0",
+          "First version under the OpenAPI name, with a new structure",
+          "openapi: 3.0.3 (or another 3.0.x)"
+        ],
+        [
+          "OpenAPI 3.1",
+          "3.0 structure with full JSON Schema 2020-12 support",
+          "openapi: 3.1.0 (or 3.1.1)"
+        ],
+        [
+          "Swagger UI, Swagger Editor",
+          "SmartBear tools that render and edit OpenAPI documents",
+          "Not a spec version"
+        ]
+      ],
+      "caption": "The version field on the first lines is the only reliable way to tell. A file named swagger.json can contain any of them."
+    },
+    {
+      "type": "paragraph",
+      "text": "The file name proves nothing. Many frameworks still serve an OpenAPI 3 document at /swagger.json or behind a Swagger UI page; [getting the OpenAPI JSON from a Swagger UI page](/guides/get-openapi-json-from-swagger-ui) shows how to find the raw file. Open it and read the version field before choosing a validator, a code generator or a migration plan. The glossary entries for [Swagger](/glossary/swagger) and [OpenAPI](/glossary/openapi) cover the terms on their own."
     },
     {
       "type": "heading",
       "level": 2,
-      "text": "2. Structural Code Migration Example",
-      "id": "code-migration"
+      "text": "One API in Swagger 2.0 and OpenAPI 3.0",
+      "id": "side-by-side"
+    },
+    {
+      "type": "paragraph",
+      "text": "Here is a small Users API with two operations, bearer authentication and a nullable field, written once in each format. Both files pass validation with @apidevtools/swagger-parser, the library APIForge uses to parse specs."
     },
     {
       "type": "code",
       "language": "yaml",
-      "filename": "swagger2-vs-openapi3.yaml",
-      "code": "# Legacy Swagger 2.0:\nswagger: '2.0'\nhost: api.example.com\nbasePath: /v1\nschemes:\n  - https\npaths:\n  /users:\n    post:\n      parameters:\n        - in: body\n          name: body\n          schema:\n            $ref: '#/definitions/User'\n\n# Modern OpenAPI 3.0:\nopenapi: 3.0.3\nservers:\n  - url: https://api.example.com/v1\npaths:\n  /users:\n    post:\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: '#/components/schemas/User'"
+      "filename": "users.swagger2.yaml",
+      "code": "swagger: \"2.0\"\ninfo:\n  title: Users API\n  version: 1.0.0\nhost: api.example.com\nbasePath: /v1\nschemes:\n  - https\nconsumes:\n  - application/json\nproduces:\n  - application/json\nsecurityDefinitions:\n  bearerAuth:\n    type: apiKey\n    in: header\n    name: Authorization\nsecurity:\n  - bearerAuth: []\npaths:\n  /users:\n    post:\n      summary: Create a user\n      parameters:\n        - in: body\n          name: body\n          required: true\n          schema:\n            $ref: \"#/definitions/NewUser\"\n      responses:\n        \"201\":\n          description: User created\n          schema:\n            $ref: \"#/definitions/User\"\n        \"400\":\n          description: Invalid input\n  /users/{id}:\n    get:\n      summary: Get a user\n      parameters:\n        - name: id\n          in: path\n          required: true\n          type: string\n      responses:\n        \"200\":\n          description: The user\n          schema:\n            $ref: \"#/definitions/User\"\n        \"404\":\n          description: User not found\ndefinitions:\n  NewUser:\n    type: object\n    required: [email]\n    properties:\n      email:\n        type: string\n        format: email\n      nickname:\n        type: string\n        x-nullable: true\n  User:\n    type: object\n    required: [id, email]\n    properties:\n      id:\n        type: string\n      email:\n        type: string\n        format: email\n      nickname:\n        type: string\n        x-nullable: true",
+      "caption": "Swagger 2.0. Note the body parameter, definitions, and the apiKey workaround for a bearer token."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "filename": "users.openapi30.yaml",
+      "code": "openapi: 3.0.3\ninfo:\n  title: Users API\n  version: 1.0.0\nservers:\n  - url: https://api.example.com/v1\ncomponents:\n  securitySchemes:\n    bearerAuth:\n      type: http\n      scheme: bearer\n  schemas:\n    NewUser:\n      type: object\n      required: [email]\n      properties:\n        email:\n          type: string\n          format: email\n        nickname:\n          type: string\n          nullable: true\n    User:\n      type: object\n      required: [id, email]\n      properties:\n        id:\n          type: string\n        email:\n          type: string\n          format: email\n        nickname:\n          type: string\n          nullable: true\nsecurity:\n  - bearerAuth: []\npaths:\n  /users:\n    post:\n      summary: Create a user\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/NewUser\"\n      responses:\n        \"201\":\n          description: User created\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/User\"\n        \"400\":\n          description: Invalid input\n  /users/{id}:\n    get:\n      summary: Get a user\n      parameters:\n        - name: id\n          in: path\n          required: true\n          schema:\n            type: string\n      responses:\n        \"200\":\n          description: The user\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/User\"\n        \"404\":\n          description: User not found",
+      "caption": "The same API in OpenAPI 3.0.3."
+    },
+    {
+      "type": "paragraph",
+      "text": "Line by line, these are the changes. Every row is a direct consequence of the 2.0 and 3.0 specifications:"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Concern",
+        "Swagger 2.0",
+        "OpenAPI 3.0"
+      ],
+      "rows": [
+        [
+          "Version field",
+          "swagger: \"2.0\"",
+          "openapi: 3.0.3"
+        ],
+        [
+          "Base URL",
+          "host, basePath and schemes, one host only",
+          "servers list of URLs, with optional {variables}"
+        ],
+        [
+          "Request body",
+          "A parameter with in: body (at most one per operation)",
+          "requestBody with content keyed by media type"
+        ],
+        [
+          "Form fields and uploads",
+          "in: formData parameters, type: file",
+          "requestBody with multipart/form-data or application/x-www-form-urlencoded"
+        ],
+        [
+          "Media types",
+          "consumes and produces lists at root or operation level",
+          "Media type keys inside each requestBody and response content"
+        ],
+        [
+          "Reusable schemas",
+          "definitions",
+          "components/schemas"
+        ],
+        [
+          "Other reusable parts",
+          "parameters, responses at the root",
+          "components holds schemas, responses, parameters, examples, requestBodies, headers, securitySchemes, links and callbacks"
+        ],
+        [
+          "Security schemes",
+          "securityDefinitions with basic, apiKey or oauth2",
+          "components/securitySchemes with apiKey, http (basic, bearer and others), oauth2 or openIdConnect"
+        ],
+        [
+          "Null values",
+          "No nullable keyword; tools use the x-nullable extension",
+          "nullable: true on the schema"
+        ],
+        [
+          "Response body",
+          "schema directly on the response",
+          "schema under content and a media type"
+        ],
+        [
+          "Callbacks and links",
+          "Not available",
+          "callbacks for out-of-band requests, links between operations"
+        ]
+      ],
+      "caption": "Swagger 2.0 compared with OpenAPI 3.0."
+    },
+    {
+      "type": "paragraph",
+      "text": "Two rows change what the file says about the API. Swagger 2.0 has no bearer scheme, so the 2.0 file describes the token as an apiKey in the Authorization header. That works, but generated clients will not add the Bearer prefix for you; in 3.0, type: http with scheme: bearer says exactly what the server expects. And because 2.0 keeps media types in consumes and produces lists, one operation cannot give JSON and XML responses different schemas. OpenAPI 3.0 puts a schema under each media type."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "What changed from OpenAPI 3.0 to 3.1",
+      "id": "three-one"
+    },
+    {
+      "type": "paragraph",
+      "text": "OpenAPI 3.1 keeps the 3.0 structure and changes the schema language. In 3.0, the Schema Object is an extended subset of JSON Schema: type must be a single string, and nullable: true stands in for null. In 3.1, schemas follow [JSON Schema](/glossary/json-schema) draft 2020-12, so any JSON Schema validator for that draft can read them. The OpenAPI Initiative's upgrade guide lists the edits most files need:"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Replace nullable: true with a type array: type: [string, \"null\"].",
+        "Change exclusiveMinimum: true next to minimum: 7 into exclusiveMinimum: 7. The keyword now takes the number itself.",
+        "Replace example on a schema with examples, which takes an array.",
+        "Describe binary uploads with contentMediaType or an empty schema instead of format: binary, and base64 data with contentEncoding: base64.",
+        "Change the version field to openapi: 3.1.0 or 3.1.1."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "3.1 also adds fields. webhooks is a new top-level object for requests your API sends to subscribers. paths is no longer required: a document needs openapi and info, plus at least one of paths, components or webhooks, which allows a file that holds only shared schemas. components gains pathItems, info gains summary, license gains an SPDX identifier, and security schemes gain mutualTLS. The User schema below shows the 3.1 versions of the fields from the earlier example."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "filename": "users.openapi31.yaml",
+      "code": "openapi: 3.1.0\ninfo:\n  title: Users API\n  version: 1.0.0\n  summary: Create and read user accounts.\n  license:\n    name: MIT\n    identifier: MIT\ncomponents:\n  schemas:\n    User:\n      type: object\n      required: [id, email]\n      properties:\n        id:\n          type: string\n        email:\n          type: string\n          format: email\n        nickname:\n          type: [string, \"null\"]\n          examples: [dana]\n        age:\n          type: integer\n          exclusiveMinimum: 0\nwebhooks:\n  userDeleted:\n    post:\n      requestBody:\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/User\"\n      responses:\n        \"200\":\n          description: Webhook received",
+      "caption": "OpenAPI 3.1: type arrays for null, examples as a list, numeric exclusiveMinimum, and a top-level webhook."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "What the version does not change",
+      "id": "same"
+    },
+    {
+      "type": "paragraph",
+      "text": "The design of the API is the same in every version. We scored both the Swagger 2.0 and the OpenAPI 3.0 file above with the APIForge quality score, and both got 91 out of 100 with the same single issue: no version segment in the paths. The /v1 is there, but in basePath for 2.0 and in the server URL for 3.0, and the score reads the path keys. Whether that matters is your call; versioning in the base URL is a legitimate choice. It shows that converting a file to a newer format does not fix naming, missing error responses or anything else about the API itself."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Which version should you write?",
+      "id": "choose"
+    },
+    {
+      "type": "decisionTree",
+      "title": "Choosing a spec version",
+      "nodes": [
+        {
+          "condition": "You are starting a new API",
+          "recommendation": "Write OpenAPI 3.1 if your generator, gateway and docs tools read it.",
+          "alternative": "Use 3.0.3 if any tool in your pipeline only reads 3.0. Converting 3.0 to 3.1 later is a short list of edits."
+        },
+        {
+          "condition": "You have a working Swagger 2.0 file and no tool needs 3.x",
+          "recommendation": "Leave it until you need a 3.x feature such as a bearer scheme, oneOf or several media types."
+        },
+        {
+          "condition": "You need webhooks, null in enum lists, or plain JSON Schema validators",
+          "recommendation": "Use 3.1. These are the cases where 3.0's schema subset gets in the way."
+        },
+        {
+          "condition": "Your framework generates the spec from code",
+          "recommendation": "Use the version it emits and check that setting when you upgrade the framework."
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Converting Swagger 2.0 to OpenAPI 3",
+      "id": "convert"
+    },
+    {
+      "type": "paragraph",
+      "text": "Converters such as the swagger2openapi npm package handle the mechanical part: host and basePath become servers, definitions move to components/schemas, body parameters become requestBody, and $ref pointers are rewritten. Review these by hand afterwards, because a converter cannot know your intent:"
+    },
+    {
+      "type": "steps",
+      "title": "After an automatic conversion",
+      "steps": [
+        {
+          "title": "Fix the security scheme",
+          "description": "An apiKey on the Authorization header usually means a bearer token. Replace it with type: http and scheme: bearer."
+        },
+        {
+          "title": "Replace vendor extensions",
+          "description": "x-nullable: true becomes nullable: true in 3.0, or a type array in 3.1. Search the file for other x- keys your old tooling relied on."
+        },
+        {
+          "title": "Check form and file parameters",
+          "description": "formData parameters and type: file need a multipart/form-data or application/x-www-form-urlencoded requestBody. Confirm each field's encoding."
+        },
+        {
+          "title": "Split shared media types",
+          "description": "If the 2.0 file listed several produces types, the converter copies one schema to each. Split them if JSON and XML bodies differ."
+        },
+        {
+          "title": "Validate and compare",
+          "description": "Validate the new file, then load both versions and compare operation counts and parameters, so nothing was dropped."
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "The [spec validation guide](/guides/validate-swagger-openapi-spec) covers adding that validation step to CI so a broken conversion never merges."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Open either version in APIForge",
+      "id": "apiforge"
+    },
+    {
+      "type": "paragraph",
+      "text": "APIForge reads Swagger 2.0, OpenAPI 3.0 and OpenAPI 3.1. Paste a file or URL into the [Swagger 2.0 validator](/swagger-validator) or the [OpenAPI validator](/openapi-validator) and it parses the document, resolves references, builds request URLs from host, basePath and schemes for 2.0 files or from servers for 3.x, and treats 2.0 body parameters as the request body. It does not export a converted file, so use a converter for that step and APIForge to check that the result still lists the same operations."
     },
     {
       "type": "tool",
-      "tool": "openapi-validator",
-      "title": "Upgrade Your Swagger 2.0 Spec Automatically",
-      "description": "Upload your legacy Swagger 2.0 specification into APIForge to inspect structural issues and convert it into OpenAPI 3.0/3.1 format.",
-      "buttonText": "Validate & Upgrade Spec",
-      "href": "/openapi-validator"
+      "tool": "swagger-validator",
+      "title": "Validate a Swagger 2.0 or OpenAPI file",
+      "description": "Parse your spec, see every operation, and send requests from the browser.",
+      "buttonText": "Open the validator",
+      "href": "/swagger-validator"
+    },
+    {
+      "type": "relatedContent",
+      "slugs": [
+        "validate-swagger-openapi-spec",
+        "get-openapi-json-from-swagger-ui",
+        "common-openapi-errors"
+      ]
+    },
+    {
+      "type": "externalReference",
+      "title": "OpenAPI Specification FAQ (history of the Swagger donation)",
+      "url": "https://www.openapis.org/faq",
+      "source": "OpenAPI Initiative"
+    },
+    {
+      "type": "externalReference",
+      "title": "OpenAPI Specification 2.0 (fka Swagger RESTful API Documentation Specification)",
+      "url": "https://spec.openapis.org/oas/v2.0.html",
+      "source": "OpenAPI Initiative"
+    },
+    {
+      "type": "externalReference",
+      "title": "OpenAPI Specification 3.0.3",
+      "url": "https://spec.openapis.org/oas/v3.0.3",
+      "source": "OpenAPI Initiative"
+    },
+    {
+      "type": "externalReference",
+      "title": "OpenAPI Specification 3.1.0",
+      "url": "https://spec.openapis.org/oas/v3.1.0",
+      "source": "OpenAPI Initiative"
+    },
+    {
+      "type": "externalReference",
+      "title": "Upgrading from OpenAPI 3.0 to 3.1",
+      "url": "https://learn.openapis.org/upgrading/v3.0-to-v3.1.html",
+      "source": "OpenAPI Initiative"
+    },
+    {
+      "type": "externalReference",
+      "title": "Swagger 2.0 basic structure",
+      "url": "https://swagger.io/docs/specification/v2_0/basic-structure/",
+      "source": "Swagger documentation"
     }
   ],
   "faqs": [
     {
-      "question": "Is Swagger 2.0 deprecated?",
-      "answer": "While Swagger 2.0 specs are still read by legacy tools, OpenAPI 3.0 and 3.1 have superseded it as the official industry standard since 2017."
+      "question": "Is Swagger the same as OpenAPI?",
+      "answer": "Swagger 2.0 and OpenAPI 2.0 are the same specification under two names. From 3.0 on, the format is only called OpenAPI, and Swagger refers to SmartBear's tools such as Swagger UI and Swagger Editor."
     },
     {
-      "question": "Can APIForge parse both Swagger 2.0 and OpenAPI 3.1?",
-      "answer": "Yes! APIForge features deterministic parsers supporting Swagger 2.0, OpenAPI 3.0, and OpenAPI 3.1 seamlessly."
+      "question": "Is Swagger 2.0 still valid?",
+      "answer": "Yes. A Swagger 2.0 file is still a valid OpenAPI 2.0 document, and many tools read it. It lacks 3.x features such as requestBody, a bearer security scheme, oneOf and per-media-type schemas, so new APIs usually start on 3.0 or 3.1."
+    },
+    {
+      "question": "How do I tell which version a spec file is?",
+      "answer": "Read the first field. swagger: \"2.0\" means Swagger or OpenAPI 2.0, and openapi: 3.0.x or 3.1.x means OpenAPI 3. The file name, such as swagger.json, does not tell you the version."
+    },
+    {
+      "question": "Can APIForge read Swagger 2.0 and OpenAPI 3.1?",
+      "answer": "Yes. APIForge parses Swagger 2.0, OpenAPI 3.0 and OpenAPI 3.1 documents from a URL or a file. It does not convert between versions, so use a converter such as swagger2openapi for that."
     }
   ]
 }

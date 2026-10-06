@@ -1,65 +1,382 @@
 {
   "slug": "api-quality-checklist",
-  "title": "The Ultimate API Quality Checklist for Production Specs (2026)",
-  "description": "An essential 25-point audit checklist covering API security, OpenAPI schema validation, URI design, error handling, and performance standards.",
-  "excerpt": "A 25-point production audit checklist for REST APIs, OpenAPI specifications, and API Gateways.",
-  "category": "api-quality",
+  "title": "API Quality Checklist: Seven Checks Behind a Design Score",
+  "description": "An API quality checklist built on the seven checks a deterministic design score runs, with a sample spec scored 58.7 before fixes and 100 after.",
+  "excerpt": "A design-review checklist for paths, methods and responses, tested against a real scoring engine with a before and after spec.",
+  "category": "api-design",
+  "cluster": "api-quality",
+  "primaryKeyword": "api quality checklist",
+  "keywords": [
+    "api design review checklist",
+    "api quality score categories",
+    "api design score",
+    "rest api path naming rules"
+  ],
   "tags": [
     "API Quality",
-    "API Audit",
-    "OpenAPI",
-    "REST API",
-    "Best Practices"
-  ],
-  "keywords": [
-    "api quality checklist",
-    "production api audit criteria",
-    "openapi quality score",
-    "rest api launch checklist"
+    "API Design",
+    "Design Review",
+    "OpenAPI"
   ],
   "author": "rishab",
   "publishedAt": "2026-09-26",
-  "updatedAt": "2026-09-26",
-  "readingTime": "11 min read",
-  "featured": false,
+  "updatedAt": "2026-10-04",
   "content": [
     {
       "type": "paragraph",
-      "text": "Before publishing an API to production or external consumers, verify that your specification and infrastructure comply with enterprise quality standards across design, security, performance, and documentation."
+      "text": "An API quality checklist for a design review should cover seven things: path naming, HTTP method use, path depth, consistency across paths, versioning, documented error responses, and operation summaries. Those are the seven categories APIForge's deterministic score checks, worth 20, 20, 15, 15, 10, 10 and 10 points. This page turns each category into review questions, shows the exact rule behind each deduction, and scores one small spec before and after fixes so you can see where the points go."
     },
     {
       "type": "heading",
       "level": 2,
-      "text": "1. Production API Readiness Checklist",
-      "id": "readiness-checklist"
+      "text": "Design review versus release readiness",
+      "id": "scope"
+    },
+    {
+      "type": "paragraph",
+      "text": "This checklist is for the design review, when a pull request adds or renames endpoints and someone has to decide whether the shape is right. It looks at the surface a client developer sees first: URLs, methods, status codes and descriptions. It does not ask whether the document is valid OpenAPI, whether every $ref resolves, or whether security schemes are declared. Those belong to the release gate, and the [OpenAPI production checklist](/checklists/openapi-production-checklist) covers them. Run both, at different moments: design review on every endpoint change, the release gate before you publish a spec or generate SDKs."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The seven categories and their weights",
+      "id": "categories"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Category",
+        "Max points",
+        "What costs points"
+      ],
+      "rows": [
+        [
+          "Naming",
+          "20",
+          "camelCase anywhere in the path, underscores in a static segment, a segment that is exactly a verb"
+        ],
+        [
+          "HTTP",
+          "20",
+          "A GET with a request body, an action word such as /create or /get- after a slash"
+        ],
+        [
+          "Structure",
+          "15",
+          "Paths with more than 3 segments, counting the version prefix and parameters"
+        ],
+        [
+          "Consistency",
+          "15",
+          "Duplicate method and path pairs, singular and plural forms of the same noun"
+        ],
+        [
+          "Versioning",
+          "10",
+          "No path segment like v1 or v2 anywhere in the spec"
+        ],
+        [
+          "Error handling",
+          "10",
+          "Operations with no 4xx, 5xx or default response"
+        ],
+        [
+          "Documentation",
+          "10",
+          "Operations with neither a summary nor a description"
+        ]
+      ],
+      "caption": "Weights and rules from src/lib/api-quality-score in the APIForge source."
+    },
+    {
+      "type": "paragraph",
+      "text": "Most categories are averaged per operation. Each operation starts at 1, loses a fraction for each problem, and the category score is the average multiplied by the category maximum. One bad endpoint in a spec of twenty costs little; the same mistake copied across every endpoint costs the whole category. Consistency and versioning are judged across the whole spec instead."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The checklist, category by category",
+      "id": "checklist"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Naming (20 points)",
+      "id": "naming"
     },
     {
       "type": "list",
-      "ordered": true,
+      "ordered": false,
       "items": [
-        "100% OpenAPI 3.x Validation: Zero syntax errors or unresolved $ref pointers.",
-        "Resource URI Consistency: Lower kebab-case plural nouns without path verbs.",
-        "RFC 7807 Error Models: Standardized Problem Details payload for all 4xx/5xx responses.",
-        "OWASP Security Alignment: OAuth 2.0 / Bearer token security schemes with granular scopes.",
-        "Rate Limiting & Throttling: 429 response declarations with RateLimit headers.",
-        "Cursor Pagination: Enforced limit parameters with pagination metadata arrays.",
-        "Unique Operation IDs: Unique, camelCase operationId values across all paths.",
-        "Explicit Required Arrays: Required fields explicitly listed for all DTO schemas."
+        "Are multi-word segments kebab-case, such as /line-items? A camelCase match costs the operation 0.45 of its naming share.",
+        "Are static segments free of underscores? /line_items costs 0.35.",
+        "Is no segment a bare verb? The rule matches whole segments against get, post, put, patch, delete, create, update, remove, fetch, list, add, edit and save. /orders/create costs 0.55.",
+        "Are path parameter names plain? The camelCase rule reads the whole path string, so {orderId} counts as camelCase and so does {order_id}. Either accept the deduction or use {id}."
       ]
+    },
+    {
+      "type": "paragraph",
+      "text": "The whole-segment match has a blind spot. /createOrder is one segment, so the verb rule does not fire; the camelCase rule catches it instead. The [API naming conventions guide](/guides/api-naming-conventions) covers the wider naming decisions the score cannot judge, such as whether a collection name is the right noun."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "HTTP method use (20 points)",
+      "id": "http"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Does any GET operation declare a requestBody? That costs the operation its full HTTP share. RFC 9110 says content in a GET request has no generally defined semantics, and some intermediaries reject it.",
+        "Does a path put an action after a slash? The check matches create, update, delete, remove, get, fetch, add and save followed by a word boundary, so /get-users loses 0.45 even though the naming rule does not see a bare verb there.",
+        "For complex queries that need a body, model the search as its own resource and POST to it, such as POST /v1/order-searches."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "In a probe spec, GET /v1/get-users dropped the HTTP category without adding a line to the issue list, because the issue list only names create, update, delete and remove in its action-word message. If the HTTP score is below 20 and the issues do not explain it, look for get, fetch, add or save at the start of a segment."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Structure (15 points)",
+      "id": "structure"
+    },
+    {
+      "type": "paragraph",
+      "text": "Count every segment, including the version prefix and path parameters. /v1/orders/{id} is 3 segments and costs nothing. Each segment past 3 costs 0.22 of the operation's share, capped at 0.9, and the issue list adds a message once a path passes 4 segments. Adding /v1 to an API therefore spends one segment of the budget, so /v1/orders/{id}/items starts losing points. When a child resource has its own stable ID, give it a top-level path such as /v1/line-items/{id}."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Consistency (15 points)",
+      "id": "consistency"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Does any method and path pair appear twice? Each duplicate costs 0.45 of the category.",
+        "Does the spec use both order and orders as segments? Mixing singular and plural forms of one noun costs 0.5. The check strips a trailing s, so it catches order and orders but not person and people.",
+        "Penalties add up and the category floors at zero."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Versioning (10 points)",
+      "id": "versioning"
+    },
+    {
+      "type": "paragraph",
+      "text": "The score gives the full 10 points if any path contains a segment like v1, and 1 point otherwise. Header or media-type versioning earns nothing here, even though the fix text mentions version headers. If your team versions by header on purpose, record that decision in the review and treat this category as known. The [API versioning guide](/guides/api-versioning-best-practices) compares the strategies."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Error handling (10 points)",
+      "id": "error-handling"
+    },
+    {
+      "type": "paragraph",
+      "text": "This is the share of operations that declare at least one 4xx, 5xx or default response. It counts presence only. A bare \"404\" with a one-word description earns the same as a full problem details schema, and a 429 or 401 is never asked for. Use the score to find operations with no error responses at all, then review the error body by hand against the [REST API error handling guide](/guides/rest-api-error-handling). An operation that also lacks any 2xx response is flagged under error handling as well."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Documentation (10 points)",
+      "id": "documentation"
+    },
+    {
+      "type": "paragraph",
+      "text": "This is the share of operations with a non-empty summary or description. A summary like \"Get one order\" is enough for the points. Whether the text helps a reader is a review question the score cannot answer, so read the summaries out loud during the review and rewrite any that repeat the path."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Worked example: an Orders API scored before and after",
+      "id": "worked-example"
+    },
+    {
+      "type": "paragraph",
+      "text": "Here is a five-operation spec with the kind of problems that slip through reviews: a verb-shaped path, a GET with a body, a singular path next to a plural one, a deep nested delete, missing summaries, and no version prefix."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "filename": "orders-before.yaml",
+      "code": "openapi: 3.0.3\ninfo:\n  title: Orders API\n  version: 1.0.0\npaths:\n  /orders:\n    get:\n      summary: List orders\n      responses:\n        \"200\":\n          description: A page of orders\n  /createOrder:\n    post:\n      requestBody:\n        content:\n          application/json:\n            schema:\n              type: object\n      responses:\n        \"201\":\n          description: Order created\n  /order/{orderId}:\n    get:\n      summary: Get one order\n      parameters:\n        - name: orderId\n          in: path\n          required: true\n          schema:\n            type: string\n      responses:\n        \"200\":\n          description: The order\n        \"404\":\n          description: Order not found\n  /orders/search:\n    get:\n      summary: Search orders\n      requestBody:\n        content:\n          application/json:\n            schema:\n              type: object\n      responses:\n        \"200\":\n          description: Matching orders\n  /customers/{customerId}/orders/{orderId}/line_items/{itemId}:\n    delete:\n      parameters:\n        - name: customerId\n          in: path\n          required: true\n          schema:\n            type: string\n        - name: orderId\n          in: path\n          required: true\n          schema:\n            type: string\n        - name: itemId\n          in: path\n          required: true\n          schema:\n            type: string\n      responses:\n        \"204\":\n          description: Line item removed"
+    },
+    {
+      "type": "paragraph",
+      "text": "Running npm run content:score on this file, which calls the same engine as the APIForge workspace, returned 58.7 out of 100 with 14 issues."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Category",
+        "Before",
+        "Main cause"
+      ],
+      "rows": [
+        [
+          "Naming (20)",
+          "13.2",
+          "/createOrder, plus {orderId} and {customerId} read as camelCase, plus line_items"
+        ],
+        [
+          "HTTP (20)",
+          "16",
+          "GET /orders/search carries a request body"
+        ],
+        [
+          "Structure (15)",
+          "13",
+          "The delete path has 6 segments"
+        ],
+        [
+          "Consistency (15)",
+          "7.5",
+          "order and orders both appear"
+        ],
+        [
+          "Versioning (10)",
+          "1",
+          "No /v1 segment"
+        ],
+        [
+          "Error handling (10)",
+          "2",
+          "Only GET /order/{orderId} declares an error response"
+        ],
+        [
+          "Documentation (10)",
+          "6",
+          "POST /createOrder and the delete have no summary"
+        ]
+      ],
+      "caption": "Category scores for orders-before.yaml. Total 58.7."
+    },
+    {
+      "type": "steps",
+      "title": "The fixes, in the order a reviewer would ask for them",
+      "steps": [
+        {
+          "title": "Add the version prefix first",
+          "description": "Prefix every path with /v1. This is worth 9 points on its own and changes path depth, so do it before you judge structure."
+        },
+        {
+          "title": "Turn actions into resources",
+          "description": "POST /createOrder becomes POST /v1/orders. The search moves from GET with a body to POST /v1/order-searches, a resource that represents the query."
+        },
+        {
+          "title": "Pick plural nouns everywhere",
+          "description": "/order/{orderId} becomes /v1/orders/{id}, which removes the singular and plural clash and the camelCase parameter."
+        },
+        {
+          "title": "Flatten the delete",
+          "description": "Line items have their own IDs, so the delete becomes DELETE /v1/line-items/{id}: 3 segments, kebab-case, no underscore."
+        },
+        {
+          "title": "Declare an error response and a summary on every operation",
+          "description": "Add 400, 404 or 422 where each one can really happen, and a one-line summary to the two operations that had none."
+        }
+      ]
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "filename": "orders-after.yaml",
+      "code": "openapi: 3.0.3\ninfo:\n  title: Orders API\n  version: 1.0.0\npaths:\n  /v1/orders:\n    get:\n      summary: List orders\n      parameters:\n        - name: status\n          in: query\n          schema:\n            type: string\n            enum: [open, paid, shipped]\n      responses:\n        \"200\":\n          description: A page of orders\n        \"400\":\n          description: Invalid filter value\n    post:\n      summary: Create an order\n      requestBody:\n        content:\n          application/json:\n            schema:\n              type: object\n      responses:\n        \"201\":\n          description: Order created\n        \"422\":\n          description: Order failed validation\n  /v1/orders/{id}:\n    get:\n      summary: Get one order\n      parameters:\n        - name: id\n          in: path\n          required: true\n          schema:\n            type: string\n      responses:\n        \"200\":\n          description: The order\n        \"404\":\n          description: Order not found\n  /v1/order-searches:\n    post:\n      summary: Run a complex order search\n      requestBody:\n        content:\n          application/json:\n            schema:\n              type: object\n      responses:\n        \"200\":\n          description: Matching orders\n        \"400\":\n          description: Malformed search\n  /v1/line-items/{id}:\n    delete:\n      summary: Remove a line item from its order\n      parameters:\n        - name: id\n          in: path\n          required: true\n          schema:\n            type: string\n      responses:\n        \"204\":\n          description: Line item removed\n        \"404\":\n          description: Line item not found",
+      "caption": "Scores 100 with no issues."
+    },
+    {
+      "type": "paragraph",
+      "text": "The fixed spec scores 100 with an empty issue list. When we renamed {id} back to {orderId} on the two single-item paths, naming fell to 16.4 and the total to 96.4, purely because of the parameter name. Plenty of teams prefer {orderId} because it reads well in generated client code. Keeping it is a reasonable call; record it in the review so nobody chases those 3.6 points later."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "What a 100 does not tell you",
+      "id": "blind-spots"
+    },
+    {
+      "type": "paragraph",
+      "text": "The score reads paths, methods, the presence of a request body, response status codes and summaries. Everything else needs a human or a different tool. Keep these on the review checklist even when the number is perfect:"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Spec validity. The score parses what it can; run the [OpenAPI validator](/openapi-validator) for structural errors and unresolved $ref pointers.",
+        "Security. securitySchemes and security requirements are not read at all. A spec with every auth block removed scores the same. See [API security best practices](/guides/api-security-best-practices).",
+        "Schemas. Request and response schemas are not inspected, so missing required lists, loose types and absent examples pass.",
+        "operationId. The OpenAPI Specification says each operationId must be unique among all operations; the score does not check that.",
+        "Rate limits. A 429 response and RateLimit headers are not required for points. See [API rate limiting](/guides/api-rate-limiting-best-practices).",
+        "Error body shape. A declared 404 with no schema earns full credit."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Using the score in a pull request review",
+      "id": "review-workflow"
+    },
+    {
+      "type": "paragraph",
+      "text": "Score the spec on the main branch and on the pull request, then compare category by category rather than the total. A total can stay flat while one category drops and another rises, and the drop is what the reviewer needs to see. Set floors per category that match your conventions: if you version by header, accept 1 point in versioning and fail on anything less than 20 in naming. Then spend the human part of the review on the items in the previous section, which is where the score says nothing."
+    },
+    {
+      "type": "paragraph",
+      "text": "To try it on your own API, paste a spec URL into the APIForge workspace and open the quality score; the [API quality score page](/api-score) lists the same seven categories. The score runs in the browser and shows the issue list with a suggested fix for each one."
     },
     {
       "type": "tool",
       "tool": "api-score",
-      "title": "Get Your API Quality Score (0-100)",
-      "description": "Run APIForge's automated 25-point quality scanner against your OpenAPI spec to generate a shareable quality report.",
-      "buttonText": "Calculate Quality Score",
+      "title": "Score your spec across the seven categories",
+      "description": "Get a deterministic 0-100 design score with a per-category breakdown and the issues behind each deduction.",
+      "buttonText": "Open the API quality score",
       "href": "/api-score"
+    },
+    {
+      "type": "relatedContent",
+      "slugs": [
+        "api-naming-conventions",
+        "rest-api-design-best-practices",
+        "rest-api-error-handling",
+        "api-versioning-best-practices"
+      ]
+    },
+    {
+      "type": "externalReference",
+      "title": "OpenAPI Specification 3.1.0: Operation Object",
+      "url": "https://spec.openapis.org/oas/v3.1.0#operation-object",
+      "source": "OpenAPI Initiative"
+    },
+    {
+      "type": "externalReference",
+      "title": "RFC 9110: HTTP Semantics, section 9.3.1 GET",
+      "url": "https://www.rfc-editor.org/rfc/rfc9110.html#name-get",
+      "source": "IETF"
     }
   ],
   "faqs": [
     {
-      "question": "How is the APIForge Quality Score calculated?",
-      "answer": "APIForge parses your OpenAPI file across 5 dimensions: Schema Completeness, Security Coverage, Error Modeling, Path Naming, and Documentation Quality, computing a weighted 0-100 score."
+      "question": "How is the APIForge quality score calculated?",
+      "answer": "It adds seven category scores: naming (20), HTTP method use (20), structure (15), consistency (15), versioning (10), error handling (10) and documentation (10). Most categories average a per-operation score, so a mistake repeated on every endpoint costs more than a single one. The rules are deterministic, so the same spec always gets the same number."
+    },
+    {
+      "question": "Does a score of 100 mean my API is ready for production?",
+      "answer": "No. The score checks design surface only: paths, methods, status codes and summaries. It does not read security schemes, schemas or operationId uniqueness, so pair it with a spec validator and a release checklist."
+    },
+    {
+      "question": "Why does a path parameter like {orderId} lower my naming score?",
+      "answer": "The camelCase rule reads the whole path string, parameters included. In our test, two paths using {orderId} cost 3.6 naming points. Rename to {id} or accept the deduction as a team convention."
+    },
+    {
+      "question": "Does header-based versioning count toward the versioning category?",
+      "answer": "No. Full points need a path segment such as v1 somewhere in the spec; without one the category scores 1 out of 10. If you version by header on purpose, treat that as a known, accepted gap."
     }
   ]
 }

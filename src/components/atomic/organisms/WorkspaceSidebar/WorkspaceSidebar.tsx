@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { TranslateFn } from "@/context/LanguageContext";
 import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
 import { collectionIconForTagName } from "@/lib/collection-icon";
@@ -99,6 +99,26 @@ export default function WorkspaceSidebar({
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  const asideRef = useRef<HTMLElement>(null);
+  const drawerOpen = mobileOpen && !focusMode;
+
+  // Drawer: Escape closes it; on open, bring the current endpoint into view.
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileSidebarOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    const raf = window.requestAnimationFrame(() => {
+      const current = asideRef.current?.querySelector<HTMLElement>('[aria-current="true"]');
+      current?.scrollIntoView({ block: "nearest" });
+    });
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.cancelAnimationFrame(raf);
+    };
+  }, [drawerOpen, setMobileSidebarOpen]);
+
   const toggleTag = useCallback((tag: string) => {
     setExpandedTags((prev) => {
       const next = new Set(prev);
@@ -149,7 +169,7 @@ export default function WorkspaceSidebar({
 
   return (
     <>
-      {mobileOpen && !focusMode ? (
+      {drawerOpen ? (
         <button
           type="button"
           className={styles.backdrop}
@@ -158,7 +178,9 @@ export default function WorkspaceSidebar({
         />
       ) : null}
       <aside
-        className={`${styles.aside} ${mobileOpen && !focusMode ? styles.open : ""} ${!hasWorkspace ? styles.asideHiddenDesktop : ""} ${hasWorkspace && focusMode ? styles.asideFocusMode : ""}`}
+        ref={asideRef}
+        id="workspace-explorer"
+        className={`${styles.aside} ${drawerOpen ? styles.open : ""} ${!hasWorkspace ? styles.asideHiddenDesktop : ""} ${hasWorkspace && focusMode ? styles.asideFocusMode : ""}`}
         aria-label={t("sidebar.apiExplorer")}
         aria-hidden={hasWorkspace && focusMode ? true : undefined}
       >
@@ -182,6 +204,14 @@ export default function WorkspaceSidebar({
                 {sidebarSubtitle}
               </p>
             </div>
+            <button
+              type="button"
+              className={`${styles.closeBtn} focusRing`}
+              aria-label={t("a11y.closeExplorer")}
+              onClick={() => setMobileSidebarOpen(false)}
+            >
+              <MaterialIcon name="close" size="md" />
+            </button>
           </div>
         </div>
 
@@ -225,7 +255,8 @@ export default function WorkspaceSidebar({
                   <button
                     key={m}
                     type="button"
-                    className={chipClass(styles.chip, m, active)}
+                    className={`${chipClass(styles.chip, m, active)} focusRing`}
+                    aria-pressed={active}
                     onClick={() => toggleMethodFilter(m)}
                   >
                     {m}
@@ -327,6 +358,8 @@ export default function WorkspaceSidebar({
                             <button
                               type="button"
                               className={`${styles.endpointRow} focusRing ${active ? styles.endpointRowActive : ""}`}
+                              aria-current={active ? "true" : undefined}
+                              title={`${ep.method.toUpperCase()} ${ep.path}`}
                               onClick={() => {
                                 setActiveEndpoint(ep);
                                 setSelectedCollectionTag(tag);

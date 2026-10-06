@@ -4,33 +4,37 @@ import { executeProxyRequest } from "@/lib/proxy-execution";
 import {
   acquireConcurrencySlot,
   checkRateLimitAndConcurrency,
+  getClientIp,
   releaseConcurrencySlot,
 } from "@/lib/security/rate-limit";
+import { readJsonObject } from "@/lib/http/read-json-body";
 
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
-  let body: ApiExecutionRequest;
-  try {
-    body = (await req.json()) as ApiExecutionRequest;
-  } catch {
+  // Proxy body cap is 2MB; allow headroom for headers/query/auth in the envelope.
+  const parsedBody = await readJsonObject(req, 3 * 1024 * 1024);
+  if (!parsedBody.ok) {
     return Response.json(
       {
         success: false,
         executionMode: "apiforge-proxy",
         requestId: `req_err_${Date.now()}`,
         error: {
-          code: "INVALID_URL",
-          message: "Invalid JSON request payload.",
+          code: parsedBody.status === 413 ? "REQUEST_TOO_LARGE" : "INVALID_URL",
+          message:
+            parsedBody.status === 413
+              ? "Request payload too large."
+              : "Invalid JSON request payload.",
         },
       },
-      { status: 400 },
+      { status: parsedBody.status },
     );
   }
+  const body = parsedBody.body as unknown as ApiExecutionRequest;
 
   // Rate Limiting & Concurrency Check
-  const clientIp =
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "127.0.0.1";
+  const clientIp = getClientIp(req);
   const rateCheck = checkRateLimitAndConcurrency(clientIp);
 
   if (!rateCheck.allowed) {
@@ -54,6 +58,7 @@ export async function POST(req: NextRequest) {
     const httpStatus = result.success ? 200 : result.status || 400;
     return Response.json(result, { status: httpStatus });
   } catch (err) {
+    console.error("[test-request] unexpected proxy error:", err);
     return Response.json(
       {
         success: false,
@@ -61,10 +66,7 @@ export async function POST(req: NextRequest) {
         requestId: `req_err_${Date.now()}`,
         error: {
           code: "UNKNOWN",
-          message:
-            err instanceof Error
-              ? err.message
-              : "An unexpected proxy execution error occurred.",
+          message: "An unexpected proxy execution error occurred.",
         },
       },
       { status: 500 },

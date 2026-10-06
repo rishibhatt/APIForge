@@ -1,28 +1,33 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useSwaggerParser } from "@/hooks/useSwaggerParser";
 import { useWorkspaceStore } from "@/store/workspaceStore";
-/**
- * Collection sidepane: `EndpointListColumn` is temporarily commented out so the
- * workspace engine can use the full chrome width. Re-enable by restoring the
- * import and `{!focusMode ? <EndpointListColumn t={t} /> : null}` in `workspaceChrome`.
- */
-// import EndpointListColumn from "@/components/atomic/organisms/EndpointListColumn/EndpointListColumn";
-import WorkspaceCodePanel from "@/components/atomic/organisms/WorkspaceCodePanel/WorkspaceCodePanel";
-import WorkspaceFooter from "@/components/atomic/organisms/WorkspaceFooter/WorkspaceFooter";
 import LandingHeader from "@/components/sections/LandingHeader/LandingHeader";
-import WorkspaceHeader from "@/components/atomic/organisms/WorkspaceHeader/WorkspaceHeader";
 import WorkspaceSidebar from "@/components/atomic/organisms/WorkspaceSidebar/WorkspaceSidebar";
-import MobileBottomNav from "@/components/atomic/organisms/MobileBottomNav/MobileBottomNav";
 import HeroSection from "@/components/sections/HeroSection/HeroSection";
 import LandingMarketing from "@/components/sections/LandingMarketing/LandingMarketing";
 import LandingFooter from "@/components/sections/LandingFooter/LandingFooter";
-import QualityScoreModal from "@/components/atomic/organisms/WorkspaceQualityScore/QualityScoreModal";
-import FloatingSupportButton from "@/components/atomic/atoms/FloatingSupportButton/FloatingSupportButton";
-import SupportModal from "@/components/atomic/organisms/SupportModal/SupportModal";
 import shell from "./WorkspaceShell.module.css";
+
+// Workspace-only UI loads on demand so the landing page ships less JavaScript.
+const WorkspaceCodePanel = dynamic(
+  () => import("@/components/atomic/organisms/WorkspaceCodePanel/WorkspaceCodePanel"),
+);
+const WorkspaceFooter = dynamic(
+  () => import("@/components/atomic/organisms/WorkspaceFooter/WorkspaceFooter"),
+);
+const WorkspaceHeader = dynamic(
+  () => import("@/components/atomic/organisms/WorkspaceHeader/WorkspaceHeader"),
+);
+const MobileBottomNav = dynamic(
+  () => import("@/components/atomic/organisms/MobileBottomNav/MobileBottomNav"),
+);
+const QualityScoreModal = dynamic(
+  () => import("@/components/atomic/organisms/WorkspaceQualityScore/QualityScoreModal"),
+);
 
 export default function WorkspaceShell() {
   const { t } = useLanguage();
@@ -60,7 +65,7 @@ export default function WorkspaceShell() {
 
   return (
     <div
-      className={`${shell.shell} ${focusMode && workspaceVisible ? shell.focusMode : ""}`}
+      className={`${shell.shell} ${workspaceVisible ? shell.workspaceShell : ""} ${focusMode && workspaceVisible ? shell.focusMode : ""}`}
     >
       {workspaceVisible ? (
         <WorkspaceHeader
@@ -103,8 +108,6 @@ export default function WorkspaceShell() {
         )}
       </main>
       {workspaceVisible ? <QualityScoreModal t={t} /> : null}
-      {!workspaceVisible ? <FloatingSupportButton t={t} /> : null}
-      <SupportModal t={t} />
       {workspaceVisible && !focusMode ? (
         <MobileBottomNav t={t} hasWorkspace={workspaceVisible} />
       ) : null}

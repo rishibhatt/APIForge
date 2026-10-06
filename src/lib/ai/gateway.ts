@@ -368,6 +368,10 @@ export async function executeStreamWithFallback(
               controller.error(streamErr);
             }
           },
+          // Client disconnected: stop pulling tokens from the upstream provider.
+          cancel(reason) {
+            return reader.cancel(reason).catch(() => undefined);
+          },
         });
 
         aiObservability.recordEvent({

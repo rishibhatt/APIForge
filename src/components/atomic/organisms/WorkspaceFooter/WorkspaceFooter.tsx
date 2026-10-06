@@ -35,7 +35,7 @@ export default function WorkspaceFooter({ t, hasWorkspace }: WorkspaceFooterProp
         </div>
       </div>
       <div className={styles.right}>
-        <AIFallbackIndicator />
+        <AIFallbackIndicator className={styles.aiRoute} />
         {lastMs != null ? (
           <span className={styles.genTime}>
             {t("footer.generationTime", { ms: lastMs })}

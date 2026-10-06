@@ -1,23 +1,38 @@
 import Script from "next/script";
 import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import { AppThemeProvider } from "@/components/providers/AppThemeProvider";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { PostHogProvider } from "@/components/providers/PostHogProvider";
+import { ZoneController } from "@/components/providers/ZoneController";
+import { RoastTransition } from "@/components/providers/RoastTransition/RoastTransition";
+import { Toaster } from "@/components/providers/Toaster/Toaster";
+import GlobalSupport from "@/components/atomic/organisms/SupportFab/GlobalSupport";
 import { MicrosoftClarity } from "@/components/analytics/MicrosoftClarity";
 import bodyStyles from "./layout.module.css";
 import "./globals.css";
 
-const plusJakarta = Plus_Jakarta_Sans({
+const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-sans",
+  variable: "--font-jakarta",
   weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
 });
 
-const jetbrainsMono = JetBrains_Mono({
+const jetbrains = JetBrains_Mono({
   subsets: ["latin"],
-  variable: "--font-jetbrains-mono",
+  variable: "--font-jetbrains",
   weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
+
+/** Self-hosted Material Symbols subset (see scripts/sync-icon-font.mjs). */
+const iconFont = localFont({
+  src: "./fonts/material-symbols.woff2",
+  variable: "--font-icons",
+  display: "block",
+  preload: true,
 });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://apiforge.info";
@@ -25,8 +40,8 @@ const gaId = process.env.NEXT_PUBLIC_GA_ID || "G-E9R9NSFZVR";
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#0c0814" },
-    { media: "(prefers-color-scheme: light)", color: "#f5f3f8" },
+    { media: "(prefers-color-scheme: dark)", color: "#131315" },
+    { media: "(prefers-color-scheme: light)", color: "#f7f5fa" },
   ],
   width: "device-width",
   initialScale: 1,
@@ -36,14 +51,14 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "APIForge — The Intelligent OpenAPI & Swagger Workspace",
+    default: "APIForge: Free OpenAPI & Swagger Validator, API Tester and Quality Score",
     template: "%s | APIForge",
   },
   description:
-    "Transform OpenAPI & Swagger specs into interactive API explorers, TypeScript SDKs, automated test suites, and AI-powered quality audits. Test live APIs with zero CORS blockers.",
+    "Free online OpenAPI and Swagger tool. Parse a spec URL, send requests without CORS errors, validate responses against the schema, score API design 0 to 100, and generate TypeScript types and tests. No sign-up.",
   applicationName: "APIForge",
-  authors: [{ name: "Rishi Bhatt", url: "https://github.com/rishibhatt" }],
-  creator: "Rishi Bhatt",
+  authors: [{ name: "Rishab Bhatt", url: "https://github.com/rishibhatt" }],
+  creator: "Rishab Bhatt",
   publisher: "APIForge",
   keywords: [
     "OpenAPI",
@@ -54,8 +69,7 @@ export const metadata: Metadata = {
     "API Quality Score",
     "API Linter",
     "TypeScript SDK Generator",
-    "API Mock Server",
-    "AI Schema Auto-Fix",
+        "AI Schema Auto-Fix",
     "CORS Proxy",
     "REST API Tools",
     "API Testing",
@@ -63,9 +77,6 @@ export const metadata: Metadata = {
     "Groq AI",
   ],
   category: "Developer Tools",
-  alternates: {
-    canonical: "/",
-  },
   robots: {
     index: true,
     follow: true,
@@ -83,41 +94,34 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: siteUrl,
     siteName: "APIForge",
-    title: "APIForge — The Intelligent OpenAPI & Swagger Workspace",
+    title: "APIForge: Free OpenAPI & Swagger Validator, API Tester and Quality Score",
     description:
-      "Transform OpenAPI & Swagger specs into interactive API explorers, TypeScript SDKs, automated test suites, and AI-powered quality audits. Test live APIs with zero CORS blockers.",
+      "Free online OpenAPI and Swagger tool. Parse a spec URL, send requests without CORS errors, validate responses against the schema, score API design 0 to 100, and generate TypeScript types and tests. No sign-up.",
     images: [
       {
         url: "/opengraph-image",
         width: 1200,
         height: 630,
-        alt: "APIForge — The Intelligent OpenAPI & Swagger Workspace",
+        alt: "APIForge: Free OpenAPI & Swagger Validator, API Tester and Quality Score",
         type: "image/png",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "APIForge — The Intelligent OpenAPI & Swagger Workspace",
+    title: "APIForge: Free OpenAPI & Swagger Validator, API Tester and Quality Score",
     description:
-      "Transform OpenAPI & Swagger specs into interactive API explorers, TypeScript SDKs, automated test suites, and AI-powered quality audits. Test live APIs with zero CORS blockers.",
-    creator: "@rishibhatt",
-    site: "@rishibhatt",
+      "Free online OpenAPI and Swagger tool. Parse a spec URL, send requests without CORS errors, validate responses against the schema, score API design 0 to 100, and generate TypeScript types and tests. No sign-up.",
+    creator: "@Rishi_o07",
+    site: "@Rishi_o07",
     images: [
       {
         url: "/twitter-image",
         width: 1200,
         height: 630,
-        alt: "APIForge — The Intelligent OpenAPI & Swagger Workspace",
+        alt: "APIForge: Free OpenAPI & Swagger Validator, API Tester and Quality Score",
       },
     ],
-  },
-  icons: {
-    icon: [
-      { url: "/favicon.ico" },
-      { url: "/icon.png", sizes: "192x192", type: "image/png" },
-    ],
-    apple: [{ url: "/icon.png", sizes: "180x180", type: "image/png" }],
   },
   manifest: "/manifest.webmanifest",
 };
@@ -131,16 +135,16 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`dark ${plusJakarta.variable} ${jetbrainsMono.variable}`}
+      className={`${jakarta.variable} ${jetbrains.variable} ${iconFont.variable}`}
     >
       <head>
         {/* Google Analytics (gtag.js) */}
         <Script
           async
           src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
-          strategy="afterInteractive"
+          strategy="lazyOnload"
         />
-        <Script id="google-analytics" strategy="afterInteractive">
+        <Script id="google-analytics" strategy="lazyOnload">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
@@ -155,7 +159,13 @@ export default function RootLayout({
       <body className={bodyStyles.body}>
         <PostHogProvider>
           <AppThemeProvider>
-            <LanguageProvider>{children}</LanguageProvider>
+            <LanguageProvider>
+              <ZoneController />
+              {children}
+              <GlobalSupport />
+              <RoastTransition />
+              <Toaster />
+            </LanguageProvider>
           </AppThemeProvider>
         </PostHogProvider>
         <MicrosoftClarity />

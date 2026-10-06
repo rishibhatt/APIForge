@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { getAllGlossary } from "@/lib/content/loader";
 import { createBaseMetadata } from "@/lib/seo/metadata";
 import { generateBreadcrumbJsonLd } from "@/lib/seo/jsonld";
 import LandingHeader from "@/components/sections/LandingHeader/LandingHeader";
 import LandingFooter from "@/components/sections/LandingFooter/LandingFooter";
-import Breadcrumbs from "@/components/content/Breadcrumbs";
+import ArticleHero from "@/components/content/ArticleHero";
 import styles from "@/components/content/content.module.css";
+import ContentIndex from "@/components/content/ContentIndex";
+import { formatLabel } from "@/components/content/labels";
 
 
 export const metadata: Metadata = createBaseMetadata({
-  title: "API Terms & Definitions Glossary | APIForge",
+  title: "API Glossary: OpenAPI, REST & Swagger Terms",
   description: "Comprehensive developer dictionary explaining OpenAPI, Swagger, JSON Schema, REST API, Idempotency, OAuth, Bearer Tokens, and Rate Limiting.",
   path: "/glossary",
   keywords: ["api glossary", "openapi terms", "rest api dictionary", "swagger terminology"],
@@ -31,25 +32,27 @@ export default function GlossaryIndexPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
       <LandingHeader minimal />
-      <main className={styles.container}>
-        <Breadcrumbs items={[{ label: "Glossary", href: "/glossary" }]} />
-        <header className={styles.header}>
-          <span className={styles.categoryBadge}>DICTIONARY</span>
-          <h1 className={styles.title}>API & OpenAPI Glossary</h1>
-          <p className={styles.description}>
-            Clear, developer-centric definitions and practical code examples for essential web API terminology.
-          </p>
-        </header>
+      <ArticleHero
+        backdrop
+        wide
+        breadcrumbs={[{ label: "Glossary", href: "/glossary" }]}
+        title={<>API & OpenAPI Glossary</>}
+        description={<>Clear, developer-centric definitions and practical code examples for essential web API terminology.</>}
+      />
+      <main className={`${styles.container} ${styles.containerWide} ${styles.containerAfterHero}`}>
 
-        <div className={styles.relatedGrid}>
-          {terms.map((t) => (
-            <Link key={t.slug} href={`/glossary/${t.slug}`} className={styles.relatedCard}>
-              <span className={styles.relatedTag}>{t.category.toUpperCase()}</span>
-              <h2 className={styles.relatedTitle}>{t.term}</h2>
-              <p className={styles.relatedExcerpt}>{t.definition}</p>
-            </Link>
-          ))}
-        </div>
+        <ContentIndex
+          groupByLetter
+          label="Glossary terms"
+          items={[...terms]
+            .sort((a, b) => a.term.localeCompare(b.term))
+            .map((t) => ({
+              href: `/glossary/${t.slug}`,
+              title: t.term,
+              description: t.definition,
+              meta: [formatLabel(t.category)],
+            }))}
+        />
       </main>
       <LandingFooter />
     </div>

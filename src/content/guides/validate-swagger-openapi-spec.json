@@ -1,77 +1,300 @@
 {
   "slug": "validate-swagger-openapi-spec",
-  "title": "How to Validate Swagger and OpenAPI Specs: Step-by-Step Guide (2026)",
-  "description": "Learn how to validate OpenAPI 2.0, 3.0, and 3.1 specifications locally, in CI/CD pipelines, and with online tools to prevent build failures.",
-  "excerpt": "A hands-on technical walkthrough for linting, validating, and enforcement checking OpenAPI specifications.",
+  "title": "How to Validate an OpenAPI or Swagger Spec File",
+  "description": "Validate OpenAPI spec and Swagger files step by step: parse, check against the official schema, add lint rules, run them in CI, and see what checks miss.",
+  "excerpt": "Spec validation has layers. Here is what each one checks, which tools run them, and the bugs that pass all of them.",
   "category": "openapi",
+  "cluster": "openapi",
+  "primaryKeyword": "validate openapi spec",
+  "keywords": [
+    "swagger validator",
+    "openapi lint in ci",
+    "redocly lint",
+    "spectral openapi ruleset",
+    "swagger-parser validate"
+  ],
   "tags": [
     "OpenAPI",
-    "Validation",
-    "CI/CD",
+    "Swagger",
     "Linting",
-    "API Quality"
-  ],
-  "keywords": [
-    "validate openapi spec",
-    "swagger validator online",
-    "openapi linter ci cd",
-    "check openapi syntax"
+    "CI/CD"
   ],
   "author": "rishab",
   "publishedAt": "2026-09-26",
-  "updatedAt": "2026-09-26",
-  "readingTime": "8 min read",
-  "featured": false,
+  "updatedAt": "2026-10-04",
   "content": [
     {
       "type": "paragraph",
-      "text": "Syntax errors or invalid `$ref` pointers in your OpenAPI specification break client SDK builds, doc generators, and API Gateway routing rules. Implementing automated validation in your continuous integration pipeline prevents invalid specs from entering production."
+      "text": "To validate an OpenAPI spec, run it through three checks in order. First parse it, so YAML or JSON syntax errors surface. Then check the parsed document against the JSON Schema published for its OpenAPI version, which catches missing required fields and wrong types. Then run a linter with rules that look across the whole document, such as unique operationIds and path parameters that match the path template. Run all three on every pull request that touches the spec. Passing them proves the file is well formed. It does not prove the API is well designed or that the server returns what the file says, and the last section covers those gaps."
     },
     {
       "type": "heading",
       "level": 2,
-      "text": "1. Common Validation Check Categories",
-      "id": "validation-categories"
+      "text": "The layers of spec validation",
+      "id": "layers"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Layer",
+        "What it checks",
+        "Example failure",
+        "Typical tool"
+      ],
+      "rows": [
+        [
+          "Syntax",
+          "The file is valid YAML or JSON",
+          "A tab used for indentation",
+          "Any YAML or JSON parser"
+        ],
+        [
+          "Structure",
+          "The document matches the OpenAPI JSON Schema for its version",
+          "A response with no description",
+          "swagger-parser validate(), and the struct rule in Redocly or oas3-schema in Spectral"
+        ],
+        [
+          "Cross-document rules",
+          "Rules that span several objects",
+          "Two operations with the same operationId",
+          "Redocly CLI or Spectral rulesets; swagger-parser for Swagger 2.0 only"
+        ],
+        [
+          "Style and design",
+          "Your team's conventions",
+          "Paths in camelCase, no 4xx responses",
+          "Linter rules you configure, or the APIForge design score"
+        ]
+      ],
+      "caption": "Each layer assumes the one above it passed."
+    },
+    {
+      "type": "paragraph",
+      "text": "The first two layers are objective: the file either follows the specification or it does not. The third is mostly objective too, since rules like operationId uniqueness come straight from the specification text, but a JSON Schema cannot express them. The fourth is opinion, which is why linters let you turn rules off or change their severity. If you are still fixing parser messages, the [common OpenAPI errors](/guides/common-openapi-errors) guide lists them with fixes; this guide is about setting up the checks."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "A spec that passes structural validation with three bugs",
+      "id": "three-bugs"
+    },
+    {
+      "type": "paragraph",
+      "text": "Here is what the gap between the second and third layers looks like in practice. This OpenAPI 3.0.3 file has three mistakes. Both operations use the operationId getOrder. The path /v1/orders/{id} has no parameter declared for id. The example on the 200 response sets status to cancelled, which is not in the enum."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "code": "openapi: 3.0.3\ninfo:\n  title: Orders API\n  version: 1.0.0\npaths:\n  /v1/orders:\n    get:\n      operationId: getOrder\n      summary: List orders\n      responses:\n        \"200\":\n          description: A page of orders\n          content:\n            application/json:\n              schema:\n                type: array\n                items:\n                  $ref: \"#/components/schemas/Order\"\n        \"400\":\n          description: Bad query\n  /v1/orders/{id}:\n    get:\n      operationId: getOrder\n      summary: Get an order\n      responses:\n        \"200\":\n          description: The order\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/Order\"\n              example:\n                id: ord_123\n                status: cancelled\n        \"404\":\n          description: Order not found\ncomponents:\n  schemas:\n    Order:\n      type: object\n      required: [id, status]\n      properties:\n        id:\n          type: string\n        status:\n          type: string\n          enum: [pending, paid, shipped]",
+      "filename": "orders.yaml"
+    },
+    {
+      "type": "paragraph",
+      "text": "We ran it through @apidevtools/swagger-parser 12.1.0, a Node library for parsing and validating specs. validate() returned the document with no error. That is documented behaviour: the library's options page says validation against the OpenAPI 3 specification rules is not yet supported, so its spec option is ignored for OpenAPI 3 files and only the JSON Schema check runs. The same mistakes in a Swagger 2.0 file do fail; swagger-parser reports Duplicate operation id 'getOrder' and a missing path parameter."
+    },
+    {
+      "type": "paragraph",
+      "text": "APIForge's design scorer gave the file 100 out of 100, because it grades naming, HTTP usage, versioning and response coverage, not validity. Neither result is wrong, but neither tool checks whether the file is internally consistent. Rule-based linters do. According to their rule documentation, both Redocly CLI and Spectral have a rule for each of the three bugs:"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Bug",
+        "Redocly CLI rule",
+        "Spectral rule"
+      ],
+      "rows": [
+        [
+          "Duplicate operationId",
+          "operation-operationId-unique",
+          "operation-operationId-unique"
+        ],
+        [
+          "{id} with no path parameter",
+          "path-parameters-defined",
+          "path-params"
+        ],
+        [
+          "Example value outside the enum",
+          "no-invalid-media-type-examples",
+          "oas3-valid-media-example"
+        ]
+      ],
+      "caption": "Rule names from each project's documentation. Check your installed version's ruleset for defaults and severities."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Validate from the command line",
+      "id": "command-line"
+    },
+    {
+      "type": "paragraph",
+      "text": "For the structural layer, a short script around swagger-parser gives you a clear pass or fail and an exit code CI can use. It works for Swagger 2.0, OpenAPI 3.0 and OpenAPI 3.1 files, follows $ref pointers to other files, and fails on any reference that does not resolve."
+    },
+    {
+      "type": "code",
+      "language": "javascript",
+      "code": "import SwaggerParser from \"@apidevtools/swagger-parser\";\n\nconst file = process.argv[2] ?? \"openapi.yaml\";\n\ntry {\n  const api = await SwaggerParser.validate(file);\n  const version = api.openapi ?? api.swagger;\n  console.log(`${file} is valid (version ${version}, ${Object.keys(api.paths ?? {}).length} paths)`);\n} catch (err) {\n  console.error(`${file} failed validation:\\n${err.message}`);\n  process.exitCode = 1;\n}",
+      "filename": "scripts/validate-spec.mjs",
+      "caption": "Install with npm install --save-dev @apidevtools/swagger-parser."
+    },
+    {
+      "type": "paragraph",
+      "text": "For the rule layer, pick one linter and commit its config next to the spec, so every developer and the CI job use the same rules. With Redocly CLI, the command is redocly lint followed by the file. It ships rulesets named minimal, recommended, recommended-strict and spec, which you choose with extends in a redocly.yaml file or the --extends flag."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "code": "extends:\n  - recommended\nrules:\n  operation-4xx-response: error\n  no-unused-components: warn",
+      "filename": "redocly.yaml"
+    },
+    {
+      "type": "paragraph",
+      "text": "Spectral works the same way with a .spectral.yaml file that extends its built-in OpenAPI ruleset, spectral:oas. Run it with npx @stoplight/spectral-cli lint orders.yaml. Spectral's documentation lists no-$ref-siblings as an error by default, which matters for OpenAPI 3.0 files, where keywords next to a $ref were ignored by most tooling."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "code": "extends: [\"spectral:oas\"]\nrules:\n  operation-success-response: error",
+      "filename": ".spectral.yaml"
+    },
+    {
+      "type": "paragraph",
+      "text": "You do not need both linters. They overlap heavily on OpenAPI rules; choose the one whose output format and config style your team prefers, and add rules as you find problems they should have caught."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Run validation in CI",
+      "id": "ci"
+    },
+    {
+      "type": "paragraph",
+      "text": "The goal is that a broken spec never merges. Run the checks on pull requests that change the spec file, and make the job required in branch protection. Redocly's github-actions output format turns each problem into an annotation on the changed line, so reviewers see it in the diff."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "code": "name: Validate OpenAPI\non:\n  pull_request:\n    paths:\n      - \"openapi.yaml\"\n      - \"schemas/**\"\njobs:\n  validate:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-node@v4\n        with:\n          node-version: 20\n      - run: npm ci\n      - name: Structural validation\n        run: node scripts/validate-spec.mjs openapi.yaml\n      - name: Lint rules\n        run: npx @redocly/cli lint openapi.yaml --format=github-actions",
+      "filename": ".github/workflows/openapi.yml"
     },
     {
       "type": "list",
       "ordered": false,
       "items": [
-        "Structural Syntax: Verifying valid YAML/JSON formatting and required OAS root properties (openapi, info, paths).",
-        "Reference Resolution: Ensuring all $ref JSON pointers resolve to existing components or external URI schemas.",
-        "Schema Integrity: Confirming type definitions comply with JSON Schema keywords.",
-        "Semantic Rules: Enforcing operationId uniqueness, valid HTTP response status code formats ('200', '404'), and path parameter matching."
+        "Filter on paths so the job only runs when the spec or its referenced files change. Include every directory that holds split schema files.",
+        "If the spec is generated from code, generate it in CI and validate the output. Validating a committed copy that nobody regenerates checks a stale file.",
+        "Start new rules as warnings on an existing spec, fix the backlog, then promote them to errors. A job that fails on day one with 300 problems gets disabled.",
+        "Pin linter versions in package.json. A new release can add rules or change defaults and fail builds that passed yesterday."
       ]
     },
     {
       "type": "heading",
       "level": 2,
-      "text": "2. Integrating Spec Validation into GitHub Actions",
-      "id": "github-actions"
+      "text": "What spec validation does not catch",
+      "id": "limits"
     },
     {
-      "type": "code",
-      "language": "yaml",
-      "filename": "openapi-ci-workflow.yaml",
-      "code": "name: Validate OpenAPI Specification\non:\n  push:\n    branches: [main]\n  pull_request:\n    branches: [main]\n\njobs:\n  validate:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - name: Run APIForge CLI Validation\n        run: |\n          npx @apiforge/cli validate ./openapi.yaml --strict"
+      "type": "paragraph",
+      "text": "A file can pass every layer and still mislead the people who use it. Plan for these gaps separately:"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Server behaviour. The spec can say a field is required while the server omits it. Only testing real responses finds that; see how to [validate API responses against the OpenAPI schema](/guides/validate-api-response-against-openapi-schema).",
+        "Weak schemas. type: object with no properties is valid. So is a schema with no required array, which makes every field optional in generated clients. The guide on [OpenAPI response design](/guides/openapi-response-schema-best-practices) covers what a complete response looks like.",
+        "Breaking changes. Renaming a field produces a valid new file. Catching it means comparing against the previous published version, which is a review step, not a validation step. The [API versioning guide](/guides/api-versioning-best-practices) covers which changes break clients.",
+        "Wrong descriptions. A validator cannot tell that a description says cents while the server returns dollars.",
+        "Security design. A spec can declare no security at all and still be valid. Review it against the [API security best practices](/guides/api-security-best-practices)."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Swagger 2.0 files",
+      "id": "swagger-2"
+    },
+    {
+      "type": "paragraph",
+      "text": "Swagger 2.0 gets slightly better coverage from swagger-parser than OpenAPI 3 does, because the library's rule checks were written for 2.0: duplicate operationIds, missing or extra path parameters, array parameters without items, and duplicate parameters all fail. Linters still support 2.0 with their own rule sets. If you maintain a 2.0 file, the [Swagger vs OpenAPI guide](/guides/swagger-vs-openapi) covers what changes when you migrate, and the [Swagger validator](/swagger-validator) page loads 2.0 files directly."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Check a spec in APIForge",
+      "id": "apiforge"
+    },
+    {
+      "type": "paragraph",
+      "text": "The [OpenAPI validator](/openapi-validator) is built for looking at a spec, not for gating a build. Paste a URL to a JSON or YAML file, a Swagger UI page, or upload the file. APIForge parses it, resolves internal references and public HTTP references, and lists every operation with its parameters and schemas. Loading is deliberately lenient: a local reference that does not resolve becomes a placeholder schema labelled Unmodeled schema reference with the pointer, and circular references are ignored instead of failing the load. That lets you explore and run requests against an imperfect spec, and it is the reason to keep a strict validator and a linter in CI."
+    },
+    {
+      "type": "paragraph",
+      "text": "From the same workspace you can open the 0-100 design score, which flags operations with no 2xx or no error responses, verbs in paths, missing descriptions, missing version prefixes and inconsistent naming. Use it for the fourth layer, alongside the linter config your team agrees on."
     },
     {
       "type": "tool",
       "tool": "openapi-validator",
-      "title": "Instant Online OpenAPI Validation",
-      "description": "Paste your OpenAPI URL or content into APIForge for instant syntax parsing, reference checking, and zero-hallucination analysis.",
-      "buttonText": "Validate Spec Now",
+      "title": "Load and inspect your spec",
+      "description": "Paste an OpenAPI or Swagger URL to see every operation, resolved schemas and unresolved references, then open the design score.",
+      "buttonText": "Open the OpenAPI validator",
       "href": "/openapi-validator"
+    },
+    {
+      "type": "relatedContent",
+      "slugs": [
+        "common-openapi-errors",
+        "validate-api-response-against-openapi-schema",
+        "openapi-best-practices",
+        "swagger-vs-openapi"
+      ]
+    },
+    {
+      "type": "externalReference",
+      "title": "Swagger Parser options: validate.schema and validate.spec",
+      "url": "https://apidevtools.com/swagger-parser/options.html",
+      "source": "APIDevTools"
+    },
+    {
+      "type": "externalReference",
+      "title": "Redocly CLI lint command",
+      "url": "https://redocly.com/docs/cli/commands/lint",
+      "source": "Redocly"
+    },
+    {
+      "type": "externalReference",
+      "title": "Redocly CLI built-in rules",
+      "url": "https://redocly.com/docs/cli/rules/built-in-rules",
+      "source": "Redocly"
+    },
+    {
+      "type": "externalReference",
+      "title": "Spectral OpenAPI rules reference",
+      "url": "https://github.com/stoplightio/spectral/blob/develop/docs/reference/openapi-rules.md",
+      "source": "Stoplight Spectral"
+    },
+    {
+      "type": "externalReference",
+      "title": "OpenAPI Specification 3.1.0",
+      "url": "https://spec.openapis.org/oas/v3.1.0",
+      "source": "OpenAPI Initiative"
     }
   ],
   "faqs": [
     {
-      "question": "What happens if a $ref point in OpenAPI cannot be resolved?",
-      "answer": "Unresolved $ref pointers cause codegen engines and OpenAPI parsers to crash at runtime with 'ReferenceError: $ref node not found'."
+      "question": "What is the difference between validating and linting an OpenAPI spec?",
+      "answer": "Validation checks the file against the OpenAPI specification: correct structure, required fields, resolvable references. Linting adds rules, some taken from the specification text and some that are style choices, such as requiring a 4xx response on every operation. Most teams run both."
     },
     {
-      "question": "Can APIForge check public URLs for OpenAPI specification updates?",
-      "answer": "Yes! Enter any public URL pointing to a JSON or YAML specification, and APIForge fetches, parses, and audits the spec in real time."
+      "question": "Can I validate OpenAPI 3.1 files with the same tools as 3.0?",
+      "answer": "Yes, if the tool supports 3.1. swagger-parser 12.1.0 accepts 3.1.0 to 3.1.2, and Redocly and Spectral both have OpenAPI 3.1 support. Check the version you have installed, since 3.1 schemas follow JSON Schema 2020-12 and older tools reject syntax such as type arrays."
+    },
+    {
+      "question": "Does a valid spec mean my API is correct?",
+      "answer": "No. It means the document is well formed. Whether the server matches it needs response testing, and whether the design is good needs review or a design score."
     }
   ]
 }

@@ -1,60 +1,273 @@
 {
   "slug": "api-documentation-best-practices",
-  "title": "API Documentation Best Practices: Building World-Class Portals (2026)",
-  "description": "Learn how to build interactive, search-engine optimized API documentation portals powered by OpenAPI 3.x specifications.",
-  "excerpt": "A guide to generating interactive developer portals, code samples, and comprehensive OpenAPI descriptions.",
+  "title": "API Documentation Best Practices for OpenAPI Specs",
+  "description": "API documentation best practices for OpenAPI: summaries that scan, examples that run, auth and error docs, and a CI check that stops docs drifting.",
+  "excerpt": "Most API docs are generated from an OpenAPI file, so better docs start with a better spec. Here is what to write in it, with a scored before and after.",
   "category": "api-documentation",
+  "cluster": "api-documentation",
+  "primaryKeyword": "api documentation best practices",
+  "keywords": [
+    "openapi summary vs description",
+    "document api authentication",
+    "document api error responses",
+    "keep api docs in sync with code",
+    "openapi examples"
+  ],
   "tags": [
     "API Documentation",
-    "Developer Experience",
     "OpenAPI",
-    "Developer Portals"
-  ],
-  "keywords": [
-    "api documentation best practices",
-    "interactive openapi developer portal",
-    "generate api docs from swagger",
-    "developer experience api"
+    "Developer Experience"
   ],
   "author": "rishab",
   "publishedAt": "2026-09-26",
-  "updatedAt": "2026-09-26",
-  "readingTime": "9 min read",
-  "featured": false,
+  "updatedAt": "2026-10-04",
   "content": [
     {
       "type": "paragraph",
-      "text": "Great API documentation is the foundation of high API adoption. Automatically generated documentation from OpenAPI specs ensures your docs never get out of sync with production code deployments."
+      "text": "Good API documentation answers three questions for every operation: what it does, how to call it successfully, and what happens when the call fails. If your docs are rendered from an OpenAPI file, those answers live in the spec. Give every operation a short summary and a description that states the rules a caller would otherwise learn by trial and error. Attach at least one realistic request and response example. Declare authentication as a security scheme, not as a paragraph of prose. Document the 4xx responses with a real error schema. Then make CI fail when the spec and the code disagree, because a spec nobody checks drifts within a few releases."
+    },
+    {
+      "type": "paragraph",
+      "text": "This guide covers each of those, with a small invoices API scored before and after. For what the term covers in general, see the [API documentation glossary entry](/glossary/api-documentation)."
     },
     {
       "type": "heading",
       "level": 2,
-      "text": "1. Key Pillars of Developer Portal Design",
-      "id": "documentation-pillars"
+      "text": "Summaries scan, descriptions explain",
+      "id": "summary-vs-description"
+    },
+    {
+      "type": "paragraph",
+      "text": "The OpenAPI Specification gives every operation two text fields with different jobs. The summary is \"a short summary of what the operation does\". The description is the long form and supports CommonMark, so it can hold lists, links and code. Readers meet them in that order: they scan a list of summaries to find the operation they need, then read one description in full."
+    },
+    {
+      "type": "paragraph",
+      "text": "That gives you a rule for each. A summary is a verb phrase of two to six words that would make sense in a navigation sidebar: \"List invoices\", \"Send an invoice\", \"Refund a payment\". It does not repeat the path, and it does not end with a period. APIForge's endpoint list, for example, prints the summary under each path, so \"GET /v1/invoices\" followed by \"Gets invoices\" tells the reader nothing new. A description holds what the path and schema cannot say: default sort order, which records are excluded, side effects, idempotency, rate limits that apply to this operation only, and anything a caller has to do first."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Field",
+        "Weak",
+        "Useful"
+      ],
+      "rows": [
+        [
+          "summary",
+          "This endpoint is used to retrieve the list of invoice objects.",
+          "List invoices"
+        ],
+        [
+          "description",
+          "Returns invoices.",
+          "Returns invoices newest first. Drafts are excluded unless status=draft is passed."
+        ],
+        [
+          "summary",
+          "POST /v1/invoices/{id}/send",
+          "Send an invoice"
+        ],
+        [
+          "description",
+          "Sends the invoice.",
+          "Emails the invoice to the customer and moves it from draft to open. Calling it twice does not send a second email."
+        ]
+      ],
+      "caption": "The useful versions state behavior the reader cannot infer from the path."
+    },
+    {
+      "type": "paragraph",
+      "text": "Apply the same split to tags (a tag description says what the group of operations is for), to parameters (describe the allowed values and the default, not the type, which the schema already shows), and to schema properties. A property called amount with no description forces every client developer to guess the unit. \"Amount in the smallest currency unit\" settles it in five words."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "A worked example: scoring an undocumented spec",
+      "id": "worked-example"
+    },
+    {
+      "type": "paragraph",
+      "text": "Here is a spec that parses and validates without errors. Three of its four operations have no summary or description, request bodies are untyped objects, and only one operation documents an error."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "filename": "invoices-before.yaml",
+      "code": "openapi: 3.1.0\ninfo:\n  title: Invoices API\n  version: 1.4.0\npaths:\n  /v1/invoices:\n    get:\n      operationId: listInvoices\n      responses:\n        \"200\":\n          description: OK\n    post:\n      operationId: createInvoice\n      requestBody:\n        content:\n          application/json:\n            schema:\n              type: object\n      responses:\n        \"201\":\n          description: Created\n  /v1/invoices/{id}:\n    get:\n      operationId: getInvoice\n      summary: Get an invoice\n      parameters:\n        - name: id\n          in: path\n          required: true\n          schema:\n            type: string\n      responses:\n        \"200\":\n          description: OK\n        \"404\":\n          description: Not found\n  /v1/invoices/{id}/send:\n    post:\n      operationId: sendInvoice\n      parameters:\n        - name: id\n          in: path\n          required: true\n          schema:\n            type: string\n      responses:\n        \"202\":\n          description: Accepted"
+    },
+    {
+      "type": "paragraph",
+      "text": "APIForge scores this spec 84.2 out of 100. The documentation category gets 2.5 of its 10 points and error handling gets 2.5 of 10, because only GET /v1/invoices/{id} has a summary and only that operation documents a 4xx response. Structure loses 0.8 points for the four-segment send path. The issue list names the three operations with no summary or description and the three with no error responses."
+    },
+    {
+      "type": "paragraph",
+      "text": "The documented version below fixes both categories and adds the parts the score does not measure: a description on the API itself, a security scheme, a request example and an error body. It scores 100."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "filename": "invoices-after.yaml",
+      "code": "openapi: 3.1.0\ninfo:\n  title: Invoices API\n  version: 1.4.0\n  description: |\n    Create, list, and send invoices. All requests need an API key\n    from Settings > Developers. Amounts are integers in the\n    smallest currency unit (cents for USD).\nservers:\n  - url: https://api.example.com\nsecurity:\n  - ApiKeyAuth: []\npaths:\n  /v1/invoices:\n    get:\n      operationId: listInvoices\n      summary: List invoices\n      description: Returns invoices newest first. Draft invoices are excluded unless status=draft is passed.\n      tags: [Invoices]\n      parameters:\n        - name: status\n          in: query\n          description: Filter by invoice status.\n          schema:\n            type: string\n            enum: [draft, open, paid, void]\n      responses:\n        \"200\":\n          description: A page of invoices.\n          content:\n            application/json:\n              schema:\n                type: object\n                properties:\n                  data:\n                    type: array\n                    items:\n                      $ref: \"#/components/schemas/Invoice\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n    post:\n      operationId: createInvoice\n      summary: Create an invoice\n      description: Creates a draft invoice. Nothing is emailed until you call the send operation.\n      tags: [Invoices]\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/InvoiceInput\"\n            examples:\n              oneLine:\n                summary: Single line item in USD\n                value:\n                  customerId: cus_4821\n                  currency: usd\n                  lines:\n                    - description: Design review, 3 hours\n                      amount: 45000\n      responses:\n        \"201\":\n          description: The draft invoice.\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/Invoice\"\n        \"401\":\n          $ref: \"#/components/responses/Unauthorized\"\n        \"422\":\n          description: The body is valid JSON but breaks a business rule, for example an unknown customerId.\n          content:\n            application/problem+json:\n              schema:\n                $ref: \"#/components/schemas/Problem\"\n              example:\n                type: https://api.example.com/problems/unknown-customer\n                title: Unknown customer\n                status: 422\n                detail: No customer with id cus_4821 exists in this account.\ncomponents:\n  securitySchemes:\n    ApiKeyAuth:\n      type: apiKey\n      in: header\n      name: X-API-Key\n      description: Secret key from Settings > Developers. Test keys start with sk_test_.\n  responses:\n    Unauthorized:\n      description: The X-API-Key header is missing or the key was revoked.\n      content:\n        application/problem+json:\n          schema:\n            $ref: \"#/components/schemas/Problem\"\n  schemas:\n    InvoiceInput:\n      type: object\n      required: [customerId, currency, lines]\n      properties:\n        customerId:\n          type: string\n        currency:\n          type: string\n          description: ISO 4217 code, lowercase.\n        lines:\n          type: array\n          minItems: 1\n          items:\n            type: object\n            required: [description, amount]\n            properties:\n              description:\n                type: string\n              amount:\n                type: integer\n                description: Amount in the smallest currency unit.\n    Invoice:\n      allOf:\n        - $ref: \"#/components/schemas/InvoiceInput\"\n        - type: object\n          required: [id, status]\n          properties:\n            id:\n              type: string\n              examples: [inv_9f31]\n            status:\n              type: string\n              enum: [draft, open, paid, void]\n    Problem:\n      type: object\n      properties:\n        type:\n          type: string\n          format: uri\n        title:\n          type: string\n        status:\n          type: integer\n        detail:\n          type: string",
+      "caption": "To keep the sample short, this version covers the two collection operations only. The scored file is exactly this text."
+    },
+    {
+      "type": "callout",
+      "variant": "info",
+      "title": "What the documentation score checks",
+      "text": "APIForge's documentation category is the share of operations that have a non-empty summary or description, scaled to 10 points. It does not judge whether the text is helpful, and it does not look at examples, parameter descriptions or security schemes. A spec where every summary reads \"Endpoint\" still gets 10 of 10. Treat a full documentation score as the minimum, then review the wording yourself."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Examples a reader can paste and run",
+      "id": "examples"
+    },
+    {
+      "type": "paragraph",
+      "text": "An example is often the first thing a developer copies. OpenAPI lets you put one on a Media Type Object, a Parameter Object, or a schema. On media types and parameters, example (a single value) and examples (a named map) are mutually exclusive, so pick one per location. Use the named map when an operation has more than one real use case: an invoice with one line item, an invoice with tax, an invoice in a currency without minor units. Each named example carries its own summary, so the reader can tell the cases apart before reading the payload."
     },
     {
       "type": "list",
       "ordered": false,
       "items": [
-        "Interactive Try-It-Out Console: Allow developers to execute live test requests directly inside their browser.",
-        "Multi-Language Code Snippets: Provide instant copy-paste cURL, TypeScript, Python, and Go code blocks for every operation.",
-        "Clear Authentication Guides: Dedicate a section explaining API key acquisition, OAuth 2.0 flow steps, and sample token request headers.",
-        "Comprehensive Property Descriptions: Add descriptions and realistic examples for every query parameter, request property, and response payload."
+        "Use values that look real and pass validation. \"string\" for an email and 0 for an amount teach nothing; \"ana@example.com\" and 45000 show the format and the unit.",
+        "Reuse IDs across examples. If the create example uses cus_4821, the get example should return cus_4821, so a reader can follow one record through the API.",
+        "Show an error example next to the success example, especially for 422, where the reader needs to know which field the server will complain about.",
+        "In OpenAPI 3.1, schemas follow JSON Schema 2020-12, which uses examples (an array). The singular example keyword on a schema still works but is deprecated in 3.1.",
+        "Validate examples against their schema in CI. An example that no longer matches the schema is worse than none, because readers trust it."
       ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Document authentication in the spec",
+      "id": "authentication"
+    },
+    {
+      "type": "paragraph",
+      "text": "Authentication is where new users get stuck first, and prose alone does not help tools. Declare it in components.securitySchemes using one of the five scheme types the specification defines: apiKey, http (for bearer and basic), mutualTLS, oauth2 and openIdConnect. Apply it with a top-level security requirement so every operation inherits it. An operation can override the top-level requirement, and an empty array, security: [], removes it, which is how you mark a public health check or a login operation."
+    },
+    {
+      "type": "paragraph",
+      "text": "The scheme's description field is where the human answer goes: where to get a key, what a test key looks like, and how long a token lives. Then document what failure looks like. Give every protected operation a 401 response for a missing or invalid credential, and a 403 where a valid credential can still lack permission. Both should point at the same error schema. The [OpenAPI authentication example](/examples/openapi-authentication-example) shows a bearer scheme declared this way, and [API security best practices](/guides/api-security-best-practices) covers what to put behind it."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Document errors as carefully as success",
+      "id": "errors"
+    },
+    {
+      "type": "paragraph",
+      "text": "Client code spends more lines handling failures than successes, yet many specs list only 200. Document each error status an operation can really return, with a description that says what triggers it and what the caller should do. \"400 Bad Request\" repeats the status line. \"The limit parameter is above 100\" tells the reader how to fix the request."
+    },
+    {
+      "type": "paragraph",
+      "text": "Use one error schema across the API. RFC 9457 defines the application/problem+json media type with the members type, title, status, detail and instance, and allows extension members for problem-specific data. Its type member is a URI, and the RFC says dereferencing it should provide human-readable documentation for the problem type. That gives you a natural place for long-form error docs: one page per problem type, linked from every response that can return it. For the full pattern, see [REST API error handling](/guides/rest-api-error-handling) and the [problem details response example](/examples/openapi-error-response-example)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Keep the docs in sync with CI",
+      "id": "ci"
+    },
+    {
+      "type": "paragraph",
+      "text": "Docs drift because nothing fails when they do. A renamed field, a new required parameter, or an extra error status ships with the code, and the spec catches up later or never. Three checks in CI close most of that gap, and each catches a different kind of drift."
+    },
+    {
+      "type": "steps",
+      "title": "Three CI checks for API docs",
+      "steps": [
+        {
+          "title": "Validate the spec on every pull request",
+          "description": "Fail the build when the document does not parse, a $ref does not resolve, or a required field such as a response description is missing. Run the same check locally with the [OpenAPI validator](/openapi-validator) when you edit by hand."
+        },
+        {
+          "title": "Regenerate and diff if your spec comes from code",
+          "description": "In a code-first setup, generate the spec in CI and compare it with the committed file. If they differ, someone changed an endpoint without updating the published contract. The workflow below does this with git diff.",
+          "code": "name: openapi-sync\non: [pull_request]\njobs:\n  spec:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npm ci\n      - run: npm run generate:openapi\n      - run: git diff --exit-code openapi.json"
+        },
+        {
+          "title": "Test responses against the spec",
+          "description": "Call a staging deploy and validate each response body against the documented schema for its status code. This catches drift that neither of the first two checks can see, such as a serializer that renames a field. [Validating API responses against your OpenAPI schema](/guides/validate-api-response-against-openapi-schema) walks through it with Ajv."
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "The generate:openapi script stands in for whatever your framework uses to export its spec. Treat the committed openapi.json as the reviewed contract: a pull request that changes it should get the same review as a database migration. Version the spec in info.version, which the specification defines as the version of the OpenAPI document, separate from both the OpenAPI version and your implementation version."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Review checklist before you publish",
+      "id": "checklist"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Every operation has a verb-phrase summary and an operationId; operations with any rule a caller must know have a description.",
+        "Every parameter and schema property whose meaning is not obvious from its name has a description that states units, formats and defaults.",
+        "Every request body and every 2xx response has at least one example built from realistic values.",
+        "A security scheme is declared and applied, public operations use security: [], and protected operations document 401.",
+        "Every operation documents its error statuses with a shared error schema.",
+        "CI validates the spec, checks it against the code, and tests live responses against it."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "To check the first and fifth items quickly, paste your spec into the [API quality score](/api-score). It lists every operation missing a summary or description and every operation with no documented 4xx or 5xx response, alongside the naming, HTTP and versioning findings. For a longer pre-release list, use the [OpenAPI production checklist](/checklists/openapi-production-checklist)."
     },
     {
       "type": "tool",
       "tool": "api-score",
-      "title": "Check API Documentation Coverage",
-      "description": "APIForge evaluates your OpenAPI spec for missing descriptions, absent operation summaries, and missing schema examples.",
-      "buttonText": "Audit Docs Quality",
+      "title": "Find undocumented operations",
+      "description": "Score your OpenAPI spec 0-100 and list operations with no summary, no description, or no documented error response.",
+      "buttonText": "Score my spec",
       "href": "/api-score"
+    },
+    {
+      "type": "relatedContent",
+      "slugs": [
+        "openapi-best-practices",
+        "rest-api-error-handling",
+        "validate-api-response-against-openapi-schema",
+        "openapi-response-schema-best-practices"
+      ]
+    },
+    {
+      "type": "externalReference",
+      "title": "OpenAPI Specification 3.1.0: Operation Object",
+      "url": "https://spec.openapis.org/oas/v3.1.0#operation-object",
+      "source": "OpenAPI Initiative"
+    },
+    {
+      "type": "externalReference",
+      "title": "OpenAPI Specification 3.1.0: Security Scheme Object",
+      "url": "https://spec.openapis.org/oas/v3.1.0#security-scheme-object",
+      "source": "OpenAPI Initiative"
+    },
+    {
+      "type": "externalReference",
+      "title": "RFC 9457: Problem Details for HTTP APIs",
+      "url": "https://www.rfc-editor.org/rfc/rfc9457.html",
+      "source": "IETF"
     }
   ],
   "faqs": [
     {
-      "question": "How can I keep API documentation from becoming outdated?",
-      "answer": "Adopt a Spec-First or Code-First OpenAPI workflow integrated into your CI/CD pipeline, publishing interactive docs automatically upon every pull request merge."
+      "question": "What is the difference between summary and description in OpenAPI?",
+      "answer": "The summary is a short label for the operation, used in lists and navigation, so keep it to a verb phrase such as \"List invoices\". The description is the long explanation and supports CommonMark. Put defaults, side effects and preconditions in the description."
+    },
+    {
+      "question": "Should I write API docs by hand or generate them from OpenAPI?",
+      "answer": "Generate the reference pages from the spec and write guides, tutorials and migration notes by hand. Reference content changes with every release, so it should come from the file CI already checks. Hand-written guides explain workflows that span several operations, which a spec cannot express well."
+    },
+    {
+      "question": "How do I stop API documentation going out of date?",
+      "answer": "Make CI fail when the spec and the service disagree. Validate the spec on every pull request, regenerate and diff it if it comes from code, and test live responses against the documented schemas. Each check catches a different kind of drift."
     }
   ]
 }

@@ -1,17 +1,34 @@
 "use client";
 
+import { reportAiHeaders } from "@/hooks/useAiUsage";
+import { handleAiErrorResponse, handleAiThrown } from "@/components/ai/aiRequest";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { TranslateFn } from "@/context/LanguageContext";
 import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
+import MethodBadge from "@/components/atomic/atoms/MethodBadge/MethodBadge";
+import btn from "@/components/atomic/atoms/Button/Button.module.css";
 import HighlightedCode from "@/components/atomic/molecules/HighlightedCode/HighlightedCode";
 import type { HighlightLanguage } from "@/components/atomic/molecules/HighlightedCode/HighlightedCode";
+import KeyValueEditor, {
+  newKeyValueRow,
+  type KeyValueRow,
+} from "@/components/atomic/molecules/KeyValueEditor/KeyValueEditor";
 import { executeTestRequestClient, joinBaseAndPath } from "@/lib/execute-test-request";
 import {
   authHintSummary,
   authHintsForOperation,
 } from "@/lib/openapi-auth-resolve";
-import { parameterExampleString } from "@/lib/openapi-parameter-defaults";
+import {
+  parameterExampleString,
+  parameterSpecValue,
+  parameterType,
+} from "@/lib/openapi-parameter-defaults";
 import { parseUsageFromResponseHeaders } from "@/lib/groq-token-usage";
+import {
+  buildRequestBodyExample,
+  checkJson,
+  getRequestBodyInfo,
+} from "@/lib/request-body-example";
 import { endpointToJsonSafe } from "@/lib/serialize-endpoint";
 import type { SchemaValidationIssue } from "@/lib/validate-response-against-schema";
 import { useWorkspaceStore } from "@/store/workspaceStore";
@@ -32,11 +49,13 @@ function isObject(v: unknown): v is Record<string, unknown> {
   return v !== null && typeof v === "object" && !Array.isArray(v);
 }
 
-function parseParamRows(endpoint: Endpoint): {
+interface ParamRow {
   name: string;
   inn: string;
   spec: Record<string, unknown>;
-}[] {
+}
+
+function parseParamRows(endpoint: Endpoint): ParamRow[] {
   const p = endpoint.parameters;
   if (!Array.isArray(p)) return [];
   return p
@@ -47,11 +66,101 @@ function parseParamRows(endpoint: Endpoint): {
       if (!name || !inn) return null;
       return { name, inn, spec: item };
     })
-    .filter((x): x is { name: string; inn: string; spec: Record<string, unknown> } => x !== null);
+    .filter((x): x is ParamRow => x !== null);
 }
 
-type ResponseTab = "body" | "headers" | "tests";
-type BodyView = "pretty" | "raw" | "preview";
+function specRow(row: ParamRow, forceEnabled = false): KeyValueRow {
+  const required = row.spec.required === true;
+  const suggested = parameterSpecValue(row.spec);
+  return newKeyValueRow({
+    key: row.name,
+    value: row.inn === "path" ? parameterExampleString(row.spec) : suggested ?? "",
+    enabled: forceEnabled || required || suggested !== null,
+    fromSpec: true,
+    required,
+    hint: parameterType(row.spec),
+    description: typeof row.spec.description === "string" ? row.spec.description : undefined,
+  });
+}
+
+/** Enabled, non-empty rows as a plain object. */
+function rowsToRecord(rows: KeyValueRow[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const r of rows) {
+    if (!r.enabled || !r.key.trim()) continue;
+    out[r.key.trim()] = r.value;
+  }
+  return out;
+}
+
+const HEADER_SUGGESTIONS = [
+  "Accept",
+  "Authorization",
+  "Content-Type",
+  "Cache-Control",
+  "If-None-Match",
+  "User-Agent",
+  "X-Request-ID",
+  "X-API-Key",
+] as const;
+
+const MIME_VALUES = [
+  "application/json",
+  "application/xml",
+  "text/plain",
+  "application/x-www-form-urlencoded",
+  "multipart/form-data",
+  "*/*",
+] as const;
+
+const HEADER_VALUE_SUGGESTIONS: Record<string, readonly string[]> = {
+  accept: MIME_VALUES,
+  "content-type": MIME_VALUES,
+  authorization: ["Bearer ", "Basic "],
+  "cache-control": ["no-cache", "no-store", "max-age=0"],
+};
+
+const STATUS_TEXT: Record<number, string> = {
+  200: "OK",
+  201: "Created",
+  202: "Accepted",
+  204: "No Content",
+  301: "Moved Permanently",
+  302: "Found",
+  304: "Not Modified",
+  400: "Bad Request",
+  401: "Unauthorized",
+  403: "Forbidden",
+  404: "Not Found",
+  405: "Method Not Allowed",
+  409: "Conflict",
+  415: "Unsupported Media Type",
+  422: "Unprocessable Entity",
+  429: "Too Many Requests",
+  500: "Internal Server Error",
+  502: "Bad Gateway",
+  503: "Service Unavailable",
+  504: "Gateway Timeout",
+};
+
+function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+type RequestTab = "params" | "headers" | "body" | "auth";
+type AuthType = "none" | "bearer" | "basic" | "apiKey";
+type ResponseTab = "body" | "headers" | "schema";
+type BodyView = "pretty" | "raw";
+type SchemaState = "idle" | "checking" | "match" | "issues" | "noSchema" | "failed";
+
+const AUTH_TYPES: { id: AuthType; labelKey: string }[] = [
+  { id: "none", labelKey: "runApi.authNone" },
+  { id: "bearer", labelKey: "runApi.authBearer" },
+  { id: "basic", labelKey: "runApi.authBasic" },
+  { id: "apiKey", labelKey: "runApi.authApiKey" },
+];
 
 export default function RunApiPanel({ t }: { t: TranslateFn }) {
   const endpoint = useWorkspaceStore((s) => s.activeEndpoint);
@@ -62,12 +171,21 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
   const executionMode = useWorkspaceStore((s) => s.executionMode);
   const setExecutionMode = useWorkspaceStore((s) => s.setExecutionMode);
   const setLastGroqUsage = useWorkspaceStore((s) => s.setLastGroqUsage);
+  const pendingRequestBody = useWorkspaceStore((s) => s.pendingRequestBody);
+  const clearPendingRequestBody = useWorkspaceStore((s) => s.clearPendingRequestBody);
 
   const [baseUrl, setBaseUrl] = useState("");
-  const [pathValues, setPathValues] = useState<Record<string, string>>({});
-  const [queryValues, setQueryValues] = useState<Record<string, string>>({});
+  const [pathRows, setPathRows] = useState<KeyValueRow[]>([]);
+  const [queryRows, setQueryRows] = useState<KeyValueRow[]>([]);
+  const [headerRows, setHeaderRows] = useState<KeyValueRow[]>([]);
+  const [headersBulk, setHeadersBulk] = useState(false);
   const [headersText, setHeadersText] = useState("{}");
+  const [headersBulkError, setHeadersBulkError] = useState<string | null>(null);
   const [bodyText, setBodyText] = useState("");
+  const [bodyNote, setBodyNote] = useState<string | null>(null);
+  const [requestTab, setRequestTab] = useState<RequestTab>("params");
+
+  const [authType, setAuthType] = useState<AuthType>("none");
   const [bearer, setBearer] = useState("");
   const [basicUser, setBasicUser] = useState("");
   const [basicPass, setBasicPass] = useState("");
@@ -92,42 +210,57 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
   const [bodyView, setBodyView] = useState<BodyView>("pretty");
   const [responseExpanded, setResponseExpanded] = useState(false);
 
-  const [valLoading, setValLoading] = useState(false);
+  const [schemaState, setSchemaState] = useState<SchemaState>("idle");
   const [issues, setIssues] = useState<SchemaValidationIssue[] | null>(null);
   const [explainLoading, setExplainLoading] = useState(false);
   const [explanation, setExplanation] = useState<string | null>(null);
   const [responseCopied, setResponseCopied] = useState(false);
   const copyResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
 
   const hints = useMemo(
     () => authHintsForOperation(specSecuritySchemes ?? undefined, endpoint?.security),
     [specSecuritySchemes, endpoint?.security],
   );
-
   const hintLine = useMemo(() => authHintSummary(hints), [hints]);
 
-  const pathParams = useMemo(
-    () => (endpoint ? parseParamRows(endpoint).filter((r) => r.inn === "path") : []),
-    [endpoint],
-  );
-  const queryParams = useMemo(
-    () => (endpoint ? parseParamRows(endpoint).filter((r) => r.inn === "query") : []),
-    [endpoint],
-  );
+  const bodyInfo = useMemo(() => (endpoint ? getRequestBodyInfo(endpoint) : null), [endpoint]);
 
+  const wantsBody = useMemo(() => {
+    if (!endpoint) return false;
+    const m = endpoint.method.toUpperCase();
+    if (m === "GET" || m === "HEAD") return false;
+    return bodyInfo != null;
+  }, [endpoint, bodyInfo]);
+
+  // Reset the request whenever the endpoint changes; prefill from the spec.
   useEffect(() => {
     if (!endpoint) return;
-    const pv: Record<string, string> = {};
-    const qv: Record<string, string> = {};
-    for (const row of parseParamRows(endpoint)) {
-      const d = parameterExampleString(row.spec);
-      if (row.inn === "path") pv[row.name] = d;
-      if (row.inn === "query") qv[row.name] = d;
+    const rows = parseParamRows(endpoint);
+    setPathRows(rows.filter((r) => r.inn === "path").map((r) => specRow(r, true)));
+    setQueryRows(rows.filter((r) => r.inn === "query").map((r) => specRow(r)));
+    const info = getRequestBodyInfo(endpoint);
+    const m = endpoint.method.toUpperCase();
+    const hasBody = info != null && m !== "GET" && m !== "HEAD";
+    const hdrs = rows.filter((r) => r.inn === "header").map((r) => specRow(r));
+    if (hasBody) {
+      hdrs.unshift(newKeyValueRow({ key: "Content-Type", value: info.mediaType, enabled: true }));
     }
-    setPathValues(pv);
-    setQueryValues(qv);
-    setBodyText(endpoint.requestBody != null ? "{}" : "");
+    setHeaderRows(hdrs);
+    setHeadersBulk(false);
     setHeadersText("{}");
+    setHeadersBulkError(null);
+    // Prefill the body from the spec example (or a schema skeleton) so a request is sendable at once.
+    const prefill = hasBody ? buildRequestBodyExample(endpoint) : null;
+    setBodyText(hasBody ? (prefill?.text ?? "{}") : "");
+    setBodyNote(
+      prefill
+        ? prefill.source === "spec-example"
+          ? t("runApi.bodyFromExample")
+          : t("runApi.bodyFromSchema")
+        : null,
+    );
+    setRequestTab(rows.some((r) => r.inn === "path" || r.inn === "query") || !hasBody ? "params" : "body");
     setSendError(null);
     setCorsErrorResult(null);
     setSecurityBlockResult(null);
@@ -141,39 +274,162 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
     setBodyView("pretty");
     setResponseExpanded(false);
     setIssues(null);
+    setSchemaState("idle");
     setExplanation(null);
     const first = specServerUrls[0]?.trim() ?? "";
     setBaseUrl((prev) => (prev.trim() ? prev : first));
-    const ah = authHintsForOperation(
-      specSecuritySchemes ?? undefined,
-      endpoint.security,
-    );
+    const ah = authHintsForOperation(specSecuritySchemes ?? undefined, endpoint.security);
     const ak = ah.find((x) => x.kind === "apiKey");
     if (ak?.apiKeyName) setApiKeyName(ak.apiKeyName);
     if (ak?.apiKeyIn === "query" || ak?.apiKeyIn === "header") {
       setApiKeyIn(ak.apiKeyIn === "query" ? "query" : "header");
     }
+    // Suggest the auth type the spec asks for; keep the user's choice when the spec is silent.
+    const kinds = ah.map((x) => String(x.kind).toLowerCase());
+    if (kinds.some((k) => k === "apikey")) setAuthType("apiKey");
+    else if (kinds.some((k) => k.includes("basic"))) setAuthType("basic");
+    else if (kinds.some((k) => k.includes("bearer") || k.includes("oauth") || k.includes("openid") || k === "http"))
+      setAuthType("bearer");
+    // `t` is stable for a session; listing it would reset the form on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [endpoint, specServerUrls, specSecuritySchemes]);
+
+  // Body handed over from the AI payload generator.
+  useEffect(() => {
+    if (!pendingRequestBody || !endpoint) return;
+    if (pendingRequestBody.endpointId !== endpoint.id) return;
+    setBodyText(pendingRequestBody.text);
+    setBodyNote(t("runApi.bodyFromAi"));
+    setRequestTab("body");
+    clearPendingRequestBody();
+  }, [pendingRequestBody, endpoint, clearPendingRequestBody, t]);
+
+  const pathValues = useMemo(() => rowsToRecord(pathRows), [pathRows]);
 
   const resolvedPath = useMemo(() => {
     if (!endpoint) return "";
     let p = endpoint.path;
     for (const [k, v] of Object.entries(pathValues)) {
+      if (!v) continue;
       p = p.replace(new RegExp(`\\{${escapeRe(k)}\\}`, "g"), encodeURIComponent(v));
     }
     return p;
   }, [endpoint, pathValues]);
 
-  const wantsBody = useMemo(() => {
-    if (!endpoint) return false;
-    const m = endpoint.method.toUpperCase();
-    if (m === "GET" || m === "HEAD") return false;
-    return endpoint.requestBody != null;
-  }, [endpoint]);
+  const queryPreview = useMemo(() => {
+    const q = rowsToRecord(queryRows);
+    const parts = Object.entries(q)
+      .filter(([, v]) => v !== "")
+      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`);
+    return parts.length ? `?${parts.join("&")}` : "";
+  }, [queryRows]);
+
+  const bodyValidity = useMemo(() => checkJson(bodyText), [bodyText]);
+  const bodyIsJson = !bodyInfo || /json/i.test(bodyInfo.mediaType);
+
+  const enterBulkHeaders = useCallback(() => {
+    setHeadersText(JSON.stringify(rowsToRecord(headerRows), null, 2));
+    setHeadersBulkError(null);
+    setHeadersBulk(true);
+  }, [headerRows]);
+
+  const leaveBulkHeaders = useCallback(() => {
+    try {
+      const obj = JSON.parse(headersText.trim() || "{}") as unknown;
+      if (!isObject(obj)) throw new Error("bad");
+      // Keep spec-declared rows (with their hints) and update their values; everything else becomes custom rows.
+      const next: KeyValueRow[] = [];
+      const used = new Set<string>();
+      for (const r of headerRows) {
+        if (!r.fromSpec) continue;
+        const match = Object.keys(obj).find((k) => k.toLowerCase() === r.key.toLowerCase());
+        if (match) {
+          used.add(match);
+          next.push({ ...r, value: String(obj[match] ?? ""), enabled: true });
+        } else {
+          next.push({ ...r, enabled: false });
+        }
+      }
+      for (const [k, v] of Object.entries(obj)) {
+        if (used.has(k)) continue;
+        next.push(newKeyValueRow({ key: k, value: String(v ?? ""), enabled: true }));
+      }
+      setHeaderRows(next);
+      setHeadersBulkError(null);
+      setHeadersBulk(false);
+    } catch {
+      setHeadersBulkError(t("runApi.badHeaders"));
+    }
+  }, [headersText, headerRows, t]);
+
+  const onInsertExample = useCallback(() => {
+    if (!endpoint) return;
+    const ex = buildRequestBodyExample(endpoint);
+    if (!ex) return;
+    setBodyText(ex.text);
+    setBodyNote(ex.source === "spec-example" ? t("runApi.bodyFromExample") : t("runApi.bodyFromSchema"));
+    bodyRef.current?.focus();
+  }, [endpoint, t]);
+
+  const onFormatBody = useCallback(() => {
+    try {
+      setBodyText(JSON.stringify(JSON.parse(bodyText), null, 2));
+    } catch {
+      /* indicator already shows the error */
+    }
+  }, [bodyText]);
+
+  const runValidation = useCallback(
+    async (code: number, body: unknown) => {
+      if (!endpoint) return;
+      setSchemaState("checking");
+      setExplanation(null);
+      try {
+        const res = await fetch("/api/validate-response", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            endpoint: endpointToJsonSafe(endpoint),
+            statusCode: code,
+            body,
+          }),
+        });
+        const data = (await res.json()) as { issues?: SchemaValidationIssue[]; error?: string };
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        const list = data.issues ?? [];
+        setIssues(list);
+        const onlySkip =
+          list.length === 1 &&
+          list[0]!.path === "$" &&
+          /no json response schema|body is empty/i.test(list[0]!.message);
+        setSchemaState(list.length === 0 ? "match" : onlySkip ? "noSchema" : "issues");
+      } catch {
+        setIssues(null);
+        setSchemaState("failed");
+      }
+    },
+    [endpoint],
+  );
 
   const executeWithMode = useCallback(
     async (modeToUse: ExecutionMode) => {
       if (!endpoint || !baseUrl.trim()) return;
+
+      let headers: Record<string, string>;
+      if (headersBulk) {
+        try {
+          const obj = JSON.parse(headersText.trim() || "{}") as unknown;
+          if (!isObject(obj)) throw new Error("bad");
+          headers = Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, String(v ?? "")]));
+        } catch {
+          setSendError(t("runApi.badHeaders"));
+          setRequestTab("headers");
+          return;
+        }
+      } else {
+        headers = rowsToRecord(headerRows);
+      }
+
       setSending(true);
       setStatusStep("preparing");
       setSendError(null);
@@ -181,20 +437,8 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
       setSecurityBlockResult(null);
       setExecutionResult(null);
       setIssues(null);
+      setSchemaState("idle");
       setExplanation(null);
-
-      let headers: Record<string, string>;
-      try {
-        headers = JSON.parse(headersText.trim() || "{}") as Record<string, string>;
-        if (!headers || typeof headers !== "object" || Array.isArray(headers)) {
-          throw new Error("bad");
-        }
-      } catch {
-        setSendError(t("runApi.badHeaders"));
-        setSending(false);
-        setStatusStep("blocked");
-        return;
-      }
 
       const fullUrl = joinBaseAndPath(baseUrl.trim(), resolvedPath);
       let parsedBodyReq: unknown = undefined;
@@ -207,8 +451,20 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
       }
 
       const qValuesClean: Record<string, string> = {};
-      for (const [k, v] of Object.entries(queryValues)) {
+      for (const [k, v] of Object.entries(rowsToRecord(queryRows))) {
         if (v !== "") qValuesClean[k] = v;
+      }
+
+      const wsBearer = workspaceDefaultBearer.trim();
+      let auth: NonNullable<ApiExecutionRequest["auth"]> = { type: "none" };
+      if (authType === "bearer" && (bearer.trim() || wsBearer)) {
+        auth = { type: "bearer", bearerToken: bearer.trim() || wsBearer };
+      } else if (authType === "basic" && (basicUser.trim() || basicPass)) {
+        auth = { type: "basic", basicUser: basicUser.trim() || undefined, basicPass: basicPass || undefined };
+      } else if (authType === "apiKey" && apiKeyName.trim() && apiKeyValue.trim()) {
+        auth = { type: "apiKey", apiKeyName: apiKeyName.trim(), apiKeyValue: apiKeyValue.trim(), apiKeyIn };
+      } else if (wsBearer) {
+        auth = { type: "bearer", bearerToken: wsBearer };
       }
 
       const reqDef: ApiExecutionRequest = {
@@ -217,21 +473,7 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
         headers: Object.keys(headers).length > 0 ? headers : undefined,
         queryParams: Object.keys(qValuesClean).length > 0 ? qValuesClean : undefined,
         body: wantsBody ? parsedBodyReq : undefined,
-        auth: {
-          type: bearer.trim() || workspaceDefaultBearer.trim()
-            ? "bearer"
-            : basicUser.trim() || basicPass
-              ? "basic"
-              : apiKeyValue.trim() && apiKeyName.trim()
-                ? "apiKey"
-                : "none",
-          bearerToken: bearer.trim() || workspaceDefaultBearer.trim() || undefined,
-          basicUser: basicUser.trim() || undefined,
-          basicPass: basicPass || undefined,
-          apiKeyName: apiKeyName.trim() || undefined,
-          apiKeyValue: apiKeyValue.trim() || undefined,
-          apiKeyIn,
-        },
+        auth,
       };
 
       setStatusStep("validating_target");
@@ -243,55 +485,57 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
 
       if (result.success) {
         setStatusStep("receiving");
-        setStatus(result.status ?? 200);
+        const code = result.status ?? 200;
+        setStatus(code);
         setElapsedMs(result.durationMs ?? 0);
-        const rawText = result.rawBody ?? (typeof result.body === "string" ? result.body : JSON.stringify(result.body, null, 2));
+        const rawText =
+          result.rawBody ??
+          (typeof result.body === "string" ? result.body : JSON.stringify(result.body, null, 2));
         setResponseText(rawText.slice(0, 48_000));
-        setParsedBody(result.body !== undefined ? result.body : null);
-
-        const pairs: [string, string][] = [];
-        if (result.headers) {
-          for (const [k, v] of Object.entries(result.headers)) {
-            pairs.push([k, v]);
-          }
-        }
-        setResponseHeaders(pairs);
+        const pb = result.body !== undefined ? result.body : null;
+        setParsedBody(pb);
+        setResponseHeaders(result.headers ? Object.entries(result.headers) : []);
         setStatusStep("complete");
-      } else {
-        setStatus(null);
-        setElapsedMs(null);
-        setResponseText(null);
-        setParsedBody(null);
-        setResponseHeaders([]);
-        setStatusStep("blocked");
-
-        const code = result.error?.code;
-        if (code === "BROWSER_CORS_BLOCKED" || code === "BROWSER_NETWORK_ERROR") {
-          setCorsErrorResult(result);
-        } else if (
-          code === "PRIVATE_NETWORK_BLOCKED" ||
-          code === "LOOPBACK_BLOCKED" ||
-          code === "METADATA_ENDPOINT_BLOCKED" ||
-          code === "PORT_BLOCKED" ||
-          code === "UNSUPPORTED_PROTOCOL" ||
-          code === "REDIRECT_BLOCKED"
-        ) {
-          setSecurityBlockResult(result);
-        } else {
-          setSendError(result.error?.message || t("runApi.sendFailed"));
-        }
+        setSending(false);
+        void runValidation(code, pb !== null ? pb : rawText);
+        return;
       }
 
+      setStatus(null);
+      setElapsedMs(null);
+      setResponseText(null);
+      setParsedBody(null);
+      setResponseHeaders([]);
+      setStatusStep("blocked");
+
+      const code = result.error?.code;
+      if (code === "BROWSER_CORS_BLOCKED" || code === "BROWSER_NETWORK_ERROR") {
+        setCorsErrorResult(result);
+      } else if (
+        code === "PRIVATE_NETWORK_BLOCKED" ||
+        code === "LOOPBACK_BLOCKED" ||
+        code === "METADATA_ENDPOINT_BLOCKED" ||
+        code === "PORT_BLOCKED" ||
+        code === "UNSUPPORTED_PROTOCOL" ||
+        code === "REDIRECT_BLOCKED"
+      ) {
+        setSecurityBlockResult(result);
+      } else {
+        setSendError(result.error?.message || t("runApi.sendFailed"));
+      }
       setSending(false);
     },
     [
       endpoint,
       baseUrl,
       resolvedPath,
-      queryValues,
+      queryRows,
+      headerRows,
+      headersBulk,
       headersText,
       wantsBody,
       bodyText,
+      authType,
       bearer,
       workspaceDefaultBearer,
       basicUser,
@@ -299,6 +543,7 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
       apiKeyName,
       apiKeyValue,
       apiKeyIn,
+      runValidation,
       t,
     ],
   );
@@ -310,32 +555,6 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
   const onRunViaProxyClick = useCallback(async () => {
     await executeWithMode("APIFORGE_PROXY");
   }, [executeWithMode]);
-
-  const onValidate = useCallback(async () => {
-    if (!endpoint || status == null) return;
-    setValLoading(true);
-    try {
-      const res = await fetch("/api/validate-response", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          endpoint: endpointToJsonSafe(endpoint),
-          statusCode: status,
-          body: parsedBody !== null ? parsedBody : responseText,
-        }),
-      });
-      const data = (await res.json()) as {
-        issues?: SchemaValidationIssue[];
-        error?: string;
-      };
-      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-      setIssues(data.issues ?? []);
-    } catch {
-      setIssues(null);
-    } finally {
-      setValLoading(false);
-    }
-  }, [endpoint, status, parsedBody, responseText]);
 
   const responseDisplay = useMemo(() => {
     if (responseText == null) return "";
@@ -374,23 +593,27 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
           responsePreview: responseText.slice(0, 1500),
         }),
       });
+      reportAiHeaders(res.headers);
+      if (!res.ok) {
+        // Toast + typed error: rate limit, off-topic, busy model, bad input.
+        await handleAiErrorResponse(res, { onRetry: () => void onExplain() });
+      }
       const data = (await res.json()) as { explanation?: string; error?: string };
-      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
       setExplanation(data.explanation ?? null);
       const usage = parseUsageFromResponseHeaders(res.headers);
       if (usage) setLastGroqUsage(usage);
-    } catch {
+    } catch (e) {
       setExplanation(null);
+      handleAiThrown(e);
     } finally {
       setExplainLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [issues, endpoint, responseText, setLastGroqUsage]);
 
   const responseBodyForView = useMemo(() => {
     if (responseText == null) return "";
-    if (bodyView === "raw") return responseText;
-    if (bodyView === "preview") return responseDisplay;
-    return responseDisplay;
+    return bodyView === "raw" ? responseText : responseDisplay;
   }, [responseText, bodyView, responseDisplay]);
 
   const onCopyResponse = useCallback(async () => {
@@ -399,8 +622,8 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
       text = responseHeaders.map(([k, v]) => `${k}: ${v}`).join("\n");
     } else if (responseTab === "body") {
       text = responseBodyForView;
-    } else {
-      text = "";
+    } else if (issues) {
+      text = issues.map((i) => `${i.severity}\t${i.path}\t${i.message}`).join("\n");
     }
     if (!text) return;
     try {
@@ -414,13 +637,12 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
     } catch {
       /* ignore */
     }
-  }, [responseTab, responseHeaders, responseBodyForView]);
+  }, [responseTab, responseHeaders, responseBodyForView, issues]);
 
   const responseHighlightLang: HighlightLanguage = useMemo(() => {
-    if (responseTab !== "body") return "javascript";
     if (looksLikeJson && bodyView !== "raw") return "json";
     return "javascript";
-  }, [responseTab, looksLikeJson, bodyView]);
+  }, [looksLikeJson, bodyView]);
 
   useEffect(() => {
     setResponseCopied(false);
@@ -440,462 +662,739 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
     return <p className={styles.placeholder}>{t("workspace.selectEndpoint")}</p>;
   }
 
-  const fullUrlPreview = joinBaseAndPath(
-    baseUrl.trim() || "…",
-    resolvedPath || endpoint.path,
-  );
+  const fullUrlPreview =
+    joinBaseAndPath(baseUrl.trim() || "{server}", resolvedPath || endpoint.path) + queryPreview;
 
   const statusOk = status != null && status >= 200 && status < 300;
+  const statusWarn = status != null && status >= 300 && status < 400;
+  const hasResponse = status != null || responseText != null;
+  const hasOutcome = hasResponse || Boolean(corsErrorResult || securityBlockResult || sendError);
+
+  const paramCount =
+    pathRows.length + queryRows.filter((r) => r.enabled && r.key.trim()).length;
+  const headerCount = headersBulk
+    ? null
+    : headerRows.filter((r) => r.enabled && r.key.trim()).length;
+  const realIssues = (issues ?? []).filter((i) => schemaState === "issues" || i.path !== "$");
+
+  const requestTabs: { id: RequestTab; label: string; count?: number | null }[] = [
+    { id: "params", label: t("runApi.tabParams"), count: paramCount || null },
+    { id: "headers", label: t("runApi.tabHeadersReq"), count: headerCount || null },
+    ...(wantsBody ? [{ id: "body" as const, label: t("runApi.tabBodyReq") }] : []),
+    { id: "auth", label: t("runApi.tabAuth") },
+  ];
+
+  const statusStepLabel =
+    statusStep === "preparing"
+      ? t("runApi.statusSteps.preparing")
+      : statusStep === "validating_target"
+        ? t("runApi.statusSteps.validating_target")
+        : statusStep === "executing"
+          ? t("runApi.statusSteps.executing")
+          : statusStep === "receiving"
+            ? t("runApi.statusSteps.receiving")
+            : t("common.loading");
 
   return (
-    <div className={styles.panel}>
-      {/* Execution Mode Selector */}
-      <div className={styles.modeSelector}>
-        <MaterialIcon name="tune" size="xs" />
-        <span className={styles.modeLabel}>{t("runApi.executionModeLabel")}:</span>
-        <select
-          className={styles.modeSelect}
-          value={executionMode}
-          onChange={(e) => setExecutionMode(e.target.value as ExecutionMode)}
-          aria-label={t("runApi.executionModeLabel")}
-        >
-          <option value="AUTO">{t("runApi.modeAuto")}</option>
-          <option value="BROWSER">{t("runApi.modeBrowser")}</option>
-          <option value="APIFORGE_PROXY">{t("runApi.modeProxy")}</option>
-        </select>
-      </div>
-
-      <details className={styles.acc}>
-        <summary className={styles.accSummary}>{t("runApi.workspaceBearerSummary")}</summary>
-        <p className={styles.authNote}>{t("runApi.workspaceBearerHint")}</p>
-        <label className={styles.miniLabel} htmlFor="workspace-default-bearer">
-          {t("runApi.workspaceBearerLabel")}
-        </label>
-        <input
-          id="workspace-default-bearer"
-          type="password"
-          autoComplete="off"
-          className={styles.input}
-          value={workspaceDefaultBearer}
-          onChange={(e) => setWorkspaceDefaultBearer(e.target.value)}
-          placeholder={t("runApi.workspaceBearerPlaceholder")}
-        />
-      </details>
-
-      <div className={styles.chrome}>
-        <div className={styles.chromeInner}>
-          <div className={styles.methodPill}>{endpoint.method.toUpperCase()}</div>
-          <input
-            type="text"
-            className={styles.chromeUrl}
-            readOnly
-            size={1}
-            value={fullUrlPreview}
-            aria-label={t("runApi.resolvedUrl")}
-          />
+    <div
+      className={styles.panel}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && !sending && baseUrl.trim()) {
+          e.preventDefault();
+          void onSend();
+        }
+      }}
+    >
+      {/* Request line */}
+      <div className={styles.requestLine}>
+        <div className={styles.urlBox}>
+          <span className={styles.urlMethod}>
+            <MethodBadge method={endpoint.method.toUpperCase()} />
+          </span>
+          <output className={styles.urlText} aria-label={t("runApi.resolvedUrl")} title={fullUrlPreview}>
+            {fullUrlPreview}
+          </output>
         </div>
         <button
           type="button"
-          className={styles.sendPrimary}
+          className={`${btn.btn} ${btn.primary} ${btn.md} ${styles.sendBtn} focusRing`}
           onClick={() => void onSend()}
           disabled={sending || !baseUrl.trim()}
+          aria-busy={sending}
+          title={t("runApi.sendShortcut")}
         >
-          <MaterialIcon name="play_arrow" size="sm" />
-          {sending ? t("common.loading") : t("runApi.send")}
+          {sending ? (
+            <MaterialIcon name="progress_activity" size="xs" className={btn.spin} />
+          ) : (
+            <MaterialIcon name="send" size="xs" />
+          )}
+          {sending ? t("runApi.sending") : t("runApi.send")}
         </button>
       </div>
 
-      {sending && statusStep !== "idle" ? (
-        <div className={styles.statusStepIndicator}>
-          <MaterialIcon name="sync" size="xs" className="animate-spin" />
-          <span>
-            {statusStep === "preparing"
-              ? t("runApi.statusSteps.preparing")
-              : statusStep === "validating_target"
-                ? t("runApi.statusSteps.validating_target")
-                : statusStep === "executing"
-                  ? t("runApi.statusSteps.executing")
-                  : statusStep === "receiving"
-                    ? t("runApi.statusSteps.receiving")
-                    : t("common.loading")}
-          </span>
-        </div>
-      ) : null}
-
-      {/* CORS Block Alert Banner */}
-      {corsErrorResult ? (
-        <div className={styles.corsBanner}>
-          <h4 className={styles.corsTitle}>
-            <MaterialIcon name="shield" size="sm" />
-            {t("runApi.corsBlockedTitle")}
-          </h4>
-          <p className={styles.corsSub}>{t("runApi.corsBlockedSub")}</p>
-          <button
-            type="button"
-            className={styles.proxyCtaBtn}
-            onClick={() => void onRunViaProxyClick()}
-            disabled={sending}
-          >
-            <MaterialIcon name="bolt" size="xs" />
-            {t("runApi.runViaProxyCta")}
-          </button>
-        </div>
-      ) : null}
-
-      {/* Security Policy Block Alert Banner */}
-      {securityBlockResult ? (
-        <div className={styles.securityBanner}>
-          <h4 className={styles.securityTitle}>
-            <MaterialIcon name="gpp_bad" size="sm" />
-            {t("runApi.securityBlockedTitle")}
-          </h4>
-          <p className={styles.securitySub}>
-            {securityBlockResult.error?.message}
-          </p>
-          <span className="text-[10px] font-mono text-neutral-400">
-            {t("runApi.requestIdLabel", { id: securityBlockResult.requestId })}
-          </span>
-        </div>
-      ) : null}
-
-      {sendError ? <p className={styles.error}>{sendError}</p> : null}
-
-      {hintLine ? (
-        <p className={styles.hintSpec}>{t("runApi.specAuth", { hint: hintLine })}</p>
-      ) : (
-        <p className={styles.hintSpecMuted}>{t("runApi.noSpecAuth")}</p>
-      )}
-
-      <details className={styles.acc}>
-        <summary className={styles.accSummary}>{t("runApi.baseUrl")}</summary>
-        <input
-          id="run-base"
-          type="url"
-          className={styles.input}
-          value={baseUrl}
-          onChange={(e) => setBaseUrl(e.target.value)}
-          placeholder="https://api.example.com"
-        />
-      </details>
-
-      {pathParams.length > 0 ? (
-        <details className={styles.acc}>
-          <summary className={styles.accSummary}>{t("runApi.pathParams")}</summary>
-          {pathParams.map((row) => (
-            <div key={row.name} className={styles.fieldRow}>
-              <label className={styles.miniLabel} htmlFor={`pp-${row.name}`}>
-                {`{${row.name}}`}
-              </label>
-              <input
-                id={`pp-${row.name}`}
-                className={styles.input}
-                value={pathValues[row.name] ?? ""}
-                onChange={(e) =>
-                  setPathValues((prev) => ({ ...prev, [row.name]: e.target.value }))
-                }
-              />
-            </div>
-          ))}
-        </details>
-      ) : null}
-
-      {queryParams.length > 0 ? (
-        <details className={styles.acc}>
-          <summary className={styles.accSummary}>{t("runApi.queryParams")}</summary>
-          {queryParams.map((row) => (
-            <div key={row.name} className={styles.fieldRow}>
-              <label className={styles.miniLabel} htmlFor={`qp-${row.name}`}>
-                {row.name}
-              </label>
-              <input
-                id={`qp-${row.name}`}
-                className={styles.input}
-                value={queryValues[row.name] ?? ""}
-                onChange={(e) =>
-                  setQueryValues((prev) => ({ ...prev, [row.name]: e.target.value }))
-                }
-              />
-            </div>
-          ))}
-        </details>
-      ) : null}
-
-      <details className={styles.acc}>
-        <summary className={styles.accSummary}>{t("runApi.headersJson")}</summary>
-        <textarea
-          className={styles.textarea}
-          rows={4}
-          value={headersText}
-          onChange={(e) => setHeadersText(e.target.value)}
-          spellCheck={false}
-          aria-label={t("runApi.headersJson")}
-        />
-      </details>
-
-      {endpoint.requestBody != null ? (
-        <details className={styles.acc}>
-          <summary className={styles.accSummary}>{t("runApi.body")}</summary>
-          <textarea
-            className={styles.textarea}
-            rows={8}
-            value={bodyText}
-            onChange={(e) => setBodyText(e.target.value)}
+      <div className={styles.metaRow}>
+        <div className={styles.metaField}>
+          <label className={styles.metaLabel} htmlFor="run-base">
+            {t("runApi.baseUrl")}
+          </label>
+          <input
+            id="run-base"
+            type="url"
+            className={`${styles.input} ${styles.mono}`}
+            value={baseUrl}
+            onChange={(e) => setBaseUrl(e.target.value)}
+            placeholder="https://api.example.com"
+            list={specServerUrls.length ? "run-base-servers" : undefined}
+            aria-invalid={!baseUrl.trim()}
             spellCheck={false}
-            placeholder="{}"
-            aria-label={t("runApi.body")}
           />
-        </details>
-      ) : null}
-
-      <details className={styles.acc}>
-        <summary className={styles.accSummary}>{t("runApi.authManual")}</summary>
-        <p className={styles.authNote}>{t("runApi.authNote")}</p>
-        <label className={styles.miniLabel} htmlFor="run-bearer">
-          Bearer
-        </label>
-        <input
-          id="run-bearer"
-          type="password"
-          autoComplete="off"
-          className={styles.input}
-          value={bearer}
-          onChange={(e) => setBearer(e.target.value)}
-        />
-        <div className={styles.twoCol}>
-          <div>
-            <label className={styles.miniLabel} htmlFor="run-basic-u">
-              Basic user
-            </label>
-            <input
-              id="run-basic-u"
-              className={styles.input}
-              value={basicUser}
-              onChange={(e) => setBasicUser(e.target.value)}
-              autoComplete="off"
-            />
-          </div>
-          <div>
-            <label className={styles.miniLabel} htmlFor="run-basic-p">
-              Basic password
-            </label>
-            <input
-              id="run-basic-p"
-              type="password"
-              className={styles.input}
-              value={basicPass}
-              onChange={(e) => setBasicPass(e.target.value)}
-              autoComplete="off"
-            />
-          </div>
+          {specServerUrls.length ? (
+            <datalist id="run-base-servers">
+              {specServerUrls.map((u) => (
+                <option key={u} value={u} />
+              ))}
+            </datalist>
+          ) : null}
         </div>
-        <div className={styles.apiKeyRow}>
-          <div>
-            <label className={styles.miniLabel} htmlFor="run-ak-name">
-              API key name
-            </label>
-            <input
-              id="run-ak-name"
-              className={styles.input}
-              value={apiKeyName}
-              onChange={(e) => setApiKeyName(e.target.value)}
-            />
-          </div>
-          <div>
-            <label className={styles.miniLabel} htmlFor="run-ak-in">
-              In
-            </label>
-            <select
-              id="run-ak-in"
-              className={styles.select}
-              value={apiKeyIn}
-              onChange={(e) =>
-                setApiKeyIn(e.target.value === "query" ? "query" : "header")
-              }
-            >
-              <option value="header">Header</option>
-              <option value="query">Query</option>
-            </select>
-          </div>
+        <div className={styles.metaFieldMode}>
+          <label className={styles.metaLabel} htmlFor="run-exec-mode">
+            {t("runApi.executionModeLabel")}
+          </label>
+          <select
+            id="run-exec-mode"
+            className={styles.select}
+            value={executionMode}
+            onChange={(e) => setExecutionMode(e.target.value as ExecutionMode)}
+          >
+            <option value="AUTO">{t("runApi.modeAuto")}</option>
+            <option value="BROWSER">{t("runApi.modeBrowser")}</option>
+            <option value="APIFORGE_PROXY">{t("runApi.modeProxy")}</option>
+          </select>
         </div>
-        <label className={styles.miniLabel} htmlFor="run-ak-val" style={{ marginTop: 8 }}>
-          API key value
-        </label>
-        <input
-          id="run-ak-val"
-          type="password"
-          className={styles.input}
-          value={apiKeyValue}
-          onChange={(e) => setApiKeyValue(e.target.value)}
-          autoComplete="off"
-        />
-      </details>
+      </div>
+      {!baseUrl.trim() ? <p className={styles.fieldError}>{t("runApi.baseUrlMissing")}</p> : null}
 
-      {/* Response Results Section */}
-      {status != null || responseText != null ? (
-        <div
-          className={`${styles.responseShell} ${responseExpanded ? styles.responseShellExpanded : ""}`}
-        >
-          <div className={styles.responseHeader}>
-            <div className="flex items-center gap-3">
-              <span className={styles.sectionHeading}>{t("runApi.responseSection")}</span>
-              {status != null ? (
-                <span
-                  className={`${styles.statusBadge} ${statusOk ? styles.statusBadgeOk : styles.statusBadgeErr}`}
-                >
-                  {t("runApi.status", { code: status })}
-                </span>
-              ) : null}
-              {executionResult ? (
-                <span className={styles.executionPill}>
-                  <MaterialIcon
-                    name={executionResult.executionMode === "apiforge-proxy" ? "security" : "language"}
-                    size="xs"
+      <div className={styles.split}>
+        {/* ——— Request ——— */}
+        <section className={styles.requestCol} aria-label={t("runApi.requestSection")}>
+          <div className={styles.subTabs} role="tablist" aria-label={t("runApi.requestSection")}>
+            {requestTabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                id={`run-tab-${tab.id}`}
+                aria-selected={requestTab === tab.id}
+                aria-controls={`run-panel-${tab.id}`}
+                className={`${styles.subTab} focusRing ${requestTab === tab.id ? styles.subTabActive : ""}`}
+                onClick={() => setRequestTab(tab.id)}
+              >
+                {tab.label}
+                {tab.count ? <span className={styles.count}>{tab.count}</span> : null}
+                {tab.id === "auth" && authType !== "none" ? (
+                  <span className={styles.dot} aria-hidden />
+                ) : null}
+                {tab.id === "body" && bodyIsJson && bodyValidity.state === "invalid" ? (
+                  <span className={`${styles.dot} ${styles.dotError}`} aria-label={t("runApi.jsonInvalidShort")} />
+                ) : null}
+              </button>
+            ))}
+          </div>
+
+          <div
+            className={styles.tabPanel}
+            role="tabpanel"
+            id={`run-panel-${requestTab}`}
+            aria-labelledby={`run-tab-${requestTab}`}
+          >
+            {requestTab === "params" ? (
+              <div className={styles.stack}>
+                {pathRows.length > 0 ? (
+                  <div className={styles.group}>
+                    <h4 className={styles.groupTitle}>{t("runApi.pathParams")}</h4>
+                    <KeyValueEditor
+                      rows={pathRows}
+                      onChange={setPathRows}
+                      label={t("runApi.pathParams")}
+                      addLabel=""
+                      allowAdd={false}
+                      allowToggle={false}
+                    />
+                  </div>
+                ) : null}
+                <div className={styles.group}>
+                  <h4 className={styles.groupTitle}>{t("runApi.queryParams")}</h4>
+                  {queryRows.length === 0 && pathRows.length === 0 ? (
+                    <p className={styles.muted}>{t("runApi.noParams")}</p>
+                  ) : null}
+                  <KeyValueEditor
+                    rows={queryRows}
+                    onChange={setQueryRows}
+                    label={t("runApi.queryParams")}
+                    addLabel={t("runApi.addQueryParam")}
+                    keyPlaceholder={t("runApi.keyPlaceholder")}
+                    valuePlaceholder={t("runApi.valuePlaceholder")}
                   />
-                  {executionResult.executionMode === "apiforge-proxy"
-                    ? t("runApi.modeProxyShort")
-                    : t("runApi.modeBrowserShort")}
-                </span>
+                </div>
+              </div>
+            ) : null}
+
+            {requestTab === "headers" ? (
+              <div className={styles.stack}>
+                <div className={styles.toolbarRow}>
+                  <p className={styles.muted}>{t("runApi.headersHint")}</p>
+                  <button
+                    type="button"
+                    className={`${btn.btn} ${btn.ghost} ${btn.sm} focusRing`}
+                    aria-pressed={headersBulk}
+                    onClick={() => (headersBulk ? leaveBulkHeaders() : enterBulkHeaders())}
+                  >
+                    <MaterialIcon name={headersBulk ? "view_list" : "data_object"} size="xs" />
+                    {headersBulk ? t("runApi.keyValueEdit") : t("runApi.bulkEdit")}
+                  </button>
+                </div>
+                {headersBulk ? (
+                  <>
+                    <textarea
+                      className={`${styles.textarea} ${styles.mono}`}
+                      rows={8}
+                      value={headersText}
+                      onChange={(e) => setHeadersText(e.target.value)}
+                      spellCheck={false}
+                      aria-label={t("runApi.headersJson")}
+                      aria-invalid={Boolean(headersBulkError)}
+                    />
+                    {headersBulkError ? <p className={styles.fieldError}>{headersBulkError}</p> : null}
+                  </>
+                ) : (
+                  <KeyValueEditor
+                    rows={headerRows}
+                    onChange={setHeaderRows}
+                    label={t("runApi.tabHeadersReq")}
+                    addLabel={t("runApi.addHeader")}
+                    keyPlaceholder={t("runApi.headerPlaceholder")}
+                    valuePlaceholder={t("runApi.valuePlaceholder")}
+                    keySuggestions={HEADER_SUGGESTIONS}
+                    valueSuggestions={HEADER_VALUE_SUGGESTIONS}
+                  />
+                )}
+              </div>
+            ) : null}
+
+            {requestTab === "body" && wantsBody ? (
+              <div className={styles.stack}>
+                <div className={styles.toolbarRow}>
+                  <div className={styles.btnGroup}>
+                    <button
+                      type="button"
+                      className={`${btn.btn} ${btn.secondary} ${btn.sm} focusRing`}
+                      onClick={onInsertExample}
+                    >
+                      <MaterialIcon name="data_object" size="xs" />
+                      {t("runApi.insertExample")}
+                    </button>
+                    <button
+                      type="button"
+                      className={`${btn.btn} ${btn.ghost} ${btn.sm} focusRing`}
+                      onClick={onFormatBody}
+                      disabled={bodyValidity.state !== "valid"}
+                    >
+                      <MaterialIcon name="format_align_left" size="xs" />
+                      {t("runApi.formatJson")}
+                    </button>
+                  </div>
+                  {bodyIsJson ? (
+                    <span
+                      className={`${styles.validity} ${
+                        bodyValidity.state === "valid"
+                          ? styles.validityOk
+                          : bodyValidity.state === "invalid"
+                            ? styles.validityErr
+                            : ""
+                      }`}
+                      role="status"
+                    >
+                      <MaterialIcon
+                        name={
+                          bodyValidity.state === "valid"
+                            ? "check_circle"
+                            : bodyValidity.state === "invalid"
+                              ? "error"
+                              : "radio_button_unchecked"
+                        }
+                        size="xs"
+                      />
+                      {bodyValidity.state === "valid"
+                        ? t("runApi.jsonValid")
+                        : bodyValidity.state === "invalid"
+                          ? bodyValidity.line
+                            ? t("runApi.jsonInvalidLine", { line: bodyValidity.line })
+                            : t("runApi.jsonInvalidShort")
+                          : t("runApi.jsonEmpty")}
+                    </span>
+                  ) : null}
+                </div>
+                <textarea
+                  ref={bodyRef}
+                  className={`${styles.textarea} ${styles.mono} ${styles.bodyEditor} ${
+                    bodyIsJson && bodyValidity.state === "invalid" ? styles.textareaInvalid : ""
+                  }`}
+                  rows={14}
+                  value={bodyText}
+                  onChange={(e) => {
+                    setBodyText(e.target.value);
+                    setBodyNote(null);
+                  }}
+                  spellCheck={false}
+                  placeholder="{}"
+                  aria-label={t("runApi.body")}
+                  aria-invalid={bodyIsJson && bodyValidity.state === "invalid"}
+                  aria-describedby="run-body-meta"
+                />
+                <p id="run-body-meta" className={styles.muted}>
+                  {bodyIsJson && bodyValidity.state === "invalid" && bodyValidity.message
+                    ? bodyValidity.message
+                    : bodyNote ??
+                      t("runApi.bodyMeta", {
+                        type: bodyInfo?.mediaType ?? "application/json",
+                        required: bodyInfo?.required ? t("runApi.required") : t("runApi.optional"),
+                      })}
+                </p>
+              </div>
+            ) : null}
+
+            {requestTab === "auth" ? (
+              <div className={styles.stack}>
+                <p className={styles.muted}>
+                  {hintLine ? t("runApi.specAuth", { hint: hintLine }) : t("runApi.noSpecAuth")}
+                </p>
+                <div className={styles.segment} role="radiogroup" aria-label={t("runApi.authType")}>
+                  {AUTH_TYPES.map((a) => (
+                    <button
+                      key={a.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={authType === a.id}
+                      className={`${styles.segBtn} focusRing ${authType === a.id ? styles.segBtnActive : ""}`}
+                      onClick={() => setAuthType(a.id)}
+                    >
+                      {t(a.labelKey)}
+                    </button>
+                  ))}
+                </div>
+
+                {authType === "none" ? (
+                  <p className={styles.muted}>{t("runApi.authNoneHint")}</p>
+                ) : null}
+
+                {authType === "bearer" ? (
+                  <div className={styles.field}>
+                    <label className={styles.label} htmlFor="run-bearer">
+                      {t("runApi.bearerToken")}
+                    </label>
+                    <input
+                      id="run-bearer"
+                      type="password"
+                      autoComplete="off"
+                      className={`${styles.input} ${styles.mono}`}
+                      value={bearer}
+                      onChange={(e) => setBearer(e.target.value)}
+                      placeholder={workspaceDefaultBearer ? t("runApi.bearerUsesDefault") : "eyJhbGciOi…"}
+                    />
+                  </div>
+                ) : null}
+
+                {authType === "basic" ? (
+                  <div className={styles.twoCol}>
+                    <div className={styles.field}>
+                      <label className={styles.label} htmlFor="run-basic-u">
+                        {t("runApi.username")}
+                      </label>
+                      <input
+                        id="run-basic-u"
+                        className={styles.input}
+                        value={basicUser}
+                        onChange={(e) => setBasicUser(e.target.value)}
+                        autoComplete="off"
+                      />
+                    </div>
+                    <div className={styles.field}>
+                      <label className={styles.label} htmlFor="run-basic-p">
+                        {t("runApi.password")}
+                      </label>
+                      <input
+                        id="run-basic-p"
+                        type="password"
+                        className={styles.input}
+                        value={basicPass}
+                        onChange={(e) => setBasicPass(e.target.value)}
+                        autoComplete="off"
+                      />
+                    </div>
+                  </div>
+                ) : null}
+
+                {authType === "apiKey" ? (
+                  <>
+                    <div className={styles.apiKeyRow}>
+                      <div className={styles.field}>
+                        <label className={styles.label} htmlFor="run-ak-name">
+                          {t("runApi.apiKeyName")}
+                        </label>
+                        <input
+                          id="run-ak-name"
+                          className={`${styles.input} ${styles.mono}`}
+                          value={apiKeyName}
+                          onChange={(e) => setApiKeyName(e.target.value)}
+                          placeholder="X-API-Key"
+                          spellCheck={false}
+                        />
+                      </div>
+                      <div className={styles.field}>
+                        <label className={styles.label} htmlFor="run-ak-in">
+                          {t("runApi.apiKeyIn")}
+                        </label>
+                        <select
+                          id="run-ak-in"
+                          className={styles.select}
+                          value={apiKeyIn}
+                          onChange={(e) => setApiKeyIn(e.target.value === "query" ? "query" : "header")}
+                        >
+                          <option value="header">{t("runApi.inHeader")}</option>
+                          <option value="query">{t("runApi.inQuery")}</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className={styles.field}>
+                      <label className={styles.label} htmlFor="run-ak-val">
+                        {t("runApi.apiKeyValue")}
+                      </label>
+                      <input
+                        id="run-ak-val"
+                        type="password"
+                        className={`${styles.input} ${styles.mono}`}
+                        value={apiKeyValue}
+                        onChange={(e) => setApiKeyValue(e.target.value)}
+                        autoComplete="off"
+                      />
+                    </div>
+                  </>
+                ) : null}
+
+                <div className={`${styles.field} ${styles.divided}`}>
+                  <label className={styles.label} htmlFor="workspace-default-bearer">
+                    {t("runApi.workspaceBearerLabel")}
+                  </label>
+                  <input
+                    id="workspace-default-bearer"
+                    type="password"
+                    autoComplete="off"
+                    className={`${styles.input} ${styles.mono}`}
+                    value={workspaceDefaultBearer}
+                    onChange={(e) => setWorkspaceDefaultBearer(e.target.value)}
+                    placeholder={t("runApi.workspaceBearerPlaceholder")}
+                  />
+                  <p className={styles.muted}>{t("runApi.workspaceBearerHint")}</p>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </section>
+
+        {/* ——— Response ——— */}
+        <section
+          className={`${styles.responseCol} ${responseExpanded ? styles.responseExpanded : ""}`}
+          aria-label={t("runApi.responseSection")}
+          aria-live="polite"
+          aria-busy={sending}
+        >
+          <div className={styles.responseHead}>
+            <div className={styles.responseHeadLeft}>
+              <h3 className={styles.responseTitle}>{t("runApi.responseSection")}</h3>
+              {hasResponse && status != null ? (
+                <>
+                  <span
+                    className={`${styles.statusBadge} ${
+                      statusOk ? styles.statusOk : statusWarn ? styles.statusWarn : styles.statusErr
+                    }`}
+                  >
+                    {status} {STATUS_TEXT[status] ?? ""}
+                  </span>
+                  <span className={styles.metric}>
+                    {elapsedMs != null ? t("runApi.elapsed", { ms: elapsedMs }) : null}
+                  </span>
+                  {executionResult?.responseSizeBytes != null ? (
+                    <span className={styles.metric}>{formatBytes(executionResult.responseSizeBytes)}</span>
+                  ) : null}
+                  {executionResult ? (
+                    <span className={styles.metric}>
+                      {executionResult.executionMode === "apiforge-proxy"
+                        ? t("runApi.modeProxyShort")
+                        : t("runApi.modeBrowserShort")}
+                      {executionResult.redirectCount
+                        ? ` · ${t("runApi.redirectsLabel", { count: executionResult.redirectCount })}`
+                        : ""}
+                    </span>
+                  ) : null}
+                </>
               ) : null}
             </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                className={styles.iconGhost}
-                onClick={() => void onCopyResponse()}
-                title={t("runApi.copyResponse")}
-              >
-                <MaterialIcon
-                  name={responseCopied ? "check" : "content_copy"}
-                  size="xs"
-                  className={responseCopied ? styles.copyBtnDone : ""}
-                />
-              </button>
-              <button
-                type="button"
-                className={styles.iconGhost}
-                onClick={() => setResponseExpanded((prev) => !prev)}
-                title={
-                  responseExpanded
-                    ? t("runApi.collapse")
-                    : t("runApi.expand")
-                }
-              >
-                <MaterialIcon
-                  name={responseExpanded ? "fullscreen_exit" : "fullscreen"}
-                  size="xs"
-                />
-              </button>
-            </div>
-          </div>
-
-          <div className={styles.responseTabs}>
-            <button
-              type="button"
-              className={`${styles.rtab} ${responseTab === "body" ? styles.rtabActive : ""}`}
-              onClick={() => setResponseTab("body")}
-            >
-              {t("runApi.tabBody")}
-            </button>
-            <button
-              type="button"
-              className={`${styles.rtab} ${responseTab === "headers" ? styles.rtabActive : ""}`}
-              onClick={() => setResponseTab("headers")}
-            >
-              {t("runApi.tabHeaders", { count: responseHeaders.length })}
-            </button>
-          </div>
-
-          {responseTab === "body" ? (
-            <>
-              <div className={styles.subToolbar}>
-                <div className={styles.viewToggles}>
-                  <button
-                    type="button"
-                    className={`${styles.viewBtn} ${bodyView === "pretty" ? styles.viewBtnActive : ""}`}
-                    onClick={() => setBodyView("pretty")}
-                  >
-                    {t("runApi.viewPretty")}
-                  </button>
-                  <button
-                    type="button"
-                    className={`${styles.viewBtn} ${bodyView === "raw" ? styles.viewBtnActive : ""}`}
-                    onClick={() => setBodyView("raw")}
-                  >
-                    {t("runApi.viewRaw")}
-                  </button>
-                </div>
-                <div className={styles.footerMeta}>
-                  {elapsedMs != null ? `${t("runApi.elapsed", { ms: elapsedMs })} · ` : ""}
-                  {executionResult?.responseSizeBytes != null
-                    ? t("runApi.bytes", { n: executionResult.responseSizeBytes })
-                    : ""}
-                  {executionResult?.redirectCount
-                    ? ` · ${t("runApi.redirectsLabel", { count: executionResult.redirectCount })}`
-                    : ""}
-                </div>
+            {hasResponse ? (
+              <div className={styles.responseHeadRight}>
+                <button
+                  type="button"
+                  className={`${btn.btn} ${btn.ghost} ${btn.sm} ${btn.iconOnly} focusRing`}
+                  onClick={() => void onCopyResponse()}
+                  title={t("runApi.copyResponse")}
+                  aria-label={responseCopied ? t("workspace.copied") : t("runApi.copyResponse")}
+                >
+                  <MaterialIcon
+                    name={responseCopied ? "check" : "content_copy"}
+                    size="xs"
+                    className={responseCopied ? styles.copied : ""}
+                  />
+                </button>
+                <button
+                  type="button"
+                  className={`${btn.btn} ${btn.ghost} ${btn.sm} ${btn.iconOnly} focusRing`}
+                  aria-label={responseExpanded ? t("runApi.collapse") : t("runApi.expand")}
+                  aria-pressed={responseExpanded}
+                  onClick={() => setResponseExpanded((prev) => !prev)}
+                  title={responseExpanded ? t("runApi.collapse") : t("runApi.expand")}
+                >
+                  <MaterialIcon name={responseExpanded ? "fullscreen_exit" : "fullscreen"} size="xs" />
+                </button>
               </div>
-
-              <div className={styles.responseBodyWrap}>
-                <HighlightedCode
-                  code={responseBodyForView || "{}"}
-                  language={responseHighlightLang}
-                  className={styles.responseHl}
-                />
-              </div>
-            </>
-          ) : (
-            <div className={styles.responseBodyWrap}>
-              <pre className={styles.responsePre}>
-                {responseHeaders.map(([k, v]) => `${k}: ${v}`).join("\n") || "No headers returned."}
-              </pre>
-            </div>
-          )}
-
-          {/* Validation Actions */}
-          <div className={styles.valActions}>
-            <button
-              type="button"
-              className={styles.btnGhost}
-              onClick={() => void onValidate()}
-              disabled={valLoading || status == null}
-            >
-              <MaterialIcon name="fact_check" size="xs" />
-              {valLoading ? t("common.loading") : t("runApi.validate")}
-            </button>
-            {issues && issues.length > 0 ? (
-              <button
-                type="button"
-                className={styles.btnGhost}
-                onClick={() => void onExplain()}
-                disabled={explainLoading}
-              >
-                <MaterialIcon name="auto_awesome" size="xs" />
-                {explainLoading ? t("common.loading") : t("runApi.explain")}
-              </button>
             ) : null}
           </div>
 
-          {issues ? (
-            issues.length === 0 ? (
-              <p className="text-xs text-emerald-500 font-mono">
-                ✓ Response matches OpenAPI schema definition.
+          {sending ? (
+            <div className={styles.pending}>
+              <p className={styles.pendingLine}>
+                <MaterialIcon name="progress_activity" size="xs" className={btn.spin} />
+                {statusStepLabel}
               </p>
-            ) : (
-              <ul className={styles.issueList}>
-                {issues.map((iss, i) => (
-                  <li key={i}>
-                    <strong>{iss.path}</strong>: {iss.message}{" "}
-                    <span className={styles.issueSev}>({iss.severity})</span>
-                  </li>
-                ))}
-              </ul>
-            )
+              <div className={styles.skeleton} aria-hidden>
+                <span />
+                <span />
+                <span />
+              </div>
+            </div>
           ) : null}
 
-          {explanation ? <div className={styles.explain}>{explanation}</div> : null}
-        </div>
-      ) : null}
+          {!sending && corsErrorResult ? (
+            <div className={`${styles.notice} ${styles.noticeWarn}`} role="alert">
+              <h4 className={styles.noticeTitle}>
+                <MaterialIcon name="shield" size="sm" />
+                {t("runApi.corsBlockedTitle")}
+              </h4>
+              <p className={styles.noticeText}>{t("runApi.corsBlockedSub")}</p>
+              <button
+                type="button"
+                className={`${btn.btn} ${btn.secondary} ${btn.sm} focusRing`}
+                onClick={() => void onRunViaProxyClick()}
+                disabled={sending}
+              >
+                {t("runApi.runViaProxyCta")}
+              </button>
+            </div>
+          ) : null}
+
+          {!sending && securityBlockResult ? (
+            <div className={`${styles.notice} ${styles.noticeErr}`} role="alert">
+              <h4 className={styles.noticeTitle}>
+                <MaterialIcon name="gpp_bad" size="sm" />
+                {t("runApi.securityBlockedTitle")}
+              </h4>
+              <p className={styles.noticeText}>{securityBlockResult.error?.message}</p>
+              <span className={styles.requestId}>
+                {t("runApi.requestIdLabel", { id: securityBlockResult.requestId })}
+              </span>
+            </div>
+          ) : null}
+
+          {!sending && sendError ? (
+            <div className={`${styles.notice} ${styles.noticeErr}`} role="alert">
+              <h4 className={styles.noticeTitle}>
+                <MaterialIcon name="error" size="sm" />
+                {t("runApi.sendFailed")}
+              </h4>
+              <p className={styles.noticeText}>{sendError}</p>
+            </div>
+          ) : null}
+
+          {!sending && !hasOutcome ? (
+            <div className={styles.emptyResponse}>
+              <MaterialIcon name="send" size="md" className={styles.emptyIcon} />
+              <p className={styles.emptyTitle}>{t("runApi.emptyTitle")}</p>
+              <p className={styles.emptyText}>{t("runApi.emptyText")}</p>
+            </div>
+          ) : null}
+
+          {!sending && hasResponse ? (
+            <>
+              <div className={styles.schemaStrip} role="status">
+                {schemaState === "checking" ? (
+                  <span className={styles.schemaChip}>
+                    <MaterialIcon name="progress_activity" size="xs" className={btn.spin} />
+                    {t("runApi.schemaChecking")}
+                  </span>
+                ) : schemaState === "match" ? (
+                  <span className={`${styles.schemaChip} ${styles.schemaOk}`}>
+                    <MaterialIcon name="check_circle" size="xs" />
+                    {t("runApi.schemaMatch")}
+                  </span>
+                ) : schemaState === "issues" ? (
+                  <button
+                    type="button"
+                    className={`${styles.schemaChip} ${styles.schemaWarn} focusRing`}
+                    onClick={() => setResponseTab("schema")}
+                  >
+                    <MaterialIcon name="warning" size="xs" />
+                    {t("runApi.schemaIssues", { count: realIssues.length })}
+                  </button>
+                ) : schemaState === "noSchema" ? (
+                  <span className={styles.schemaChip}>
+                    <MaterialIcon name="info" size="xs" />
+                    {t("runApi.schemaNone", { code: status ?? "" })}
+                  </span>
+                ) : schemaState === "failed" ? (
+                  <button
+                    type="button"
+                    className={`${styles.schemaChip} focusRing`}
+                    onClick={() => status != null && void runValidation(status, parsedBody ?? responseText)}
+                  >
+                    <MaterialIcon name="refresh" size="xs" />
+                    {t("runApi.schemaRetry")}
+                  </button>
+                ) : null}
+              </div>
+
+              <div className={styles.respTabsRow}>
+                <div className={styles.subTabs} role="tablist" aria-label={t("runApi.responseSection")}>
+                  {(
+                    [
+                      ["body", t("runApi.tabBody")],
+                      ["headers", t("runApi.tabHeaders", { count: responseHeaders.length })],
+                      ["schema", t("runApi.tabSchema")],
+                    ] as const
+                  ).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      role="tab"
+                      aria-selected={responseTab === id}
+                      className={`${styles.subTab} focusRing ${responseTab === id ? styles.subTabActive : ""}`}
+                      onClick={() => setResponseTab(id)}
+                    >
+                      {label}
+                      {id === "schema" && schemaState === "issues" ? (
+                        <span className={`${styles.dot} ${styles.dotWarn}`} aria-hidden />
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
+                {responseTab === "body" ? (
+                  <div className={styles.segment} role="group" aria-label={t("runApi.bodyViewAria")}>
+                    {(["pretty", "raw"] as const).map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        aria-pressed={bodyView === v}
+                        className={`${styles.segBtn} ${styles.segBtnSm} focusRing ${bodyView === v ? styles.segBtnActive : ""}`}
+                        onClick={() => setBodyView(v)}
+                      >
+                        {v === "pretty" ? t("runApi.viewPretty") : t("runApi.viewRaw")}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+
+              {responseTab === "body" ? (
+                <div className={styles.codeBox}>
+                  {responseBodyForView ? (
+                    <HighlightedCode
+                      code={responseBodyForView}
+                      language={responseHighlightLang}
+                      className={styles.responseHl}
+                    />
+                  ) : (
+                    <p className={styles.codeEmpty}>{t("runApi.emptyBody")}</p>
+                  )}
+                </div>
+              ) : null}
+
+              {responseTab === "headers" ? (
+                <div className={styles.codeBox}>
+                  {responseHeaders.length ? (
+                    <table className={styles.headerTable}>
+                      <tbody>
+                        {responseHeaders.map(([k, v]) => (
+                          <tr key={k}>
+                            <th scope="row">{k}</th>
+                            <td>{v}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <p className={styles.codeEmpty}>{t("runApi.noHeaders")}</p>
+                  )}
+                </div>
+              ) : null}
+
+              {responseTab === "schema" ? (
+                <div className={styles.stack}>
+                  {schemaState === "checking" ? (
+                    <p className={styles.muted}>{t("runApi.schemaChecking")}</p>
+                  ) : schemaState === "match" ? (
+                    <p className={styles.validOk}>
+                      <MaterialIcon name="check_circle" size="xs" />
+                      {t("runApi.schemaMatchLong", { code: status ?? "" })}
+                    </p>
+                  ) : schemaState === "noSchema" ? (
+                    <p className={styles.muted}>{issues?.[0]?.message}</p>
+                  ) : schemaState === "failed" ? (
+                    <p className={styles.muted}>{t("runApi.schemaFailed")}</p>
+                  ) : realIssues.length ? (
+                    <>
+                      <ul className={styles.issueList}>
+                        {realIssues.map((iss, i) => (
+                          <li key={i} className={styles.issue}>
+                            <span
+                              className={`${styles.sev} ${iss.severity === "error" ? styles.sevErr : styles.sevWarn}`}
+                            >
+                              {iss.severity}
+                            </span>
+                            <code className={styles.issuePath}>{iss.path}</code>
+                            <span className={styles.issueMsg}>{iss.message}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      <button
+                        type="button"
+                        className={`${btn.btn} ${btn.secondary} ${btn.sm} ${styles.alignStart} focusRing`}
+                        onClick={() => void onExplain()}
+                        disabled={explainLoading}
+                        aria-busy={explainLoading}
+                      >
+                        <MaterialIcon
+                          name={explainLoading ? "progress_activity" : "auto_awesome"}
+                          size="xs"
+                          className={explainLoading ? btn.spin : ""}
+                        />
+                        {explainLoading ? t("runApi.explaining") : t("runApi.explain")}
+                      </button>
+                      {explanation ? <div className={styles.explain}>{explanation}</div> : null}
+                    </>
+                  ) : null}
+                </div>
+              ) : null}
+            </>
+          ) : null}
+        </section>
+      </div>
     </div>
   );
 }

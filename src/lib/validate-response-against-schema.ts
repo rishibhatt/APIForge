@@ -30,6 +30,8 @@ function jsonSchemaFromResponse(
     }
   }
   if (!isObject(block)) return null;
+  // Swagger 2 keeps the schema directly on the response object.
+  if (!("content" in block) && isObject(block.schema)) return block.schema;
   const content = block.content;
   if (!isObject(content)) return null;
   const json =

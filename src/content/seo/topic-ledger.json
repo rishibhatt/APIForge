@@ -1,0 +1,235 @@
+{
+  "entries": [
+    {
+      "date": "2026-09-26",
+      "action": "existing",
+      "slug": "api-documentation-best-practices",
+      "primaryKeyword": "api documentation best practices",
+      "notes": "pre-pipeline guide"
+    },
+    {
+      "date": "2026-09-26",
+      "action": "existing",
+      "slug": "api-naming-conventions",
+      "primaryKeyword": "api naming conventions",
+      "notes": "pre-pipeline guide"
+    },
+    {
+      "date": "2026-09-26",
+      "action": "existing",
+      "slug": "api-pagination-best-practices",
+      "primaryKeyword": "api pagination best practices",
+      "notes": "pre-pipeline guide"
+    },
+    {
+      "date": "2026-09-26",
+      "action": "existing",
+      "slug": "api-quality-checklist",
+      "primaryKeyword": "api quality checklist",
+      "notes": "pre-pipeline guide"
+    },
+    {
+      "date": "2026-09-26",
+      "action": "existing",
+      "slug": "api-rate-limiting-best-practices",
+      "primaryKeyword": "api rate limiting algorithms",
+      "notes": "pre-pipeline guide"
+    },
+    {
+      "date": "2026-09-26",
+      "action": "existing",
+      "slug": "api-security-best-practices",
+      "primaryKeyword": "api security best practices",
+      "notes": "pre-pipeline guide"
+    },
+    {
+      "date": "2026-09-26",
+      "action": "existing",
+      "slug": "api-testing-best-practices",
+      "primaryKeyword": "api testing best practices",
+      "notes": "pre-pipeline guide"
+    },
+    {
+      "date": "2026-09-26",
+      "action": "existing",
+      "slug": "api-versioning-best-practices",
+      "primaryKeyword": "api versioning strategies",
+      "notes": "pre-pipeline guide"
+    },
+    {
+      "date": "2026-09-26",
+      "action": "existing",
+      "slug": "common-openapi-errors",
+      "primaryKeyword": "common openapi errors",
+      "notes": "pre-pipeline guide"
+    },
+    {
+      "date": "2026-09-26",
+      "action": "existing",
+      "slug": "openapi-best-practices",
+      "primaryKeyword": "openapi best practices",
+      "notes": "pre-pipeline guide"
+    },
+    {
+      "date": "2026-09-26",
+      "action": "existing",
+      "slug": "openapi-response-schema-best-practices",
+      "primaryKeyword": "openapi response schema best practices",
+      "notes": "pre-pipeline guide"
+    },
+    {
+      "date": "2026-09-26",
+      "action": "existing",
+      "slug": "rest-api-design-best-practices",
+      "primaryKeyword": "rest api design best practices",
+      "notes": "pre-pipeline guide"
+    },
+    {
+      "date": "2026-09-26",
+      "action": "existing",
+      "slug": "rest-api-error-handling",
+      "primaryKeyword": "rfc 7807 problem details",
+      "notes": "pre-pipeline guide"
+    },
+    {
+      "date": "2026-09-26",
+      "action": "existing",
+      "slug": "swagger-vs-openapi",
+      "primaryKeyword": "swagger vs openapi",
+      "notes": "pre-pipeline guide"
+    },
+    {
+      "date": "2026-09-26",
+      "action": "existing",
+      "slug": "validate-swagger-openapi-spec",
+      "primaryKeyword": "validate openapi spec",
+      "notes": "pre-pipeline guide"
+    },
+    {
+      "date": "2026-10-03",
+      "action": "new",
+      "slug": "get-openapi-json-from-swagger-ui",
+      "primaryKeyword": "get openapi json from swagger ui",
+      "notes": "SERP: scattered framework docs, no single answer page; feature: Swagger UI spec extraction in /openapi-validator; candidate score 8/8"
+    },
+    {
+      "date": "2026-10-03",
+      "action": "new",
+      "slug": "validate-api-response-against-openapi-schema",
+      "primaryKeyword": "validate api response against openapi schema",
+      "notes": "SERP: library READMEs, vendor gateway docs, one small site; feature: response validation in /api-testing; candidate score 7/8"
+    },
+    {
+      "date": "2026-10-03",
+      "action": "new",
+      "slug": "generate-test-cases-from-openapi",
+      "primaryKeyword": "generate test cases from openapi",
+      "notes": "SERP: arxiv paper, tool READMEs, vendor blog, Medium; feature: AI test matrix + export in /api-testing; candidate score 6/8"
+    },
+    {
+      "date": "2026-10-05",
+      "action": "refresh",
+      "slug": "api-testing-best-practices",
+      "primaryKeyword": "api testing best practices",
+      "notes": "refresh: rewritten to 1200+ words, title/description fixed, scored spec, sources; feature: /api-testing"
+    },
+    {
+      "date": "2026-10-05",
+      "action": "refresh",
+      "slug": "openapi-response-schema-best-practices",
+      "primaryKeyword": "openapi response design",
+      "notes": "refresh: rewritten to 1200+ words, title/description fixed, scored spec, sources; feature: /api-score"
+    },
+    {
+      "date": "2026-10-05",
+      "action": "refresh",
+      "slug": "api-quality-checklist",
+      "primaryKeyword": "api quality checklist",
+      "notes": "refresh: rewritten to 1200+ words, title/description fixed, scored spec, sources; feature: /api-score"
+    },
+    {
+      "date": "2026-10-05",
+      "action": "refresh",
+      "slug": "api-documentation-best-practices",
+      "primaryKeyword": "api documentation best practices",
+      "notes": "refresh: rewritten to 1200+ words, title/description fixed, scored spec, sources; feature: /api-score"
+    },
+    {
+      "date": "2026-10-05",
+      "action": "refresh",
+      "slug": "api-naming-conventions",
+      "primaryKeyword": "api naming conventions",
+      "notes": "refresh: rewritten to 1200+ words, title/description fixed, scored spec, sources; feature: /api-quality-checker"
+    },
+    {
+      "date": "2026-10-05",
+      "action": "refresh",
+      "slug": "common-openapi-errors",
+      "primaryKeyword": "common openapi errors",
+      "notes": "refresh: rewritten to 1200+ words, title/description fixed, scored spec, sources; feature: /openapi-validator"
+    },
+    {
+      "date": "2026-10-05",
+      "action": "refresh",
+      "slug": "api-rate-limiting-best-practices",
+      "primaryKeyword": "api rate limiting algorithms",
+      "notes": "refresh: rewritten to 1200+ words, title/description fixed, scored spec, sources; feature: /api-testing"
+    },
+    {
+      "date": "2026-10-05",
+      "action": "refresh",
+      "slug": "swagger-vs-openapi",
+      "primaryKeyword": "swagger vs openapi",
+      "notes": "refresh: rewritten to 1200+ words, title/description fixed, scored spec, sources; feature: /swagger-validator"
+    },
+    {
+      "date": "2026-10-05",
+      "action": "refresh",
+      "slug": "api-versioning-best-practices",
+      "primaryKeyword": "api versioning strategies",
+      "notes": "refresh: rewritten to 1200+ words, title/description fixed, scored spec, sources; feature: /api-score"
+    },
+    {
+      "date": "2026-10-05",
+      "action": "refresh",
+      "slug": "api-pagination-best-practices",
+      "primaryKeyword": "api pagination best practices",
+      "notes": "refresh: rewritten to 1200+ words, title/description fixed, scored spec, sources; feature: /api-testing"
+    },
+    {
+      "date": "2026-10-05",
+      "action": "refresh",
+      "slug": "validate-swagger-openapi-spec",
+      "primaryKeyword": "validate openapi spec",
+      "notes": "refresh: rewritten to 1200+ words, title/description fixed, scored spec, sources; feature: /openapi-validator"
+    },
+    {
+      "date": "2026-10-05",
+      "action": "refresh",
+      "slug": "api-security-best-practices",
+      "primaryKeyword": "api security best practices",
+      "notes": "refresh: rewritten to 1200+ words, title/description fixed, scored spec, sources; feature: /api-testing"
+    },
+    {
+      "date": "2026-10-05",
+      "action": "refresh",
+      "slug": "rest-api-error-handling",
+      "primaryKeyword": "rest api error handling",
+      "notes": "refresh: rewritten to 1200+ words, title/description fixed, scored spec, sources; feature: /api-score"
+    },
+    {
+      "date": "2026-10-05",
+      "action": "refresh",
+      "slug": "rest-api-design-best-practices",
+      "primaryKeyword": "rest api design best practices",
+      "notes": "refresh: rewritten to 1200+ words, title/description fixed, scored spec, sources; feature: /api-score"
+    },
+    {
+      "date": "2026-10-05",
+      "action": "refresh",
+      "slug": "openapi-best-practices",
+      "primaryKeyword": "openapi best practices",
+      "notes": "refresh: rewritten to 1200+ words, title/description fixed, scored spec, sources; feature: /openapi-validator"
+    }
+  ]
+}

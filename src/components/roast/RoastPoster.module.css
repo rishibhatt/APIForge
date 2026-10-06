@@ -1,0 +1,374 @@
+/*
+ * Roast poster: the share artifact. Always rendered on the ember-dark ground in both themes
+ * so screenshots, the downloaded card, and the public link all look the same.
+ */
+
+.poster {
+  --p-bg: #131315;
+  --p-ink: #ffffff;
+  --p-text: #e5e1e4;
+  --p-muted: #cbc3d7;
+  --p-subtle: #958ea0;
+  --p-line: rgba(255, 255, 255, 0.09);
+  --p-accent: var(--color-roast-heat);
+  --p-grid: rgba(255, 255, 255, 0.035);
+
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  border: 1px solid color-mix(in srgb, var(--p-accent) 38%, var(--p-line));
+  background:
+    radial-gradient(ellipse 70% 60% at 78% -10%, color-mix(in srgb, var(--p-accent) 26%, transparent), transparent 70%),
+    linear-gradient(var(--p-grid) 1px, transparent 1px) 0 0 / 44px 44px,
+    linear-gradient(90deg, var(--p-grid) 1px, transparent 1px) 0 0 / 44px 44px,
+    var(--p-bg);
+  color: var(--p-text);
+  box-shadow: 0 30px 60px -28px color-mix(in srgb, var(--p-accent) 45%, rgba(0, 0, 0, 0.6));
+}
+
+.poster[data-tone="warn"] {
+  --p-accent: #ffb547;
+}
+
+.poster[data-tone="ok"] {
+  --p-accent: #4edea3;
+}
+
+/* —— Top strip: the spec's identity, no logo —— */
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--p-line);
+}
+
+.brandTag,
+.chip,
+.foot,
+.facts dt {
+  font-family: var(--font-mono);
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+}
+
+.brandTag {
+  flex-shrink: 0;
+  color: var(--p-accent);
+  white-space: nowrap;
+}
+
+.spec {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.specTitle {
+  flex: 0 1 auto;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: clamp(1.15rem, 1rem + 0.8vw, 1.5rem);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.035em;
+  color: var(--p-ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chip {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid var(--p-line);
+  border-radius: var(--radius-xs);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--p-muted);
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.chipHost {
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  line-height: 20px;
+}
+
+/* —— Body —— */
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-6);
+  padding: var(--space-6);
+}
+
+@media (min-width: 880px) {
+  .body {
+    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+    gap: var(--space-8);
+    padding: var(--space-8);
+    align-items: center;
+  }
+}
+
+/* —— Meme —— */
+.meme {
+  position: relative;
+  margin: 0;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: #000;
+  outline: 1px solid var(--p-line);
+}
+
+.video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.memeCaption {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 72px var(--space-5) 64px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.82));
+  color: #ffffff;
+  font-size: clamp(1.05rem, 0.8rem + 1vw, 1.45rem);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  text-wrap: balance;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.55), 0 0 12px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+.memeControls {
+  position: absolute;
+  right: var(--space-3);
+  bottom: var(--space-3);
+  left: var(--space-3);
+  display: flex;
+  gap: 6px;
+}
+
+.memeBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: var(--radius-sm);
+  background: rgba(10, 10, 12, 0.62);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+
+.memeBtn:hover {
+  border-color: var(--p-accent);
+  background: rgba(10, 10, 12, 0.85);
+}
+
+.memeBtnText {
+  margin-left: auto;
+  padding: 0 12px 0 10px;
+}
+
+/* —— Result column —— */
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+.scoreRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-6);
+}
+
+.score {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.num {
+  font-size: clamp(5rem, 3.6rem + 6vw, 8.5rem);
+  font-weight: 800;
+  line-height: 0.82;
+  letter-spacing: -0.055em;
+  color: var(--p-accent);
+}
+
+.denom {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--p-subtle);
+}
+
+/* Rubber stamp. Lands once after the count-up. */
+.stamp {
+  display: inline-flex;
+  align-items: center;
+  height: 38px;
+  padding: 0 14px;
+  border: 3px solid var(--p-accent);
+  border-radius: var(--radius-sm);
+  color: var(--p-accent);
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transform: rotate(-6deg) scale(1.6);
+  opacity: 0;
+}
+
+.stampLanded {
+  animation: stamp 360ms var(--ease-out) forwards;
+}
+
+@keyframes stamp {
+  0% {
+    transform: rotate(-14deg) scale(1.7);
+    opacity: 0;
+  }
+  70% {
+    transform: rotate(-5deg) scale(0.94);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(-6deg) scale(1);
+    opacity: 1;
+  }
+}
+
+.verdict {
+  margin: 0;
+  font-size: clamp(1.9rem, 1.2rem + 2.6vw, 3.1rem);
+  font-weight: 800;
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+  color: var(--p-ink);
+  text-wrap: balance;
+}
+
+.roast {
+  margin: 0;
+  padding: 0;
+}
+
+.roast p {
+  margin: 0;
+  max-width: 60ch;
+  font-size: 1.04rem;
+  line-height: 1.62;
+  color: var(--p-muted);
+  text-wrap: pretty;
+}
+
+.roast code {
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  background: color-mix(in srgb, var(--p-accent) 14%, rgba(255, 255, 255, 0.04));
+  color: var(--p-ink);
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  overflow-wrap: anywhere;
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-8);
+  margin: 0;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--p-line);
+}
+
+.facts div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.facts dt {
+  color: var(--p-subtle);
+}
+
+.facts dd {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--p-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* —— Footer attribution (kept inside the poster so crops carry it) —— */
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-4);
+  padding: var(--space-3) var(--space-6);
+  border-top: 1px solid var(--p-line);
+  color: var(--p-subtle);
+}
+
+@media (max-width: 639px) {
+  .top,
+  .body,
+  .foot {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+
+  .body {
+    gap: var(--space-5);
+  }
+
+  .meme {
+    aspect-ratio: 4 / 4.2;
+  }
+
+  .memeBtn {
+    min-width: 40px;
+    height: 40px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stamp,
+  .stampLanded {
+    animation: none;
+    transform: rotate(-6deg);
+    opacity: 1;
+  }
+}

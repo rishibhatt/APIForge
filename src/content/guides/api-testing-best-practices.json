@@ -1,60 +1,404 @@
 {
   "slug": "api-testing-best-practices",
-  "title": "API Testing Best Practices: Contract, Integration & Load Testing (2026)",
-  "description": "Comprehensive guide to contract testing, automated OpenAPI schema validation, synthetic monitoring, and load testing strategies.",
-  "excerpt": "A strategy guide for contract testing, schema validation, integration workflows, and load testing.",
+  "title": "API Testing Best Practices: What to Test and Where",
+  "description": "API testing best practices for real teams: what belongs in contract, integration, auth and load tests, where each runs in CI, and how to stop flaky tests.",
+  "excerpt": "A testing strategy for HTTP APIs: which layer catches which bug, where each suite runs in CI, and how to keep test data and auth tests reliable.",
   "category": "api-testing",
+  "cluster": "api-testing",
+  "primaryKeyword": "api testing best practices",
+  "keywords": [
+    "api testing strategy",
+    "contract vs integration testing",
+    "api tests in ci pipeline",
+    "flaky api tests",
+    "api authorization testing"
+  ],
   "tags": [
     "API Testing",
     "Contract Testing",
-    "OpenAPI",
     "CI/CD",
-    "Quality Assurance"
-  ],
-  "keywords": [
-    "api testing best practices",
-    "openapi contract testing",
-    "automated api regression tests",
-    "schema validation testing"
+    "Load Testing",
+    "Authorization"
   ],
   "author": "rishab",
   "publishedAt": "2026-09-26",
-  "updatedAt": "2026-09-26",
-  "readingTime": "9 min read",
-  "featured": false,
+  "updatedAt": "2026-10-04",
   "content": [
     {
       "type": "paragraph",
-      "text": "Automated API testing verifies that your backend services comply with declared API specifications before changes hit staging or production environments."
+      "text": "API testing best practices come down to putting each check where it is cheapest and most reliable. Lint the spec on every pull request. Run contract tests that compare requests and responses with the OpenAPI document against a local build. Run multi-step integration and authorization tests against a shared staging environment after merge. Run load tests on a schedule, not on every commit. Each test creates its own data, and nothing depends on test order. When a team stops trusting its API tests, the cause is usually one of three things: slow tests on every commit, shared fixtures, or one suite that tries to prove everything at once."
+    },
+    {
+      "type": "paragraph",
+      "text": "This guide covers strategy: which layer catches which bug, and how to wire the layers into CI. For turning a request schema into individual cases, see [generating test cases from an OpenAPI spec](/guides/generate-test-cases-from-openapi). For the mechanics of checking a body against its schema with Ajv, see [validating API responses against your OpenAPI schema](/guides/validate-api-response-against-openapi-schema)."
     },
     {
       "type": "heading",
       "level": 2,
-      "text": "1. The API Testing Pyramid",
-      "id": "testing-pyramid"
+      "text": "Each test layer answers one question",
+      "id": "layers"
+    },
+    {
+      "type": "paragraph",
+      "text": "A test layer is useful when you can say in one sentence what a failure means. If a contract test fails, the server broke the published contract. If an integration test fails, a workflow across several calls or services broke. If a load test fails, the API got slower or less stable under traffic. When one test mixes those questions, a red build tells you something is wrong but not what."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Layer",
+        "What a failure means",
+        "Runs against",
+        "When"
+      ],
+      "rows": [
+        [
+          "Spec lint and design score",
+          "The OpenAPI document itself is invalid or inconsistent",
+          "The spec file",
+          "Every pull request"
+        ],
+        [
+          "Contract tests",
+          "A request or response no longer matches the spec",
+          "A local build with a throwaway database",
+          "Every pull request"
+        ],
+        [
+          "Integration tests",
+          "A multi-step flow or a side effect broke",
+          "Staging, with real dependencies",
+          "After merge to main"
+        ],
+        [
+          "Authorization tests",
+          "A user can reach data or actions they should not",
+          "Staging, with two or more test accounts",
+          "After merge, and before each release"
+        ],
+        [
+          "Load tests",
+          "Latency or error rate regressed under concurrency",
+          "Staging sized like production",
+          "Nightly or before a release"
+        ],
+        [
+          "Synthetic checks",
+          "A critical path is down for real users",
+          "Production",
+          "Every few minutes"
+        ]
+      ],
+      "caption": "One question per layer. The timing column is a starting point, not a rule."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Contract, integration, and load tests in practice",
+      "id": "contract-integration-load"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Contract tests",
+      "id": "contract"
+    },
+    {
+      "type": "paragraph",
+      "text": "A contract test sends a request and checks that the status code is one the operation documents and that the body matches the schema for that status. It does not care whether the business logic picked the right price. That narrow scope is what makes contract tests fast and stable enough to block a pull request. The [API contract](/glossary/api-contract) is the OpenAPI file, so keep the file in the same repository as the code and review changes to both in one pull request."
+    },
+    {
+      "type": "paragraph",
+      "text": "There are two directions. Provider-side contract tests, described above, check the server against its own spec. Consumer-driven contract tests, used by tools such as Pact, record what each client actually reads and replay those expectations against the provider. The second kind is worth the setup when several teams own clients you cannot see; for a single frontend and backend in one repository, provider-side tests against the spec usually cover it."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Integration tests",
+      "id": "integration"
+    },
+    {
+      "type": "paragraph",
+      "text": "Integration tests exercise a sequence: create an order, pay for it, check that the status changed, check that the confirmation event reached the queue. They catch bugs that no single request shows, such as a cancellation endpoint that returns 200 but never releases reserved stock. They are slower and depend on more moving parts, so keep the set small and pick the flows that cost money or data when they break. Assert on state you can read back through the API, not on log lines."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Load tests",
+      "id": "load"
+    },
+    {
+      "type": "paragraph",
+      "text": "Load tests answer a different question: does the API keep its latency and error rate as concurrency rises? Run them against an environment sized like production, because a load test against a laptop-sized staging database measures the database, not your code. Set thresholds so the run fails on its own instead of producing a chart someone has to read. The k6 script below fails if more than 1% of requests error or if the 95th percentile goes above 400 ms. Those numbers are placeholders; take yours from what your users and your SLOs need."
+    },
+    {
+      "type": "code",
+      "language": "javascript",
+      "filename": "load/orders-read.js",
+      "code": "import http from \"k6/http\";\nimport { check } from \"k6\";\n\nexport const options = {\n  vus: 20,\n  duration: \"2m\",\n  thresholds: {\n    http_req_failed: [\"rate<0.01\"],\n    http_req_duration: [\"p(95)<400\"],\n  },\n};\n\nexport default function () {\n  const res = http.get(`${__ENV.BASE_URL}/v1/orders/${__ENV.ORDER_ID}`, {\n    headers: { Authorization: `Bearer ${__ENV.TOKEN}` },\n  });\n  check(res, { \"status is 200\": (r) => r.status === 200 });\n}",
+      "caption": "A read-only load test. Point write-heavy load tests at data you can delete afterwards."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "A test plan for a small Orders API",
+      "id": "worked-plan"
+    },
+    {
+      "type": "paragraph",
+      "text": "Here is a two-operation API with bearer auth, an idempotency key on order creation, and documented error responses. We ran it through APIForge's design score and it scored 100 out of 100: versioned paths, plural nouns, summaries on every operation, and error responses on both operations. That score says the contract is well designed. It says nothing about whether the server honours it, which is what the test plan is for."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "filename": "openapi.yaml",
+      "code": "openapi: 3.0.3\ninfo:\n  title: Orders API\n  version: 1.0.0\nservers:\n  - url: https://staging.example.com\ncomponents:\n  securitySchemes:\n    bearerAuth:\n      type: http\n      scheme: bearer\nsecurity:\n  - bearerAuth: []\npaths:\n  /v1/orders:\n    post:\n      summary: Create an order\n      parameters:\n        - name: Idempotency-Key\n          in: header\n          required: true\n          schema:\n            type: string\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              type: object\n              required: [sku, quantity]\n              properties:\n                sku:\n                  type: string\n                quantity:\n                  type: integer\n                  minimum: 1\n                  maximum: 50\n      responses:\n        \"201\":\n          description: Order created\n        \"400\":\n          description: Invalid order\n        \"401\":\n          description: Missing or invalid token\n        \"409\":\n          description: Same Idempotency-Key reused with a different body\n  /v1/orders/{id}:\n    get:\n      summary: Get one order\n      parameters:\n        - name: id\n          in: path\n          required: true\n          schema:\n            type: string\n      responses:\n        \"200\":\n          description: The order\n        \"401\":\n          description: Missing or invalid token\n        \"404\":\n          description: Order not found or owned by another user"
+    },
+    {
+      "type": "paragraph",
+      "text": "Reading the spec operation by operation, these are the risks worth a test, and the layer each belongs to:"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Risk",
+        "Layer",
+        "How to test it"
+      ],
+      "rows": [
+        [
+          "quantity of 0 or 51 is accepted",
+          "Contract",
+          "Send both boundaries and expect 400 with your error schema"
+        ],
+        [
+          "201 body drifts from the documented shape",
+          "Contract",
+          "Validate the body against the 201 schema on every run"
+        ],
+        [
+          "Missing token returns 500 or 200",
+          "Contract",
+          "Call without Authorization and expect 401"
+        ],
+        [
+          "User B can read user A's order",
+          "Authorization",
+          "Create with token A, read with token B, expect 404 or 403"
+        ],
+        [
+          "A retried POST creates two orders",
+          "Integration",
+          "Send the same body and Idempotency-Key twice, then count orders"
+        ],
+        [
+          "Same key with a different body is accepted",
+          "Integration",
+          "Reuse the key with quantity changed and expect 409"
+        ],
+        [
+          "GET /v1/orders/{id} slows down as orders grow",
+          "Load",
+          "Nightly k6 run with a p95 threshold"
+        ]
+      ],
+      "caption": "Seven risks, four layers. Every row traces back to a line in the spec."
+    },
+    {
+      "type": "paragraph",
+      "text": "The 404 on another user's order is a deliberate design choice in this spec: returning 404 instead of 403 avoids confirming that the order ID exists. Whichever you choose, write it down in the spec so the test has something to assert."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Where each suite runs in CI",
+      "id": "ci"
+    },
+    {
+      "type": "paragraph",
+      "text": "Put fast, deterministic checks in front of the merge button and slower, environment-dependent checks after it. A pull request should not wait on staging, because staging is shared and a broken deploy from another branch would block unrelated work. The GitHub Actions workflow below splits the suites by trigger: contract tests on every pull request against a local build, integration and authorization tests on every push to main against staging, and the load test once a night."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "filename": ".github/workflows/api-tests.yml",
+      "code": "name: api-tests\non:\n  pull_request:\n  push:\n    branches: [main]\n  schedule:\n    - cron: \"0 2 * * *\"\n\njobs:\n  contract:\n    if: github.event_name != 'schedule'\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npm ci\n      - name: Lint the spec\n        run: npx @redocly/cli lint openapi.yaml\n      - name: Start the API with a throwaway database\n        run: docker compose -f compose.test.yaml up -d --wait\n      - name: Contract tests against the local build\n        run: npm run test:contract\n        env:\n          BASE_URL: http://localhost:3000\n\n  integration:\n    if: github.event_name == 'push'\n    needs: contract\n    runs-on: ubuntu-latest\n    environment: staging\n    steps:\n      - uses: actions/checkout@v4\n      - run: npm ci\n      - name: Workflow and authorization tests against staging\n        run: npm run test:integration\n        env:\n          BASE_URL: ${{ vars.STAGING_URL }}\n          TOKEN_A: ${{ secrets.STAGING_TOKEN_A }}\n          TOKEN_B: ${{ secrets.STAGING_TOKEN_B }}\n\n  load:\n    if: github.event_name == 'schedule'\n    runs-on: ubuntu-latest\n    environment: staging\n    steps:\n      - uses: actions/checkout@v4\n      - uses: grafana/setup-k6-action@v1\n      - name: Nightly load test\n        run: k6 run load/orders-read.js\n        env:\n          BASE_URL: ${{ vars.STAGING_URL }}\n          TOKEN: ${{ secrets.STAGING_TOKEN_A }}\n          ORDER_ID: ${{ vars.LOAD_ORDER_ID }}",
+      "caption": "Tokens for the two staging test users live in repository secrets, never in the test code."
     },
     {
       "type": "list",
       "ordered": false,
       "items": [
-        "Contract Testing (Fastest): Validates request/response JSON payloads against the OpenAPI specification without executing business logic.",
-        "Component/Integration Testing: Tests end-to-end multi-step workflow states (e.g., Auth -> Create Order -> Pay Invoice -> Verify Fulfillment).",
-        "Performance & Load Testing: Simulates high concurrency (k6 / Locust) to identify CPU bottlenecks and DB lock contention."
+        "Fail the contract job on any undocumented status code. An undocumented 500 is still a contract break.",
+        "Give the integration job its own test accounts on staging, so a developer clicking around staging does not change the data your tests read.",
+        "Keep the load job off pull requests. A shared runner's CPU varies between runs, so latency thresholds there produce noise, not signal.",
+        "Store results as JUnit XML or similar so the CI page shows which test failed without opening logs."
       ]
     },
     {
+      "type": "heading",
+      "level": 2,
+      "text": "Test data that does not leak between tests",
+      "id": "test-data"
+    },
+    {
+      "type": "paragraph",
+      "text": "Shared fixtures are a common reason API tests pass alone and fail together. Two tests that touch the same seeded order now depend on the order they run in, and parallel runs make that order random. The fix is to have each test create the records it changes, through the API, with identifiers that include the CI run ID so you can find and delete them later."
+    },
+    {
+      "type": "badExample",
+      "title": "Shared seeded record",
+      "language": "javascript",
+      "code": "// Every test reuses one seeded order and one seeded user.\nconst ORDER_ID = \"ord_seed_001\";\n\ntest(\"cancel an order\", async () => {\n  const res = await api.post(`/v1/orders/${ORDER_ID}/cancellation`);\n  assert.equal(res.status, 200);\n});\n\ntest(\"read an order\", async () => {\n  const res = await api.get(`/v1/orders/${ORDER_ID}`);\n  assert.equal(res.body.status, \"pending\"); // fails whenever \"cancel\" ran first\n});",
+      "explanation": "The read test passes only if it runs before the cancel test. In a parallel run it fails some of the time, which is the definition of a flaky test."
+    },
+    {
+      "type": "goodExample",
+      "title": "Each test owns its data",
+      "language": "javascript",
+      "code": "// Each test creates what it needs, tagged with the run ID.\nconst runId = process.env.GITHUB_RUN_ID ?? Date.now().toString(36);\n\ntest(\"cancel an order\", async () => {\n  const order = await createOrder({ key: `${runId}-cancel` });\n  const res = await api.post(`/v1/orders/${order.id}/cancellation`);\n  assert.equal(res.status, 200);\n});\n\ntest(\"read an order\", async () => {\n  const order = await createOrder({ key: `${runId}-read` });\n  const res = await api.get(`/v1/orders/${order.id}`);\n  assert.equal(res.body.status, \"pending\");\n});",
+      "explanation": "Each test creates its own order, so order and parallelism no longer matter. The run ID in the key makes leftovers easy to clean up with a nightly job."
+    },
+    {
+      "type": "paragraph",
+      "text": "Seeded data still has a place for read-only reference data such as product catalogues and country lists. The rule is that no test writes to a seeded record. Clean up in two ways: delete what a test created at the end of the test, and run a sweeper that removes anything tagged with a run ID older than a day, because tests that crash skip their own cleanup."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Test authentication and authorization separately",
+      "id": "auth"
+    },
+    {
+      "type": "paragraph",
+      "text": "Authentication tests check that the API rejects missing, expired and malformed credentials. Authorization tests check that a valid user cannot reach someone else's data or an admin-only action. They fail in different ways, so write them separately. RFC 6750 says a request with a rejected [bearer token](/glossary/bearer-token) gets 401 with a WWW-Authenticate: Bearer header, and a token without enough scope gets 403. The OWASP API Security Top 10 (2023) lists Broken Object Level Authorization as API1, the top risk, so the two-user test below is the first authorization test to write."
+    },
+    {
+      "type": "code",
+      "language": "javascript",
+      "filename": "test/orders.auth.test.mjs",
+      "code": "import test from \"node:test\";\nimport assert from \"node:assert/strict\";\n\nconst BASE = process.env.BASE_URL;\nconst runId = Date.now().toString(36);\n\nasync function createOrder(token, suffix) {\n  const res = await fetch(`${BASE}/v1/orders`, {\n    method: \"POST\",\n    headers: {\n      Authorization: `Bearer ${token}`,\n      \"Content-Type\": \"application/json\",\n      \"Idempotency-Key\": `test-${runId}-${suffix}`,\n    },\n    body: JSON.stringify({ sku: \"SKU-TEST-1\", quantity: 1 }),\n  });\n  assert.equal(res.status, 201);\n  return res.json();\n}\n\ntest(\"user B cannot read user A's order\", async () => {\n  const order = await createOrder(process.env.TOKEN_A, \"bola\");\n  const res = await fetch(`${BASE}/v1/orders/${order.id}`, {\n    headers: { Authorization: `Bearer ${process.env.TOKEN_B}` },\n  });\n  assert.ok([403, 404].includes(res.status), `expected 403 or 404, got ${res.status}`);\n});\n\ntest(\"a request with no token gets 401 and a Bearer challenge\", async () => {\n  const res = await fetch(`${BASE}/v1/orders/ord_does_not_matter`);\n  assert.equal(res.status, 401);\n  assert.match(res.headers.get(\"www-authenticate\") ?? \"\", /^Bearer/);\n});",
+      "caption": "Runs with node --test. TOKEN_A and TOKEN_B belong to two ordinary users with no shared access."
+    },
+    {
+      "type": "paragraph",
+      "text": "Repeat the two-user pattern for every operation that takes an ID in the path, including updates and deletes, where the damage is worse than a read. Add a test per role for admin-only operations, which covers Broken Function Level Authorization (API5). The [API security best practices guide](/guides/api-security-best-practices) covers fixing these flaws on the server side."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Find and fix flaky API tests",
+      "id": "flaky"
+    },
+    {
+      "type": "paragraph",
+      "text": "A flaky test passes and fails on the same code. Once a team learns to click re-run, real failures get re-run too. The usual causes are few:"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Shared or leftover data. Fix it with per-test data, as above.",
+        "Eventual consistency. A search index or read replica lags behind the write. Poll the read endpoint until a deadline, such as 10 seconds, instead of a fixed sleep, and fail with the last response in the message.",
+        "Time. Tests that compare timestamps with the local clock, or that run across midnight or a month boundary. Pass explicit dates, or freeze time in the code under test.",
+        "Rate limits. A parallel suite can hit its own [rate limit](/glossary/rate-limiting) and get 429. Give test accounts a higher limit or run fewer workers against staging.",
+        "Unsafe retries. RFC 9110 defines PUT, DELETE and safe methods such as GET as idempotent, so a client can retry them after a dropped connection. POST is not idempotent. A test helper that silently retries POST can create duplicates, which is why the Orders API takes an [idempotency](/glossary/idempotency) key.",
+        "Third-party calls. Payment, email and SMS providers fail on their own schedule. Use the provider's sandbox in integration tests and a stub in contract tests."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "When a test flakes, quarantine it: move it to a non-blocking job, open an issue with an owner, and set a date to fix or delete it. Automatic retries hide the problem and slow every run. If a test has sat in quarantine for a month with nobody fixing it, delete it."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "What to automate first",
+      "id": "first-steps"
+    },
+    {
+      "type": "decisionTree",
+      "title": "Pick the next suite to build",
+      "nodes": [
+        {
+          "condition": "The spec has no error responses or untyped fields",
+          "recommendation": "Fix the spec first. Contract tests can only check what the spec states."
+        },
+        {
+          "condition": "No test runs on pull requests",
+          "recommendation": "Add spec lint plus contract tests for the five most-used operations."
+        },
+        {
+          "condition": "Endpoints take resource IDs and serve more than one user",
+          "recommendation": "Add two-user authorization tests for every ID-taking operation.",
+          "alternative": "Single-tenant internal APIs can start with authentication tests only."
+        },
+        {
+          "condition": "Contract and auth suites are green and stable",
+          "recommendation": "Add integration tests for the flows that move money or delete data, then a nightly load test."
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Run the first checks in APIForge",
+      "id": "apiforge"
+    },
+    {
+      "type": "paragraph",
+      "text": "Start with the spec. The [API quality checker](/api-quality-checker) scores the document from 0 to 100 and lists missing error responses, verbs in paths and missing summaries, which are the gaps that make contract tests weak. Then open the [API testing workbench](/api-testing), load the spec, and send real requests with bearer, basic or API-key auth. You can validate each response against its schema, generate a set of valid, invalid and edge cases for an endpoint or tag, run them to see which return the expected status, and export them as cURL or a Postman collection to use as the starting point for your CI suite."
+    },
+    {
       "type": "tool",
-      "tool": "api-score",
-      "title": "Run Automated OpenAPI Contract Checks",
-      "description": "Upload your API spec to APIForge to execute zero-code contract checks and verify schema compliance across all endpoints.",
-      "buttonText": "Test Spec Quality",
-      "href": "/api-score"
+      "tool": "api-testing",
+      "title": "Send requests and run generated tests",
+      "description": "Load an OpenAPI spec, call the API with your auth, validate responses, and export test cases to cURL or Postman.",
+      "buttonText": "Open the testing workbench",
+      "href": "/api-testing"
+    },
+    {
+      "type": "relatedContent",
+      "slugs": [
+        "generate-test-cases-from-openapi",
+        "validate-api-response-against-openapi-schema",
+        "api-security-best-practices"
+      ]
+    },
+    {
+      "type": "externalReference",
+      "title": "OWASP API Security Top 10 (2023)",
+      "url": "https://api-security.owasp.org/editions/2023/en/0x11-t10",
+      "source": "OWASP"
+    },
+    {
+      "type": "externalReference",
+      "title": "RFC 6750: OAuth 2.0 Bearer Token Usage (error codes and WWW-Authenticate)",
+      "url": "https://www.rfc-editor.org/rfc/rfc6750.html",
+      "source": "IETF"
+    },
+    {
+      "type": "externalReference",
+      "title": "RFC 9110: HTTP Semantics, Section 9.2.2 Idempotent Methods",
+      "url": "https://www.rfc-editor.org/rfc/rfc9110.html#name-idempotent-methods",
+      "source": "IETF"
     }
   ],
   "faqs": [
     {
-      "question": "What is OpenAPI Contract Testing?",
-      "answer": "Contract testing verifies that the API implementation produces response bodies and accepts request bodies matching the exact JSON Schemas defined in the OpenAPI specification."
+      "question": "What is the difference between contract testing and integration testing for APIs?",
+      "answer": "A contract test checks one request and response against the OpenAPI spec: documented status, correct body shape. An integration test runs a sequence of calls and checks the resulting state, such as an order moving from paid to shipped. Contract tests are fast enough to gate pull requests; integration tests usually run against staging after merge."
+    },
+    {
+      "question": "Should API tests run against staging or a local build?",
+      "answer": "Both, for different suites. Contract tests run against a local build with a throwaway database so a pull request does not depend on shared infrastructure. Integration, authorization and load tests need real dependencies, so they run against staging."
+    },
+    {
+      "question": "How many API tests are enough?",
+      "answer": "Start from risks. Every documented status code should be reached by at least one contract test, every operation that takes a resource ID needs a two-user authorization test, and every flow that moves money or deletes data needs an integration test. Beyond that, add a test when a bug escapes to production."
+    },
+    {
+      "question": "Should I retry failing API tests automatically?",
+      "answer": "No. Retries hide flaky tests and can create duplicate records when the retried request is a POST. Quarantine a flaky test in a non-blocking job with an owner and a deadline, then fix the cause."
     }
   ]
 }

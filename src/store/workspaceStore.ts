@@ -9,6 +9,25 @@ import type { AIMetadata, AITokenUsage, GroqTokenUsage } from "@/lib/groq-token-
 import type { Endpoint } from "@/types/api";
 import type { GenerationScope, OutputTab } from "@/types/api";
 import type { ExecutionMode } from "@/types/execution";
+import type { ParseErrorInfo } from "@/lib/parse-error-info";
+import { clearSpecFromAddressBar } from "@/lib/spec-deeplink";
+
+export type ParsePhase = "idle" | "fetching" | "parsing" | "done" | "error";
+
+/** What the spec loader is doing right now; read by the landing form and the workspace header. */
+export interface ParseProgress {
+  phase: ParsePhase;
+  url: string;
+  endpointCount: number | null;
+  error: ParseErrorInfo | null;
+}
+
+/** A body handed to Run API from elsewhere (e.g. the AI payload generator). */
+export interface PendingRequestBody {
+  endpointId: string;
+  text: string;
+  nonce: number;
+}
 
 const HTTP_METHODS_FILTER = [
   "GET",
@@ -92,6 +111,11 @@ export interface WorkspaceState {
   clearMethodFilters: () => void;
   clearWorkspace: () => void;
   setMobileSidebarOpen: (v: boolean) => void;
+  parseProgress: ParseProgress;
+  setParseProgress: (p: Partial<ParseProgress>) => void;
+  pendingRequestBody: PendingRequestBody | null;
+  setPendingRequestBody: (endpointId: string, text: string) => void;
+  clearPendingRequestBody: () => void;
 }
 
 const initial = {
@@ -121,6 +145,13 @@ const initial = {
   qualityScoreModalOpen: false,
   supportModalOpen: false,
   selectedCollectionTag: null as string | null,
+  parseProgress: {
+    phase: "idle",
+    url: "",
+    endpointCount: null,
+    error: null,
+  } as ParseProgress,
+  pendingRequestBody: null as PendingRequestBody | null,
 };
 
 function firstCollectionTag(endpoints: Endpoint[]): string | null {
@@ -202,20 +233,26 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   },
   clearMethodFilters: () => set({ methodFilters: [] }),
   setMobileSidebarOpen: (mobileSidebarOpen) => set({ mobileSidebarOpen }),
+  setParseProgress: (p) => set((s) => ({ parseProgress: { ...s.parseProgress, ...p } })),
+  setPendingRequestBody: (endpointId, text) =>
+    set({ pendingRequestBody: { endpointId, text, nonce: Date.now() } }),
+  clearPendingRequestBody: () => set({ pendingRequestBody: null }),
   setFocusMode: (focusMode) => set({ focusMode }),
   toggleFocusMode: () => set((s) => ({ focusMode: !s.focusMode })),
   setQualityScoreModalOpen: (qualityScoreModalOpen) =>
     set({ qualityScoreModalOpen }),
   setSupportModalOpen: (supportModalOpen) => set({ supportModalOpen }),
   toggleSupportModal: () => set((s) => ({ supportModalOpen: !s.supportModalOpen })),
-  clearWorkspace: () =>
+  clearWorkspace: () => {
+    clearSpecFromAddressBar();
     set({
       ...initial,
       focusMode: false,
       qualityScoreModalOpen: false,
       supportModalOpen: false,
       selectedCollectionTag: null,
-    }),
+    });
+  },
 }));
 
 export { HTTP_METHODS_FILTER };

@@ -6,7 +6,6 @@ import json from "highlight.js/lib/languages/json";
 import typescript from "highlight.js/lib/languages/typescript";
 import markdown from "highlight.js/lib/languages/markdown";
 import javascript from "highlight.js/lib/languages/javascript";
-import "highlight.js/styles/github-dark.css";
 import styles from "./HighlightedCode.module.css";
 
 function escapeHtml(text: string): string {
@@ -27,12 +26,32 @@ export type HighlightLanguage = "typescript" | "json" | "markdown" | "javascript
 
 export type HighlightCodeSkin = "standard" | "forgeTs";
 
+const LANGUAGE_ALIASES: Record<string, HighlightLanguage> = {
+  ts: "typescript",
+  tsx: "typescript",
+  typescript: "typescript",
+  js: "javascript",
+  jsx: "javascript",
+  javascript: "javascript",
+  json: "json",
+  jsonc: "json",
+  md: "markdown",
+  markdown: "markdown",
+};
+
+/** Map a fence label (ts, js, json, md...) to a registered language, or null when unsupported. */
+export function resolveHighlightLanguage(label: string): HighlightLanguage | null {
+  return LANGUAGE_ALIASES[label.trim().toLowerCase()] ?? null;
+}
+
 interface HighlightedCodeProps {
   code: string;
   language: HighlightLanguage;
   className?: string;
   /** Read-only “IDE” chrome + One Dark–style tokens for TypeScript output */
   skin?: HighlightCodeSkin;
+  /** Wrap long lines (default). Set false to scroll horizontally instead. */
+  wrap?: boolean;
 }
 
 export default function HighlightedCode({
@@ -40,6 +59,7 @@ export default function HighlightedCode({
   language,
   className = "",
   skin = "standard",
+  wrap = true,
 }: HighlightedCodeProps) {
   const html = useMemo(() => {
     if (!code) return "";
@@ -85,7 +105,10 @@ export default function HighlightedCode({
   }
 
   return (
-    <pre className={`${styles.pre} hljs ${className}`.trim()} tabIndex={0}>
+    <pre
+      className={`${styles.pre} ${wrap ? "" : styles.preScroll} hljs ${className}`.replace(/\s+/g, " ").trim()}
+      tabIndex={0}
+    >
       <code
         className={`${styles.code} hljs`}
         dangerouslySetInnerHTML={{ __html: html || "&nbsp;" }}

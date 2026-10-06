@@ -7,19 +7,61 @@ import { extractEndpointsFromSpec } from "@/lib/extract-endpoints";
 import { extractServerUrls } from "@/lib/extract-servers";
 import { specUrlCandidates } from "@/lib/spec-url";
 import { sanitizeAndStubMissingRefs } from "@/lib/sanitize-refs";
+import type { IpValidationOptions } from "@/lib/security/ip-validation";
+import {
+  SafeFetchError,
+  safeFetchText,
+  type SafeFetchResult,
+} from "@/lib/security/safe-fetch";
+import { getProxySecurityOptions } from "@/lib/proxy-execution";
 
-/** Lenient mode: resolve $refs like Swagger UI without strict OAS schema checks and ignore circular refs */
-const RELAXED: SwaggerParser.Options = {
-  validate: { schema: false, spec: false },
-  dereference: { circular: "ignore" },
-};
+export interface ParseSwaggerOptions {
+  /** SSRF policy for every outbound fetch (spec, Swagger UI assets, external $refs). */
+  security?: IpValidationOptions;
+}
 
+const MAX_URL_CANDIDATES = 12;
 
+const FETCH_HEADERS = { Accept: "application/json, text/plain, text/html, */*" };
+
+/**
+ * Lenient mode: resolve $refs like Swagger UI without strict OAS schema checks and ignore circular refs.
+ * The built-in `file` resolver is disabled (a `$ref: "../.env"` would read server files) and the built-in
+ * `http` resolver is replaced with one that runs every hop through the SSRF guard.
+ */
+function relaxedOptions(security: IpValidationOptions): SwaggerParser.Options {
+  return {
+    validate: { schema: false, spec: false },
+    dereference: { circular: "ignore" },
+    resolve: {
+      file: false,
+      http: false,
+      guardedHttp: {
+        order: 1,
+        canRead: /^https?:\/\//i,
+        read: async (file: { url: string }) => {
+          const res = await safeFetchText(file.url, { security, headers: FETCH_HEADERS });
+          if (!res.ok) throw new Error(`HTTP ${res.status} while resolving ${file.url}`);
+          return res.text;
+        },
+      },
+    },
+  };
+}
+
+async function guardedGet(
+  url: string,
+  security: IpValidationOptions,
+): Promise<SafeFetchResult> {
+  return safeFetchText(url, { security, headers: FETCH_HEADERS });
+}
 
 async function normalizeDocObject(
   docObj: Record<string, unknown>,
+  security: IpValidationOptions,
 ): Promise<Record<string, unknown>> {
   const stubbedDoc = sanitizeAndStubMissingRefs(docObj);
+  const RELAXED = relaxedOptions(security);
 
   try {
     return (await SwaggerParser.validate(stubbedDoc as never, RELAXED)) as unknown as Record<
@@ -239,16 +281,17 @@ type SwaggerUiRecovery = {
 /** One HTML fetch: embedded NestJS spec + discovered raw spec URLs */
 async function recoverFromSwaggerUiPage(
   pageUrl: string,
+  security: IpValidationOptions,
 ): Promise<SwaggerUiRecovery | null> {
-  let res: Response;
+  let res: SafeFetchResult;
   try {
-    res = await fetch(pageUrl, { redirect: "follow" });
+    res = await guardedGet(pageUrl, security);
   } catch {
     return null;
   }
   if (!res.ok) return null;
-  const ct = res.headers.get("content-type") ?? "";
-  const html = await res.text();
+  const ct = res.contentType;
+  const html = res.text;
   const looksHtml = ct.includes("text/html") || /^\s*</.test(html);
   if (!looksHtml) return null;
   if (
@@ -283,14 +326,14 @@ async function recoverFromSwaggerUiPage(
     } catch {
       continue;
     }
-    let initRes: Response;
+    let initRes: SafeFetchResult;
     try {
-      initRes = await fetch(initUrl);
+      initRes = await guardedGet(initUrl, security);
     } catch {
       continue;
     }
     if (!initRes.ok) continue;
-    const js = await initRes.text();
+    const js = initRes.text;
 
     if (/swagger-ui-init\.js/i.test(src)) {
       embedded = extractSwaggerDocFromInitJs(js);
@@ -321,24 +364,18 @@ function parseTextToObject(text: string): Record<string, unknown> {
 
 async function fetchAndNormalizeCandidate(
   candidate: string,
+  security: IpValidationOptions,
 ): Promise<Record<string, unknown> | null> {
-  let res: Response;
-  try {
-    res = await fetch(candidate, {
-      redirect: "follow",
-      headers: { Accept: "application/json, text/plain, text/html, */*" },
-    });
-  } catch {
-    return null;
-  }
+  // SafeFetchError (blocked destination, timeout, too large) propagates so the caller can report it.
+  const res = await guardedGet(candidate, security);
   if (!res.ok) return null;
 
-  const ct = res.headers.get("content-type") ?? "";
-  const text = await res.text();
+  const ct = res.contentType;
+  const text = res.text;
 
   const embeddedDoc = extractSwaggerDocFromInitJs(text);
   if (embeddedDoc) {
-    return normalizeDocObject(embeddedDoc);
+    return normalizeDocObject(embeddedDoc, security);
   }
 
   const isHtml = ct.includes("text/html") || /^\s*</.test(text);
@@ -348,20 +385,26 @@ async function fetchAndNormalizeCandidate(
 
   try {
     const docObj = parseTextToObject(text);
-    return await normalizeDocObject(docObj);
+    return await normalizeDocObject(docObj, security);
   } catch {
     return null;
   }
 }
 
 /** Server-side: validate / dereference, extract endpoints from URL */
-export async function parseSwaggerUrl(url: string): Promise<ParseSwaggerResult> {
+export async function parseSwaggerUrl(
+  url: string,
+  options: ParseSwaggerOptions = {},
+): Promise<ParseSwaggerResult> {
+  const security = options.security ?? getProxySecurityOptions();
+  const RELAXED = relaxedOptions(security);
   const seeds = specUrlCandidates(url);
   const queue: string[] = [];
   const seen = new Set<string>();
   const push = (u: string) => {
     const t = u.trim();
-    if (!t || seen.has(t)) return;
+    // Cap discovered candidates so a hostile Swagger UI page cannot fan out into many fetches.
+    if (!t || seen.has(t) || queue.length >= MAX_URL_CANDIDATES) return;
     seen.add(t);
     queue.push(t);
   };
@@ -374,23 +417,25 @@ export async function parseSwaggerUrl(url: string): Promise<ParseSwaggerResult> 
 
     // 1. Fetch & parse direct JSON / YAML / JS spec
     try {
-      const doc = await fetchAndNormalizeCandidate(candidate);
+      const doc = await fetchAndNormalizeCandidate(candidate, security);
       if (doc) {
         const res = resultFromDoc(doc);
         if (res.endpoints.length > 0) return res;
       }
     } catch (e) {
       lastError = e instanceof Error ? e : new Error(String(e));
+      // Blocked / timed out / too large: the other strategies would hit the same wall.
+      if (e instanceof SafeFetchError) continue;
     }
 
     // 2. Recover embedded spec from Swagger UI HTML page
     try {
-      const recovery = await recoverFromSwaggerUiPage(candidate);
+      const recovery = await recoverFromSwaggerUiPage(candidate, security);
       if (recovery) {
         for (const u of recovery.extraUrls) push(u);
 
         if (recovery.embedded) {
-          const doc = await normalizeDocObject(recovery.embedded);
+          const doc = await normalizeDocObject(recovery.embedded, security);
           const res = resultFromDoc(doc);
           if (res.endpoints.length > 0) return res;
         }
@@ -418,14 +463,17 @@ export async function parseSwaggerUrl(url: string): Promise<ParseSwaggerResult> 
       ? " If you pasted a Swagger UI page, try the raw OpenAPI JSON/YAML URL (e.g. …/v1/swagger.json or …/openapi.json)."
       : "";
   throw new Error(
-    `${lastError?.message ?? "Parse failed"}.${hint}`.trim(),
+    `${(lastError?.message ?? "Parse failed").replace(/\.+$/, "")}.${hint}`.trim(),
   );
 }
 
 /** Parse uploaded file contents (JSON or YAML) */
-export async function parseSwaggerFile(file: File): Promise<ParseSwaggerResult> {
+export async function parseSwaggerFile(
+  file: File,
+  options: ParseSwaggerOptions = {},
+): Promise<ParseSwaggerResult> {
   const text = await file.text();
   const obj = parseTextToObject(text);
-  const doc = await normalizeDocObject(obj);
+  const doc = await normalizeDocObject(obj, options.security ?? getProxySecurityOptions());
   return resultFromDoc(doc);
 }

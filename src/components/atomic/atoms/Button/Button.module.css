@@ -1,0 +1,132 @@
+/*
+ * Workspace button system. Compose: `btn` + one variant + one size.
+ *   primary   the lavender→violet gradient, one per region (Send, Parse, Generate)
+ *   secondary tonal fill with a hairline
+ *   ghost     no border until hover; toolbars and inline actions
+ * Sizes: sm 32px, md 36px; both grow to 40px under 768px for touch.
+ */
+.btn {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, filter 0.15s ease,
+    transform 0.1s ease;
+  box-sizing: border-box;
+}
+
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn[aria-busy="true"] {
+  cursor: progress;
+}
+
+.sm {
+  height: 32px;
+  padding: 0 var(--space-3);
+  font-size: 0.8125rem;
+}
+
+.md {
+  height: 36px;
+  padding: 0 14px;
+  font-size: 0.8125rem;
+}
+
+.iconOnly.sm {
+  width: 32px;
+  padding: 0;
+}
+
+.iconOnly.md {
+  width: 36px;
+  padding: 0;
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.primary {
+  color: var(--color-cta-foreground);
+  background: var(--gradient-primary);
+  box-shadow: var(--shadow-cta);
+  font-weight: 700;
+}
+
+.primary:hover:not(:disabled) {
+  filter: brightness(1.07) saturate(1.05);
+}
+
+.primary:disabled {
+  box-shadow: none;
+  filter: saturate(0.4);
+}
+
+.secondary {
+  border-color: var(--color-border-strong);
+  color: var(--color-on-surface);
+  background: var(--color-surface-container);
+}
+
+.secondary:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-text-accent);
+}
+
+.ghost {
+  color: var(--color-on-surface-variant);
+  background: transparent;
+}
+
+.ghost:hover:not(:disabled) {
+  color: var(--color-on-surface);
+  background: var(--color-interactive-hover);
+}
+
+.ghost[aria-pressed="true"] {
+  color: var(--color-on-surface);
+  background: var(--color-interactive-pressed);
+}
+
+.spin {
+  animation: btn-spin 0.9s linear infinite;
+}
+
+@keyframes btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation-duration: 2.5s;
+  }
+}
+
+@media (max-width: 767px) {
+  .sm,
+  .md {
+    height: 40px;
+  }
+
+  .iconOnly.sm,
+  .iconOnly.md {
+    width: 40px;
+  }
+}

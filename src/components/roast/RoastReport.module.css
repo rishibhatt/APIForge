@@ -1,0 +1,290 @@
+.report {
+  --subnav-h: 48px;
+
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+/*
+ * Body: one column under 1100px (score rail first), then main column + 340px sticky rail.
+ * The rail is last in the DOM so the reading order stays offences first; `order` lifts it.
+ */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0 var(--space-8);
+}
+
+.main {
+  order: 2;
+  min-width: 0;
+}
+
+.rail {
+  order: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+}
+
+/* Categories and strengths side by side when the column can hold two readable halves. */
+.pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 0 var(--space-8);
+}
+
+.pair > * {
+  min-width: 0;
+}
+
+.lower {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0 var(--space-8);
+}
+
+.lower > * {
+  min-width: 0;
+}
+
+/* —— Rail cards —— */
+.card {
+  min-width: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-container-low);
+}
+
+.cardLabel {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  color: var(--color-on-surface-variant);
+}
+
+.scoreLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-2);
+  margin: 0;
+}
+
+.scoreNum {
+  font-size: 4rem;
+  font-weight: 800;
+  line-height: 0.9;
+  letter-spacing: -0.05em;
+  font-variant-numeric: tabular-nums;
+}
+
+.scoreDenom {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-on-surface-subtle);
+}
+
+.tier {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: var(--label-size);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.tone_ok {
+  color: var(--color-method-get);
+}
+
+.tone_warn {
+  color: var(--color-method-put-patch);
+}
+
+.tone_bad {
+  color: var(--color-roast-heat-text);
+}
+
+.pillars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: var(--space-4) 0 0;
+  padding: var(--space-4) 0 0;
+  border-top: 1px solid var(--color-border-default);
+  list-style: none;
+}
+
+.pillar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-1) var(--space-3);
+  font-size: 13px;
+}
+
+.pillarName {
+  min-width: 0;
+  color: var(--color-on-surface-variant);
+}
+
+.pillarVal {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-on-surface);
+}
+
+.pillarMax {
+  font-weight: 400;
+  color: var(--color-on-surface-subtle);
+}
+
+.thin {
+  grid-column: 1 / -1;
+  height: 4px;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.facts div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.facts dt {
+  font-family: var(--font-mono);
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  color: var(--color-on-surface-subtle);
+}
+
+.facts dd {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-on-surface);
+}
+
+.quickActions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.quickPrimary,
+.quickBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: filter 140ms ease, border-color 140ms ease, color 140ms ease, transform 100ms ease;
+}
+
+.quickPrimary:active,
+.quickBtn:active {
+  transform: translateY(1px);
+}
+
+.quickPrimary {
+  background: var(--gradient-roast);
+  color: var(--color-on-roast-heat);
+  font-weight: 700;
+}
+
+.quickPrimary:hover {
+  filter: brightness(1.06) saturate(1.05);
+}
+
+.quickBtn {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-container);
+  color: var(--color-on-surface);
+}
+
+.quickBtn:hover {
+  border-color: var(--color-roast-heat);
+  color: var(--color-roast-heat-text);
+}
+
+.quickPrimary:focus-visible,
+.quickBtn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* —— Tablet: rail is a row of cards; the composer sits right above, so skip the quick share —— */
+@media (max-width: 1099px) {
+  .quickShare {
+    display: none;
+  }
+
+  .rail {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  }
+}
+
+@media (min-width: 960px) {
+  .lower {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr);
+  }
+}
+
+/* —— Desktop: main + sticky rail —— */
+@media (min-width: 1100px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) 340px;
+  }
+
+  .main {
+    order: 0;
+  }
+
+  .rail {
+    order: 0;
+    position: sticky;
+    top: calc(var(--header-h) + var(--subnav-h) + var(--space-4));
+    display: flex;
+    flex-direction: column;
+    align-self: start;
+    margin-top: var(--space-12);
+  }
+}
+
+@media (max-width: 639px) {
+  .scoreNum {
+    font-size: 3.5rem;
+  }
+}
+
+@media (max-width: 767px) {
+  .quickPrimary,
+  .quickBtn {
+    height: 44px;
+  }
+}

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { createBaseMetadata } from "@/lib/seo/metadata";
 import AutoFixClient from "@/components/pages/AutoFix/AutoFixClient";
 
 export async function generateMetadata({
@@ -6,14 +7,13 @@ export async function generateMetadata({
 }: {
   params: { id: string };
 }): Promise<Metadata> {
-  return {
-    title: `AI Auto-Fix & Schema Remediation — ${params.id}`,
-    description: `Automated AI remediation of OpenAPI violations, missing responses, parameters, and schema bugs for ${params.id}.`,
-    openGraph: {
-      title: `AI Auto-Fix & Schema Remediation — ${params.id}`,
-      description: `Automated AI remediation of OpenAPI violations, missing responses, parameters, and schema bugs for ${params.id}.`,
-    },
-  };
+  return createBaseMetadata({
+    title: `Auto-Fix Preview: ${params.id}`,
+    description: `Preview automated fixes for OpenAPI violations in ${params.id}: missing responses, parameters and schema issues, laid out for review before you apply.`,
+    path: `/auto-fix/${params.id}`,
+    ogLabel: "Report",
+    noindex: true,
+  });
 }
 
 export default function AutoFixPage({

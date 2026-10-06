@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import PublicRoastClient from "./PublicRoastClient";
 import { getRoastReport } from "@/lib/roast/roastStorage";
+import { normalizeDescription, resolveTitle } from "@/lib/seo/metadata";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://apiforge.info";
 
@@ -13,31 +14,38 @@ export async function generateMetadata({
 
   if (!report) {
     return {
-      title: "API Roast Report Not Found | APIForge",
+      title: "Roast Report Not Found",
       description: "The requested API quality roast report could not be found or has expired.",
+      alternates: { canonical: `${SITE_URL}/roast/${params.reportId}` },
+      robots: { index: false, follow: true },
     };
   }
 
-  const title = `${report.title} — API Quality Roast (${report.score}/100) | APIForge`;
-  const description = `${report.title} scored ${report.score}/100 (${report.summary.verdict}). ${report.summary.roast.slice(0, 150)}...`;
-  const badgeUrl = `${SITE_URL}/api/roast/badge/${params.reportId}`;
+  // Reports live in an in-memory store and expire, so they are shareable but not indexed.
+  const title = `${report.title}: API Roast (${report.score}/100)`;
+  const description = normalizeDescription(
+    `${report.title} scored ${report.score}/100 (${report.summary.verdict}). ${report.summary.roast}`
+  );
+  // Ember roast card, rendered by the edge /api/og route from the data below.
+  const imageUrl = `${SITE_URL}/api/og?${new URLSearchParams({
+    type: "Roast",
+    title,
+    score: String(report.score),
+    verdict: report.summary.verdict,
+    api: report.title,
+  }).toString()}`;
   const reportUrl = `${SITE_URL}/roast/${params.reportId}`;
 
   return {
-    title,
+    title: resolveTitle(title),
     description,
     keywords: ["API roast", report.title, "OpenAPI quality report", "API audit"],
     alternates: {
       canonical: reportUrl,
     },
     robots: {
-      index: true,
+      index: false,
       follow: true,
-      googleBot: {
-        index: true,
-        follow: true,
-        "max-image-preview": "large",
-      },
     },
     openGraph: {
       title,
@@ -45,20 +53,13 @@ export async function generateMetadata({
       url: reportUrl,
       siteName: "APIForge",
       type: "article",
-      images: [
-        {
-          url: badgeUrl,
-          width: 1200,
-          height: 630,
-          alt: `API Quality Roast for ${report.title}`,
-        },
-      ],
+      images: [{ url: imageUrl, width: 1200, height: 630, alt: `API Quality Roast for ${report.title}` }],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [badgeUrl],
+      images: [imageUrl],
     },
   };
 }

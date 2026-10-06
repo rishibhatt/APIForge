@@ -2,164 +2,144 @@
   box-sizing: border-box;
   display: flex;
   width: 100%;
-  height: fit-content;
   min-width: 0;
   max-width: 100%;
   flex: 0 1 auto;
   flex-direction: column;
   gap: var(--space-5);
-  padding: var(--space-5) var(--space-5) var(--space-6);
-  background: var(--color-surface-container-low);
-  border-left: none;
   overflow-x: hidden;
-  overflow-y: auto;
-  max-height: min(82dvh, calc(100dvh - var(--header-h) - 13rem));
+}
+
+/* Beside the editor the rail becomes a tonal panel; stacked on narrow layouts it stays flat. */
+@container workspace-code (min-width: 720px) {
+  .wrap {
+    padding: var(--space-4);
+    border: 1px solid var(--color-divider-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface-container-low);
+  }
 }
 
 .wrap > section {
   flex: 0 0 auto;
   width: 100%;
+  min-width: 0;
 }
 
-.rubricSection {
+.wrap > section + section {
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-divider-subtle);
+}
+
+.rubricSection,
+.payloadSection {
   flex: 0 0 auto;
   width: 100%;
 }
 
-.rubricSection .empty {
-  margin: 0;
-}
-
 .wrapCompact {
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-3) var(--space-4);
+  gap: var(--space-4);
 }
 
-.payloadSection {
-  flex: 0 1 auto;
-  min-height: 0;
-}
-
-.wrapCompact .hintBlock {
-  margin-bottom: var(--space-2);
-  font-size: 0.6875rem;
-  line-height: 1.4;
-}
-
-.wrapCompact .nlArea {
-  min-height: 44px;
-  max-height: 96px;
-  padding: var(--space-2) var(--space-3);
-  font-size: 0.75rem;
-}
-
-.wrapCompact .payloadActions {
-  margin-top: var(--space-2);
-}
-
-.wrapCompact .nlPre {
-  max-height: min(28vh, 140px);
-  margin-top: var(--space-2);
-  padding: var(--space-2);
-  font-size: 0.625rem;
-}
-
-.wrap > section + section {
-  margin-top: var(--space-1);
+.wrapCompact > section + section {
   padding-top: var(--space-4);
-  border-top: 1px solid color-mix(in srgb, var(--color-on-surface) 5%, transparent);
 }
 
+/* Mono uppercase panel labels: PARAMETERS, REQUEST BODY, AI PAYLOAD */
 .sectionTitle {
   max-width: 100%;
-  margin: 0 0 var(--space-3);
-  overflow-wrap: anywhere;
+  margin: 0 0 var(--space-2);
   font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  font-size: 10.5px;
+  font-weight: var(--label-weight);
+  letter-spacing: var(--label-tracking);
+  line-height: 1.3;
   text-transform: uppercase;
-  color: var(--color-muted-foreground-subtle);
+  color: var(--color-on-surface-subtle);
+  overflow-wrap: anywhere;
 }
 
+/* Field list: hairline rows, no card */
 .card {
-  box-sizing: border-box;
   max-width: 100%;
-  padding: var(--space-6) var(--space-4) var(--space-4) var(--space-6);
-  border-radius: var(--radius-md);
-  background: var(--color-surface-container-lowest);
-  border: none;
-}
-
-.wrapCompact .card {
-  padding: var(--space-4) var(--space-3) var(--space-3) var(--space-4);
 }
 
 .row {
   display: flex;
   min-width: 0;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
-  gap: var(--space-2) var(--space-3);
-  padding: var(--space-3) 0;
-  border-bottom: none;
+  gap: 2px var(--space-3);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--color-divider-subtle);
 }
 
-.row:not(:last-child) {
-  margin-bottom: var(--space-2);
+.row:last-child {
+  border-bottom: none;
 }
 
 .name {
   min-width: 0;
-  overflow-wrap: anywhere;
   font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: var(--color-text-accent);
+  font-size: 12px;
+  color: var(--color-on-surface);
+  overflow-wrap: anywhere;
 }
 
 .hint {
   max-width: 100%;
-  font-size: 10px;
-  color: var(--color-muted-foreground-subtle);
-  line-height: 1.35;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--color-on-surface-subtle);
   text-align: end;
-  white-space: normal;
 }
 
 .empty {
-  font-size: 0.8125rem;
-  color: var(--color-muted-foreground-subtle);
   margin: 0;
+  font-size: 0.8125rem;
   line-height: 1.5;
+  color: var(--color-on-surface-subtle);
 }
 
 .hintBlock {
-  font-size: 0.75rem;
-  line-height: 1.45;
-  color: var(--color-muted-foreground-subtle);
   margin: 0 0 var(--space-3);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-on-surface-subtle);
 }
 
 .nlArea {
+  display: block;
   width: 100%;
+  min-height: 72px;
   box-sizing: border-box;
   resize: vertical;
-  min-height: 64px;
   border-radius: var(--radius-sm);
-  border: none;
+  border: 1px solid var(--color-field-border);
   background: var(--color-field-bg);
-  padding: var(--space-3);
-  color: var(--color-on-surface);
+  padding: 8px 10px;
+  font-family: var(--font-body);
   font-size: 0.8125rem;
-  line-height: 1.45;
+  line-height: 1.5;
+  color: var(--color-on-surface);
   outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.nlArea:hover {
+  border-color: var(--color-outline-variant);
 }
 
 .nlArea:focus {
-  box-shadow:
-    0 0 0 1px var(--color-primary),
-    0 0 0 3px color-mix(in srgb, var(--color-primary) 8%, transparent);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 16%, transparent);
+}
+
+.nlArea:disabled {
+  opacity: 0.6;
+  cursor: progress;
 }
 
 .nlArea::placeholder {
@@ -170,67 +150,67 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
-  margin-top: var(--space-3);
-}
-
-.payloadBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: 8px var(--space-4);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--color-on-primary);
-  background: var(--color-cta-fill);
-  cursor: pointer;
-}
-
-.payloadBtn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.payloadBtnGhost {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: 1px solid color-mix(in srgb, var(--color-outline-variant) 40%, transparent);
-  border-radius: var(--radius-sm);
-  padding: 8px var(--space-3);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-muted-foreground);
-  background: transparent;
-  cursor: pointer;
+  margin-top: var(--space-2);
 }
 
 .nlError {
-  margin: var(--space-3) 0 0;
-  font-size: 0.75rem;
-  line-height: 1.45;
+  margin: var(--space-2) 0 0;
+  font-size: 12px;
+  line-height: 1.5;
   color: var(--color-error);
 }
 
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.result .payloadActions {
+  margin-top: 0;
+}
+
 .nlPre {
-  margin: var(--space-3) 0 0;
+  max-height: 260px;
+  margin: 0;
   padding: var(--space-3);
-  border-radius: var(--radius-md);
+  overflow: auto;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-default);
   background: var(--color-code-editor-bg);
-  border: none;
   font-family: var(--font-mono);
-  font-size: 0.6875rem;
+  font-size: 12px;
   line-height: 1.55;
   white-space: pre-wrap;
   word-break: break-word;
-  max-height: 220px;
-  overflow: auto;
-  color: var(--color-primary-muted);
+  color: var(--color-on-surface);
+}
+
+.wrapCompact .nlPre {
+  max-height: min(36vh, 220px);
+}
+
+@media (max-width: 767px) {
+  .nlArea {
+    font-size: 16px;
+  }
+}
+
+.banner {
+  margin-bottom: var(--space-3);
+}
+
+.waiting {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.progress {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-on-surface-variant);
 }

@@ -1,79 +1,260 @@
-.footerWrap {
-  width: 100%;
-  border-top: 1px solid var(--color-divider-subtle);
-  background: color-mix(in srgb, var(--color-surface) 95%, transparent);
+/* Tonal footer: one step below the page, mono column labels, clear links, attribution. */
+.footer {
   margin-top: auto;
-  position: relative;
-  z-index: 2;
-  padding: var(--space-8) 0 var(--space-6);
+  padding: clamp(56px, 7vw, 88px) var(--space-6) var(--space-6);
+  border-top: 1px solid var(--color-border-default);
+  background: var(--color-surface-container-low);
 }
 
-.footerInner {
-  width: 100%;
-  max-width: 72rem;
-  margin: 0 auto;
-  padding: 0 clamp(var(--space-4), 4vw, var(--space-6));
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
+:global(.dark) .footer {
+  background: var(--color-surface-container-lowest);
 }
 
-.footerGrid {
+.inner {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: var(--space-6);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2.6fr);
+  gap: var(--space-12);
+  max-width: 1240px;
+  margin: 0 auto;
 }
 
-.footerCol {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.colTitle {
-  font-size: 0.85rem;
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-size: 17px;
   font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: -0.03em;
   color: var(--color-on-surface);
-  margin: 0 0 var(--space-2);
-}
-
-.linkList {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.link {
-  color: var(--color-on-surface-variant);
   text-decoration: none;
-  font-size: 0.85rem;
-  font-weight: 500;
-  transition: color 0.15s ease;
 }
 
-.link:hover {
+.tagline {
+  max-width: 30ch;
+  margin: var(--space-4) 0 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-on-surface-variant);
+}
+
+.oss {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 32px;
+  margin-top: var(--space-5);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-container);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-on-surface);
+  text-decoration: none;
+  transition: border-color 140ms ease, color 140ms ease;
+}
+
+.oss:hover {
+  border-color: var(--color-primary);
   color: var(--color-text-accent);
 }
 
-.line {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding-top: var(--space-6);
-  border-top: 1px solid var(--color-divider-subtle);
-  margin: 0;
-  font-size: 0.8rem;
+.ossTag {
+  padding: 1px 5px;
+  border-radius: var(--radius-xs);
+  background: var(--color-surface-container-high);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: var(--label-tracking);
+  color: var(--color-on-surface-variant);
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-8);
+}
+
+.col {
+  min-width: 0;
+}
+
+.colTitle {
+  margin: 0 0 var(--space-4);
+  font-family: var(--font-mono);
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
   color: var(--color-on-surface-subtle);
 }
 
-.sep {
+.links {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  font-size: 14px;
+  color: var(--color-on-surface-variant);
+  text-decoration: none;
+  transition: color 120ms ease;
+}
+
+.link:hover {
+  color: var(--color-on-surface);
+}
+
+.link:focus-visible,
+.baseLink:focus-visible,
+.author:focus-visible,
+.oss:focus-visible,
+.brand:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+
+.extIcon {
   color: var(--color-on-surface-subtle);
-  user-select: none;
+}
+
+.roastLink,
+.roastLink:hover {
+  color: var(--color-roast-heat-text);
+}
+
+.baseline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-3) var(--space-8);
+  max-width: 1240px;
+  margin: clamp(48px, 6vw, 72px) auto 0;
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-border-default);
+}
+
+.legal {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--color-on-surface-subtle);
+}
+
+.baseLink {
+  color: var(--color-on-surface-variant);
+  text-decoration: underline;
+  text-decoration-color: var(--color-outline-variant);
+  text-underline-offset: 3px;
+}
+
+.baseLink:hover {
+  color: var(--color-on-surface);
+}
+
+.author {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 32px;
+  font-size: 13px;
+  color: var(--color-on-surface-variant);
+  text-decoration: none;
+}
+
+.author strong {
+  font-weight: 600;
+  color: var(--color-on-surface);
+}
+
+.author:hover strong {
+  color: var(--color-text-accent);
+}
+
+.avatar {
+  border: 1px solid var(--color-border-strong);
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+@media (max-width: 960px) {
+  .inner {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-10);
+  }
+}
+
+@media (max-width: 767px) {
+  .link {
+    min-height: 40px;
+  }
+
+  .author,
+  .oss {
+    min-height: 40px;
+  }
+}
+
+@media (max-width: 640px) {
+  .footer {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+
+  .columns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: var(--space-8);
+  }
+}
+
+/* Roast zone: the footer mark swaps to logo-fire, matching the header. */
+.fireMark {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+
+.fireMarkLogo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+:global(html[data-zone="roast"]) .fireMark,
+:global(.roastZone) .fireMark {
+  display: inline-flex;
+}
+
+:global(html[data-zone="roast"]) .violetMark,
+:global(.roastZone) .violetMark {
+  display: none;
+}
+
+:global(html[data-zone="roast"]) .brand,
+:global(.roastZone) .brand {
+  background: var(--gradient-wordmark);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.fireEmoji {
+  margin-right: 6px;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  font-size: 14px;
+  line-height: 1;
 }

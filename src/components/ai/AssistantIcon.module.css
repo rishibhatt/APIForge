@@ -1,0 +1,48 @@
+.icon {
+  display: block;
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+.eyes {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: assistantBlink 5s infinite;
+}
+
+.spark {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: assistantSpark 5s ease-in-out infinite;
+}
+
+@keyframes assistantBlink {
+  0%,
+  93%,
+  100% {
+    transform: scaleY(1);
+  }
+  96% {
+    transform: scaleY(0.1);
+  }
+}
+
+@keyframes assistantSpark {
+  0%,
+  80%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  90% {
+    opacity: 0.55;
+    transform: scale(0.7);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eyes,
+  .spark {
+    animation: none;
+  }
+}

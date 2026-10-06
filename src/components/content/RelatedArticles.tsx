@@ -1,42 +1,31 @@
 import Link from "next/link";
-import type { Article, GlossaryEntry, OpenApiExample } from "@/content/types";
+import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
 import styles from "./content.module.css";
 
-export interface RelatedArticlesProps {
-  guides?: Article[];
-  glossary?: GlossaryEntry;
-  example?: OpenApiExample;
+export interface RelatedItem {
+  href: string;
+  title: string;
+  tag: string;
 }
 
-export default function RelatedArticles({ guides = [], glossary, example }: RelatedArticlesProps) {
+/** End-of-article reading list: mono type tag, title, whole-row hover. */
+export default function RelatedArticles({ items }: { items: RelatedItem[] }) {
+  if (items.length === 0) return null;
+
   return (
-    <section className={styles.relatedSection}>
-      <h3 className={styles.relatedHeading}>Related Resources</h3>
-      <div className={styles.relatedGrid}>
-        {guides.map((g) => (
-          <Link key={g.slug} href={`/guides/${g.slug}`} className={styles.relatedCard}>
-            <span className={styles.relatedTag}>{g.category.toUpperCase()}</span>
-            <h4 className={styles.relatedTitle}>{g.title}</h4>
-            <p className={styles.relatedExcerpt}>{g.excerpt}</p>
-          </Link>
+    <section className={styles.relatedSection} aria-labelledby="related-heading">
+      <h2 id="related-heading" className={styles.endHeading}>Keep reading</h2>
+      <ul className={styles.relatedList}>
+        {items.map((item) => (
+          <li key={item.href} className={styles.relatedItem}>
+            <Link href={item.href} className={styles.relatedLink}>
+              <span className={styles.relatedTag}>{item.tag}</span>
+              <span className={styles.relatedTitle}>{item.title}</span>
+              <MaterialIcon name="arrow_forward" size="sm" className={styles.rowArrow} />
+            </Link>
+          </li>
         ))}
-
-        {glossary && (
-          <Link href={`/glossary/${glossary.slug}`} className={`${styles.relatedCard} ${styles.relatedGlossary}`}>
-            <span className={styles.relatedTag}>GLOSSARY</span>
-            <h4 className={styles.relatedTitle}>What is {glossary.term}?</h4>
-            <p className={styles.relatedExcerpt}>{glossary.definition}</p>
-          </Link>
-        )}
-
-        {example && (
-          <Link href={`/examples/${example.slug}`} className={`${styles.relatedCard} ${styles.relatedExample}`}>
-            <span className={styles.relatedTag}>CODE EXAMPLE</span>
-            <h4 className={styles.relatedTitle}>{example.title}</h4>
-            <p className={styles.relatedExcerpt}>{example.description}</p>
-          </Link>
-        )}
-      </div>
+      </ul>
     </section>
   );
 }

@@ -1,0 +1,219 @@
+{
+  "slug": "generate-test-cases-from-openapi",
+  "title": "Generate API Test Cases from an OpenAPI Spec",
+  "description": "Turn OpenAPI constraints into a test matrix: valid, invalid and boundary cases with expected status codes, a worked example, and a runnable Node script.",
+  "excerpt": "Every required field, type, length limit and enum in a spec is a test waiting to be written. Here is how to derive them.",
+  "category": "api-testing",
+  "cluster": "api-testing",
+  "primaryKeyword": "generate test cases from openapi",
+  "keywords": ["openapi test generation", "api negative test cases", "boundary value testing api", "openapi test matrix"],
+  "tags": ["OpenAPI", "API Testing", "Test Design", "Boundary Values"],
+  "author": "rishab",
+  "publishedAt": "2026-10-03",
+  "updatedAt": "2026-10-03",
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "To generate test cases from an OpenAPI spec, read each operation's request schema and turn every constraint into at least one passing and one failing case. A required field becomes a test that omits it. A type becomes a test that sends the wrong type. minLength and maxLength become boundary tests just inside and just outside the limits. An enum becomes one test per allowed value plus one with a value outside the list. Then take the expected status for each case from the operation's documented responses: usually 201 or 200 for valid input and 400 or 422 for invalid input. The rest of this guide walks through that process on a real spec."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "What each schema keyword gives you",
+      "id": "keywords"
+    },
+    {
+      "type": "paragraph",
+      "text": "JSON Schema keywords in the request body map directly to test ideas. The table lists the ones you will meet most often. Keep the right-hand column in mind: a failing case is only useful if you know which status the API should return."
+    },
+    {
+      "type": "table",
+      "headers": ["Keyword", "Valid case", "Invalid case", "Expected status for invalid"],
+      "rows": [
+        ["required", "All required fields present", "Omit each required field, one per test", "400 or 422"],
+        ["type", "Value of the declared type", "String where a number is expected, object where a string is expected", "400 or 422"],
+        ["minLength / maxLength", "Exactly min, exactly max", "min - 1, max + 1", "400 or 422"],
+        ["minimum / maximum", "Exactly the bounds", "One step below and above", "400 or 422"],
+        ["enum", "Each allowed value", "A value not in the list, and a case variant like \"Pro\"", "400 or 422"],
+        ["pattern", "A value that matches", "Wrong case, wrong length, extra characters", "400 or 422"],
+        ["format", "A well-formed email, date or uuid", "A malformed value", "400 or 422, if the server validates format"]
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "The last row has a caveat. In JSON Schema, format is an annotation by default, so a server that validates requests with a schema library may accept \"not-an-email\" for format: email unless format checking is switched on. Write the test anyway. If it fails, you have found either a validation gap or a spec that promises more than the server enforces."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The example spec",
+      "id": "example-spec"
+    },
+    {
+      "type": "paragraph",
+      "text": "Here is a signup endpoint with the kinds of constraints real APIs use. APIForge scored this spec 100 out of 100 for design: it has a versioned path, a summary and description, and documents 201, 400 and 409. A perfect design score only tells you the contract is well written. It says nothing about whether the server honors it, which is what the tests are for."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "filename": "openapi.yaml",
+      "code": "openapi: 3.0.3\ninfo:\n  title: Signups API\n  version: 1.0.0\npaths:\n  /v1/signups:\n    post:\n      summary: Create a signup\n      description: Registers a new account for an email address.\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              type: object\n              required: [email, password, plan]\n              properties:\n                email:\n                  type: string\n                  format: email\n                  maxLength: 254\n                password:\n                  type: string\n                  minLength: 12\n                  maxLength: 128\n                plan:\n                  type: string\n                  enum: [free, pro]\n                referralCode:\n                  type: string\n                  pattern: \"^[A-Z0-9]{8}$\"\n      responses:\n        \"201\":\n          description: Signup created\n        \"400\":\n          description: Validation failed\n        \"409\":\n          description: Email already registered"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The test matrix for POST /v1/signups",
+      "id": "matrix"
+    },
+    {
+      "type": "paragraph",
+      "text": "We derived these thirteen cases by hand from the constraints above. Each changes one thing from a known-good baseline, so a failure points at a single rule. The baseline body is {\"email\": \"dana@example.com\", \"password\": \"correct-horse-9\", \"plan\": \"free\"}."
+    },
+    {
+      "type": "table",
+      "headers": ["ID", "Type", "Change from baseline", "Expected"],
+      "rows": [
+        ["T01", "valid", "None", "201"],
+        ["T02", "valid", "plan: \"pro\" and referralCode: \"AB12CD34\"", "201"],
+        ["T03", "invalid", "Remove email", "400"],
+        ["T04", "invalid", "Remove password", "400"],
+        ["T05", "invalid", "Remove plan", "400"],
+        ["T06", "invalid", "plan: \"enterprise\"", "400"],
+        ["T07", "edge", "password with 11 characters", "400"],
+        ["T08", "edge", "password with exactly 12 characters", "201"],
+        ["T09", "edge", "password with exactly 128 characters", "201"],
+        ["T10", "edge", "password with 129 characters", "400"],
+        ["T11", "invalid", "referralCode: \"ab12cd34\" (lowercase)", "400"],
+        ["T12", "invalid", "email: \"not-an-email\"", "400 if format is enforced"],
+        ["T13", "invalid", "Send T01 twice with the same email", "201, then 409"]
+      ],
+      "caption": "Thirteen cases from one operation. Use a unique email per run for the valid cases, or T13's duplicate rule will fail them."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Why boundaries get their own tests",
+      "id": "boundaries"
+    },
+    {
+      "type": "paragraph",
+      "text": "Most length bugs are off-by-one errors. A developer writes password.length > 12 instead of >= 12, and a 12-character password the spec allows gets rejected. Testing only a comfortable value like 20 characters never finds that. Testing 11, 12, 128 and 129 does, because those four values sit on either side of each limit. The same applies to numeric minimum and maximum, to maxItems on arrays, and to maxLength on strings that end up in a database column with its own size limit. If the column is shorter than the spec's maxLength, T09 is the test that exposes it."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Cases the spec cannot give you",
+      "id": "beyond-schema"
+    },
+    {
+      "type": "paragraph",
+      "text": "Schema-driven generation covers input validation well, but authentication, state, duplicates, rate limits and error formats live outside the request schema. Add these by reading the rest of the operation and your own business rules."
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Authentication and authorization. If the operation declares security, test a missing token (401), an expired token, and a valid token without permission (403). The [OpenAPI authentication example](/examples/openapi-authentication-example) shows how these are declared.",
+        "State. T13 needs an existing account. Tests for update and delete need a resource that exists and one that does not (404).",
+        "Duplicates and retries. Decide what a repeated request should do and test it; the [idempotency glossary entry](/glossary/idempotency) explains the options.",
+        "Rate limits. Send requests until you receive 429 and check that a Retry-After header comes back, as described under [rate limiting](/glossary/rate-limiting).",
+        "Error body shape. A 400 with the right status but an unstructured body still breaks clients. The [REST API error handling guide](/guides/rest-api-error-handling) covers a consistent error format."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Check more than the status code",
+      "id": "check-body"
+    },
+    {
+      "type": "paragraph",
+      "text": "A test that only compares status codes passes when the server returns 201 with the wrong body. For every case, also validate the response body against the schema documented for the status you received. [Validating API responses against your OpenAPI schema](/guides/validate-api-response-against-openapi-schema) explains how, including what to do about extra fields and undocumented status codes. For T01, also check that the response does not echo the password back, a mistake schema validation catches only if the response schema forbids additional properties."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Run the matrix in CI with Node",
+      "id": "ci"
+    },
+    {
+      "type": "paragraph",
+      "text": "Once the cases exist as data, running them is a short loop. The script below uses Node's built-in test runner and fetch, so it needs no extra dependencies. Keep the cases in a JSON file next to the spec and review changes to both in the same pull request."
+    },
+    {
+      "type": "code",
+      "language": "javascript",
+      "filename": "signups.test.mjs",
+      "code": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\n\nconst BASE = process.env.API_BASE_URL;\nconst email = () => `qa+${Date.now()}${Math.random().toString(36).slice(2, 6)}@example.com`;\nconst baseline = () => ({ email: email(), password: \"correct-horse-9\", plan: \"free\" });\n\nconst cases = [\n  { id: \"T01\", body: baseline(), expected: 201 },\n  { id: \"T03\", body: (({ email, ...rest }) => rest)(baseline()), expected: 400 },\n  { id: \"T06\", body: { ...baseline(), plan: \"enterprise\" }, expected: 400 },\n  { id: \"T07\", body: { ...baseline(), password: \"a\".repeat(11) }, expected: 400 },\n  { id: \"T08\", body: { ...baseline(), password: \"a\".repeat(12) }, expected: 201 },\n  { id: \"T10\", body: { ...baseline(), password: \"a\".repeat(129) }, expected: 400 }\n];\n\nfor (const c of cases) {\n  test(`${c.id} returns ${c.expected}`, async () => {\n    const res = await fetch(`${BASE}/v1/signups`, {\n      method: \"POST\",\n      headers: { \"Content-Type\": \"application/json\" },\n      body: JSON.stringify(c.body)\n    });\n    assert.equal(res.status, c.expected);\n  });\n}",
+      "caption": "Run with: API_BASE_URL=https://staging.example.com node --test. Each valid case gets a fresh email so T13's duplicate rule does not interfere."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Generating the cases automatically",
+      "id": "tools"
+    },
+    {
+      "type": "paragraph",
+      "text": "Writing the matrix by hand is fine for one endpoint and slow for fifty. Deterministic generators such as Tcases for OpenAPI read the spec and produce cases that cover both valid inputs and inputs that should be rejected, which suits teams that want reproducible output."
+    },
+    {
+      "type": "paragraph",
+      "text": "In APIForge, open the [API testing workbench](/api-testing), load your spec, and generate tests for an endpoint, a tag, or the whole API. The AI writes 8 to 10 cases per endpoint, each labeled valid, invalid or edge, with a payload, an expected status and the reason for the case. You can run each case against your server from the browser or through the APIForge proxy, then validate the response body against the schema. A valid case passes on the exact expected status, or on any 2xx when a 2xx was expected; invalid and edge cases must match exactly. Export the cases as cURL, JavaScript fetch, JSON or a Postman collection. Treat AI output as a draft: check each expected status against the responses your spec documents before you commit the cases to CI."
+    },
+    {
+      "type": "paragraph",
+      "text": "Before generating tests, score the spec with the [API quality checker](/api-quality-checker). Missing error responses and untyped fields produce weak tests, because a generator cannot invent constraints the spec never states. The [API testing best practices guide](/guides/api-testing-best-practices) covers how these tests fit alongside integration and load testing."
+    },
+    {
+      "type": "tool",
+      "tool": "api-testing",
+      "title": "Generate and run test cases for your API",
+      "description": "Load an OpenAPI or Swagger spec, generate valid, invalid and edge cases, run them, and export to cURL or Postman.",
+      "buttonText": "Generate tests",
+      "href": "/api-testing"
+    },
+    {
+      "type": "relatedContent",
+      "slugs": ["api-testing-best-practices", "validate-api-response-against-openapi-schema", "rest-api-error-handling"]
+    },
+    {
+      "type": "externalReference",
+      "title": "RFC 9110: HTTP Semantics, status codes",
+      "url": "https://www.rfc-editor.org/rfc/rfc9110#name-status-codes",
+      "source": "IETF"
+    },
+    {
+      "type": "externalReference",
+      "title": "OpenAPI Specification 3.1.0",
+      "url": "https://spec.openapis.org/oas/v3.1.0",
+      "source": "OpenAPI Initiative"
+    },
+    {
+      "type": "externalReference",
+      "title": "Tcases for OpenAPI",
+      "url": "https://github.com/Cornutum/tcases/blob/master/tcases-openapi/README.md",
+      "source": "GitHub"
+    },
+    {
+      "type": "externalReference",
+      "title": "JSON Schema type reference (format as annotation)",
+      "url": "https://json-schema.org/understanding-json-schema/reference/type",
+      "source": "json-schema.org"
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Should invalid input return 400 or 422?",
+      "answer": "Both are common. RFC 9110 defines 400 for requests the server cannot process because of a client error, and 422 for well-formed content the server cannot process. Pick one, document it in the spec, and make your tests expect exactly that code."
+    },
+    {
+      "question": "How many test cases does one endpoint need?",
+      "answer": "Start with one valid case, one case per required field, one per type, and two to four per length, range or enum constraint. The signup example above needs thirteen. Add cases for auth, state and duplicates where the operation needs them."
+    },
+    {
+      "question": "Can AI-generated test cases go straight into CI?",
+      "answer": "Review them first. A model can guess an expected status the spec does not document, or produce a payload that tests two rules at once. Check each case against the spec's responses, then commit it."
+    }
+  ]
+}

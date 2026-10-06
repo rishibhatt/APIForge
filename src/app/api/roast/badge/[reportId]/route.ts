@@ -1,49 +1,52 @@
 import { NextResponse } from "next/server";
 import { getRoastReport } from "@/lib/roast/roastStorage";
-import { getAppLogoBase64 } from "@/lib/seo/brandLogo";
 
 export const runtime = "nodejs";
 
+const FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+
+/** Shields-style README badge: "APIForge score | 86/100". */
 export async function GET(
   _request: Request,
   { params }: { params: { reportId: string } },
 ) {
-  const { reportId } = params;
-  const report = getRoastReport(reportId);
-  const logoBase64 = getAppLogoBase64();
+  const report = getRoastReport(params.reportId);
 
-  const score = report ? Math.round(report.score) : 0;
-  const statusLabel =
-    score >= 80 ? "HEALTHY" : score >= 50 ? "NEEDS WORK" : "NEEDS HELP";
+  if (!report) {
+    return new NextResponse("Report not found or expired", {
+      status: 404,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
+    });
+  }
 
-  const color =
-    score >= 80
-      ? "#22c55e" // green
-      : score >= 50
-        ? "#eab308" // yellow
-        : "#ff6b57"; // hot coral
+  const score = Math.max(0, Math.min(100, Math.round(report.score)));
+  const color = score >= 80 ? "#047857" : score >= 50 ? "#a16207" : "#b91c1c";
+  const label = "APIForge score";
+  const value = `${score}/100`;
+  const labelW = 114;
+  const valueW = 54;
+  const w = labelW + valueW;
 
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="40" viewBox="0 0 240 40" fill="none">
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="20" role="img" aria-label="${label}: ${value}">
+  <title>${label}: ${value}</title>
   <defs>
-    <linearGradient id="apiforgeTextGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="10%" stop-color="#ffffff"/>
-      <stop offset="55%" stop-color="#d0bcff"/>
-      <stop offset="100%" stop-color="#a078ff"/>
+    <linearGradient id="apiforge-logo-g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#a87af7"/>
+      <stop offset="100%" stop-color="#7741dc"/>
     </linearGradient>
   </defs>
-  <rect width="240" height="40" rx="8" fill="#131315" stroke="#2a2930" stroke-width="1.5"/>
-  <rect x="1.5" y="1.5" width="125" height="37" rx="6.5" fill="#18181b"/>
-  
-  <!-- Logo / Brand -->
-  ${logoBase64 ? `<image href="${logoBase64}" x="8" y="7" width="26" height="26" preserveAspectRatio="xMidYMid meet" />` : ""}
-  <text x="${logoBase64 ? "38" : "12"}" y="24.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="900" fill="url(#apiforgeTextGrad)" letter-spacing="-0.035em">APIForge</text>
-  <text x="${logoBase64 ? "98" : "73"}" y="24" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="9" font-weight="700" fill="#a1a1aa" letter-spacing="0.05em">QUALITY</text>
-  
-  <!-- Score & Badge -->
-  <circle cx="148" cy="20" r="10" fill="${color}" fill-opacity="0.15" stroke="${color}" stroke-width="1.5"/>
-  <text x="148" y="23.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="800" fill="${color}" text-anchor="middle">${score}</text>
-  
-  <text x="166" y="24" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="700" fill="#e5e1e4" letter-spacing="0.5">${statusLabel}</text>
+  <clipPath id="r"><rect width="${w}" height="20" rx="4"/></clipPath>
+  <g clip-path="url(#r)">
+    <rect width="${labelW}" height="20" fill="#18181b"/>
+    <rect x="${labelW}" width="${valueW}" height="20" fill="${color}"/>
+  </g>
+  <g transform="translate(6, 3) scale(0.22)">
+    <path fill="url(#apiforge-logo-g)" fill-rule="evenodd" d="M31 4.3L32.6 4.2L33.8 4.4L35.9 5.1L37.5 6.2L38.8 7.4L39.5 8.5L58 45.4L58.7 47.2L59 48.8L59 51.2L58.7 52.7L58.3 53.9L57.5 55.4L56.3 56.9L55.1 58L54.2 58.6L52.4 59.4L50.6 59.9L42.4 60L41.4 60L41.4 59.9L42.1 59.5L42.9 58.9L43.8 57.6L44.4 56.3L44.7 54.8L44.8 51.7L45 51.1L45.3 50.8L46.7 49.9L47.2 49.4L47.6 48.7L47.6 47.8L47 46.8L46.4 46.3L45.6 45.8L44.9 45L44.7 44.5L44.7 42L44.6 40.9L44.1 39.4L43.4 38.3L42.1 37L40.8 36.3L38.9 35.8L37.1 35.9L36.8 36.2L36.9 38.1L37.1 38.4L37.4 38.6L38.9 39.2L39.6 40L40 40.9L40 43.5L39.9 44.7L39.7 45.3L39.1 45.8L37.7 46.4L37 47L36.9 47.6L36.9 48.7L37 49.1L37.4 49.5L39.1 50.3L39.8 51.1L40 51.5L40 52.4L39.9 54.8L39.8 55.4L39.1 56.2L38.4 56.6L37.5 57L37.1 57.3L36.8 57.8L36.8 59.9L33.2 60L27.2 60L27.1 59.9L27.1 57.9L27 57.5L26.5 57L25.3 56.5L24.7 56L24.4 55.5L24.1 54.6L24.1 51.7L24.3 50.9L25 50.2L26.6 49.5L27 49.1L27.1 48.8L27.1 47.5L26.8 46.7L26.3 46.4L25.1 45.9L24.7 45.6L24.2 45L24 44.2L24 41.2L24.3 40.2L24.9 39.5L25.6 39.1L26.8 38.6L27.1 38.3L27.2 36.2L27.1 36L26.8 35.8L25.7 35.8L24.7 36L23.2 36.4L21.9 37.3L21.1 38.1L20.3 39.3L19.8 40.8L19.6 42L19.6 44.5L19.4 45L18.9 45.6L18 46.1L17.2 46.7L16.7 47.5L16.6 47.9L16.6 48.5L16.9 49.3L17.7 50.1L18.4 50.4L18.8 50.8L19.2 51.2L19.4 51.7L19.4 54.6L19.7 56.3L20.2 57.3L21.1 58.7L22.8 60L13.5 59.9L12.2 59.6L10.7 59L8.8 57.8L7.4 56.4L6.8 55.7L5.9 54L5.4 52.7L5.1 51.2L5.1 48.8L5.4 47.5L5.9 46.3L15.8 26.5L24.5 8.8L25.5 7.3L27.2 5.7L28.9 4.8L30.4 4.4L31 4.3ZM30.7 21L32 20.9L33.3 20.9L34.4 21.2L35.6 21.8L36.7 22.8L37.5 23.8L38 24.7L38.4 26.2L38.4 28.6L38 29.9L37.3 31.3L36.4 32.1L35.4 32.9L34.1 33.5L33.3 33.7L32.9 33.9L31.1 33.8L29.8 33.5L28.6 32.9L27.4 32L26.6 31L26 29.8L25.7 28.7L25.7 26.2L26.1 24.7L26.7 23.7L27.8 22.5L28.6 21.8L29.8 21.2L30.7 21Z"/>
+  </g>
+  <g fill="#fff" font-family="${FONT}" font-size="11">
+    <text x="24" y="14" font-weight="500">APIForge score</text>
+    <text x="${labelW + valueW / 2}" y="14" font-weight="700" text-anchor="middle">${value}</text>
+  </g>
 </svg>`;
 
   return new NextResponse(svg, {

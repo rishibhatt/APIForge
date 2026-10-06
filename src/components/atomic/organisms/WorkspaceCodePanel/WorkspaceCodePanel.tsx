@@ -24,8 +24,16 @@ import RunApiPanel from "@/components/atomic/organisms/WorkspaceCodePanel/RunApi
 import { useGroqStream } from "@/hooks/useGroqStream";
 import { getScopedEndpoints, getScopeLabel } from "@/lib/endpoint-groups";
 import { useWorkspaceStore } from "@/store/workspaceStore";
-import AIFallbackIndicator from "@/components/atomic/atoms/AIFallbackIndicator/AIFallbackIndicator";
+import AiLimitBanner from "@/components/ai/AiLimitBanner";
+import AiMarkdown from "@/components/ai/AiMarkdown";
+import AiShimmer from "@/components/ai/AiShimmer";
+import { copyWithToast, downloadText } from "@/components/ai/clipboard";
+import { useProgressStatus } from "@/components/ai/useProgressStatus";
+import { toast } from "@/components/providers/Toaster/toast";
+import { useAiUsage } from "@/hooks/useAiUsage";
+import { generationCacheKey, getGenerationCache } from "@/lib/generation-cache";
 import type { GenerationScope, GroqStreamTab, OutputTab } from "@/types/api";
+import btn from "@/components/atomic/atoms/Button/Button.module.css";
 import styles from "./WorkspaceCodePanel.module.css";
 
 const TAB_ORDER: OutputTab[] = ["runApi", "typescript", "prompt"];
@@ -52,16 +60,7 @@ function exportExtension(tab: GroqStreamTab): string {
     case "typescript":
       return "ts";
     case "prompt":
-      return "txt";
-  }
-}
-
-function workspaceMetaKey(tab: GroqStreamTab): string {
-  switch (tab) {
-    case "typescript":
-      return "workspace.meta.typescript";
-    case "prompt":
-      return "workspace.meta.prompt";
+      return "md";
   }
 }
 
@@ -72,7 +71,7 @@ function tabNeedsEndpointDisabled(id: OutputTab, endpointsCount: number): boolea
 function tabMaterialIcon(id: OutputTab): string {
   switch (id) {
     case "runApi":
-      return "bolt";
+      return "send";
     case "typescript":
       return "code_blocks";
     case "prompt":
@@ -90,8 +89,11 @@ export default function WorkspaceCodePanel({ t }: WorkspaceCodePanelProps) {
   const generationScope = useWorkspaceStore((s) => s.generationScope);
   const setGenerationScope = useWorkspaceStore((s) => s.setGenerationScope);
 
-  const { result, loading, error, generate, lastLatencyMs, statusMessage } =
+  const { result, loading, error, generate, stop, lastLatencyMs } =
     useGroqStream();
+  const { exhausted } = useAiUsage();
+  /** Key of the scope + tab the visible output belongs to; stale output is never shown for another one. */
+  const [generatedKey, setGeneratedKey] = useState<string | null>(null);
   const lastGroqUsage = useWorkspaceStore((s) => s.lastGroqUsage);
   const focusMode = useWorkspaceStore((s) => s.focusMode);
   const specTitle = useWorkspaceStore((s) => s.specTitle);
@@ -137,38 +139,39 @@ export default function WorkspaceCodePanel({ t }: WorkspaceCodePanelProps) {
   const showInsightRail = Boolean(primaryForFile && !focusMode);
   const narrowInsightRail = activeTab === "runApi";
 
-  useEffect(() => {
-    if (activeTab !== "typescript") return;
-    if (scoped.length === 0) return;
-    void generate(scoped, generationScope, "typescript", {
-      primaryEndpoint: activeEndpoint,
-      allEndpoints: endpoints,
-    });
-  }, [
-    activeEndpoint,
-    activeTab,
-    generationScope,
-    scoped,
-    endpoints,
-    generate,
-  ]);
+  const streamTab: GroqStreamTab | null =
+    activeTab === "typescript" || activeTab === "prompt" ? activeTab : null;
 
+  const currentKey = useMemo(
+    () =>
+      streamTab && scoped.length > 0
+        ? generationCacheKey(generationScope, scoped, streamTab)
+        : null,
+    [streamTab, scoped, generationScope],
+  );
+  const hasCurrent = currentKey != null && generatedKey === currentKey;
+
+  const runGenerate = useCallback(
+    (force: boolean) => {
+      if (!streamTab || !currentKey || scoped.length === 0) return;
+      setGeneratedKey(currentKey);
+      void generate(scoped, generationScope, streamTab, {
+        force,
+        idePrompt:
+          streamTab === "prompt" ? { scope: generationScope, operations: scoped } : undefined,
+        allEndpoints: endpoints,
+        primaryEndpoint: activeEndpoint,
+      });
+    },
+    [streamTab, currentKey, scoped, generationScope, generate, endpoints, activeEndpoint],
+  );
+
+  // Output is generated on request (each run counts against the AI limit). Anything already
+  // generated for this exact scope comes back from the cache without a request.
   useEffect(() => {
-    if (activeTab !== "prompt") return;
-    if (scoped.length === 0) return;
-    void generate(scoped, generationScope, "prompt", {
-      idePrompt: { scope: generationScope, operations: scoped },
-      allEndpoints: endpoints,
-      primaryEndpoint: activeEndpoint,
-    });
-  }, [
-    activeEndpoint,
-    activeTab,
-    generationScope,
-    scoped,
-    endpoints,
-    generate,
-  ]);
+    if (!currentKey) return;
+    if (getGenerationCache(currentKey) !== undefined) runGenerate(false);
+  }, [currentKey, runGenerate]);
 
   useLayoutEffect(() => {
     if (!bodyRef.current) return;
@@ -178,11 +181,11 @@ export default function WorkspaceCodePanel({ t }: WorkspaceCodePanelProps) {
   }, [activeTab]);
 
   const displayText = useMemo(() => {
-    if (activeTab === "typescript" || activeTab === "prompt") {
+    if ((activeTab === "typescript" || activeTab === "prompt") && hasCurrent) {
       return result;
     }
     return "";
-  }, [activeTab, result]);
+  }, [activeTab, result, hasCurrent]);
 
   const lines = useMemo(
     () => (displayText ? displayText.split("\n").length : 0),
@@ -198,15 +201,40 @@ export default function WorkspaceCodePanel({ t }: WorkspaceCodePanelProps) {
     return s || "output";
   }, [primaryForFile]);
 
-  const dynamicFileLabel = useMemo(() => {
-    if (!primaryForFile) return t("workspace.fileLabelIdle");
-    if (activeTab === "prompt") return "ide-prompt.txt";
-    if (activeTab === "runApi") return "request";
-    if (activeTab === "typescript") {
-      return `${fileSlug}.${exportExtension(activeTab)}`;
+  /** What the output covers: "POST /pet" for one operation, the scope label for a collection. */
+  const operationLabel = useMemo(() => {
+    if (generationScope === "endpoint" && primaryForFile) {
+      return `${primaryForFile.method.toUpperCase()} ${primaryForFile.path}`;
     }
-    return t("workspace.fileLabelIdle");
-  }, [primaryForFile, activeTab, fileSlug, t]);
+    return scopeLabel;
+  }, [generationScope, primaryForFile, scopeLabel]);
+
+  const downloadName = useMemo(() => {
+    const base = generationScope === "endpoint" ? fileSlug : "collection";
+    return activeTab === "prompt"
+      ? `${base}-prompt.${exportExtension("prompt")}`
+      : `${base}.${exportExtension("typescript")}`;
+  }, [generationScope, fileSlug, activeTab]);
+
+  const outputName = activeTab === "prompt" ? "AI prompt" : "TypeScript";
+  const readSubject =
+    generationScope === "endpoint" && primaryForFile
+      ? `the ${operationLabel} contract`
+      : "the collection contract";
+  const progressStatus = useProgressStatus(
+    Boolean(streamTab) && hasCurrent && loading,
+    activeTab === "prompt"
+      ? [
+          `Reading ${readSubject}…`,
+          "Collecting parameters and responses…",
+          "Writing the prompt…",
+        ]
+      : [
+          `Reading ${readSubject}…`,
+          "Resolving request and response schemas…",
+          "Writing types…",
+        ],
+  );
 
   const onSelectTab = useCallback(
     (id: OutputTab) => {
@@ -220,53 +248,43 @@ export default function WorkspaceCodePanel({ t }: WorkspaceCodePanelProps) {
 
   const onCopy = useCallback(async () => {
     if (!displayText) return;
-    try {
-      await navigator.clipboard.writeText(displayText);
-      if (copyResetRef.current) clearTimeout(copyResetRef.current);
-      setCopied(true);
-      copyResetRef.current = setTimeout(() => {
-        setCopied(false);
-        copyResetRef.current = null;
-      }, 2000);
-    } catch {
-      /* ignore */
-    }
-  }, [displayText]);
+    const ok = await copyWithToast(displayText, outputName);
+    if (!ok) return;
+    if (copyResetRef.current) clearTimeout(copyResetRef.current);
+    setCopied(true);
+    copyResetRef.current = setTimeout(() => {
+      setCopied(false);
+      copyResetRef.current = null;
+    }, 2000);
+  }, [displayText, outputName]);
 
-  const onRegenerate = useCallback(() => {
-    if (scoped.length === 0) return;
-    if (activeTab === "typescript" || activeTab === "prompt") {
-      void generate(scoped, generationScope, activeTab, {
-        force: true,
-        idePrompt:
-          activeTab === "prompt"
-            ? { scope: generationScope, operations: scoped }
-            : undefined,
-        allEndpoints: activeTab === "prompt" ? endpoints : undefined,
-        primaryEndpoint: activeEndpoint,
-      });
-    }
-  }, [
-    activeEndpoint,
-    activeTab,
-    generate,
-    generationScope,
-    scoped,
-    endpoints,
-  ]);
+  const onDownload = useCallback(() => {
+    if (!displayText) return;
+    const ok = downloadText(
+      downloadName,
+      displayText,
+      activeTab === "prompt" ? "text/markdown" : "text/typescript",
+    );
+    if (ok) toast.success(`Saved ${downloadName}`, { id: "ai-download", duration: 2500 });
+    else toast.error("Couldn't save the file", { description: "Copy the output instead.", id: "ai-download" });
+  }, [displayText, downloadName, activeTab]);
+
+  const onRegenerate = useCallback(() => runGenerate(true), [runGenerate]);
 
   const showCodeBody = activeTab === "typescript" || activeTab === "prompt";
 
+  const showEmpty = showCodeBody && scoped.length > 0 && !hasCurrent;
+
   const showLoading =
-    showCodeBody &&
-    scoped.length > 0 &&
-    loading &&
-    !result &&
-    (activeTab === "typescript" || activeTab === "prompt");
+    showCodeBody && scoped.length > 0 && hasCurrent && loading && !result;
+
+  const streaming = showCodeBody && hasCurrent && loading && Boolean(result);
 
   const canUseStreamOutput = scoped.length > 0;
 
   const streamActionDisabled = !canUseStreamOutput || !displayText;
+
+  const generateBlocked = !canUseStreamOutput || loading || exhausted;
 
   const bodyPlaceholder = (() => {
     if (endpoints.length === 0) return t("workspace.selectEndpoint");
@@ -292,42 +310,42 @@ export default function WorkspaceCodePanel({ t }: WorkspaceCodePanelProps) {
 
   const copyLabel = copied ? t("workspace.copied") : t("workspace.copy");
 
-  const editorActions =
-    activeTab === "typescript" ? (
-      <>
+  const editorActions = showCodeBody ? (
+    <>
+      <button
+        type="button"
+        className={`${btn.btn} ${btn.ghost} ${btn.sm} focusRing ${copied ? styles.chromeActionBtnCopied : ""}`}
+        onClick={() => void onCopy()}
+        disabled={streamActionDisabled}
+        aria-label={`${copyLabel} ${outputName}`}
+      >
+        <MaterialIcon name={copied ? "check" : "content_copy"} size="xs" />
+        <span className={styles.chromeActionLabel}>{copyLabel}</span>
+      </button>
+      <button
+        type="button"
+        className={`${btn.btn} ${btn.ghost} ${btn.sm} focusRing`}
+        onClick={onDownload}
+        disabled={streamActionDisabled || loading}
+        aria-label={`Download ${downloadName}`}
+      >
+        <MaterialIcon name="download" size="xs" />
+        <span className={styles.chromeActionLabel}>Download</span>
+      </button>
+      {hasCurrent ? (
         <button
           type="button"
-          className={`${styles.chromeActionBtn} focusRing ${copied ? styles.chromeActionBtnCopied : ""}`}
-          onClick={() => void onCopy()}
-          disabled={streamActionDisabled}
-          aria-label={copyLabel}
-        >
-          <MaterialIcon name={copied ? "check" : "content_copy"} size="xs" />
-          <span className={styles.chromeActionLabel}>{copyLabel}</span>
-        </button>
-        <button
-          type="button"
-          className={`${styles.chromeActionBtn} focusRing`}
+          className={`${btn.btn} ${btn.ghost} ${btn.sm} focusRing`}
           onClick={onRegenerate}
-          disabled={!canUseStreamOutput || loading}
+          disabled={generateBlocked}
           aria-label={t("workspace.regenerate")}
         >
           <MaterialIcon name="refresh" size="xs" />
           <span className={styles.chromeActionLabel}>{t("workspace.regenerate")}</span>
         </button>
-      </>
-    ) : activeTab === "prompt" ? (
-      <button
-        type="button"
-        className={`${styles.chromeActionBtn} focusRing ${copied ? styles.chromeActionBtnCopied : ""}`}
-        onClick={() => void onCopy()}
-        disabled={streamActionDisabled}
-        aria-label={copyLabel}
-      >
-        <MaterialIcon name={copied ? "check" : "content_copy"} size="xs" />
-        <span className={styles.chromeActionLabel}>{copyLabel}</span>
-      </button>
-    ) : null;
+      ) : null}
+    </>
+  ) : null;
 
   return (
     <div
@@ -345,12 +363,14 @@ export default function WorkspaceCodePanel({ t }: WorkspaceCodePanelProps) {
         </div>
       ) : null}
 
-      <div className={styles.scopeContext} aria-label={t("workspace.generationScopeAria")}>
-        <MaterialIcon name="terminal" size="xs" />
-        <span className={styles.scopeContextText}>
-          {t("workspace.scopeContext", { scope: scopeLabel })}
-        </span>
-      </div>
+      {activeTab !== "runApi" ? (
+        <div className={styles.scopeContext} aria-label={t("workspace.generationScopeAria")}>
+          <MaterialIcon name="terminal" size="xs" />
+          <span className={styles.scopeContextText}>
+            {t("workspace.scopeContext", { scope: scopeLabel })}
+          </span>
+        </div>
+      ) : null}
 
       <div
         className={`${styles.toolbar} ${activeTab === "runApi" ? styles.toolbarRunApiOnly : ""}`}
@@ -405,27 +425,88 @@ export default function WorkspaceCodePanel({ t }: WorkspaceCodePanelProps) {
       <div
         className={`${styles.workspaceGrid} ${focusMode ? styles.workspaceGridFocus : ""} ${showInsightRail ? styles.workspaceGridWithInsight : ""} ${showInsightRail && narrowInsightRail ? styles.workspaceGridRunSplit : ""}`}
       >
-        <div className={styles.editor}>
+        <div className={`${styles.editor} ${activeTab === "runApi" ? styles.editorFlat : ""}`}>
           {showCodeBody ? (
-            <EditorChrome
-              fileLabel={dynamicFileLabel}
-              fileMeta={t(workspaceMetaKey(activeTab as GroqStreamTab))}
-              actions={editorActions}
-            />
+            <>
+              <div className={styles.aiBanner}>
+                <AiLimitBanner />
+              </div>
+              <EditorChrome
+                fileLabel={operationLabel}
+                fileMeta={activeTab === "prompt" ? "Markdown" : "TypeScript"}
+                actions={editorActions}
+              />
+            </>
           ) : null}
 
           <div
             ref={bodyRef}
-            className={`${styles.body} ${activeTab === "runApi" ? styles.bodyRunApi : ""} ${showCodeBody ? styles.bodyStream : ""} ${activeTab === "typescript" && showCodeBody ? styles.bodyTsForge : ""} ${activeTab === "prompt" && showCodeBody ? styles.bodyPrompt : ""}`}
+            className={`${styles.body} ${activeTab === "runApi" ? styles.bodyRunApi : ""} ${showCodeBody ? styles.bodyStream : ""} ${activeTab === "typescript" && showCodeBody && !showEmpty && !showLoading && !error ? styles.bodyTsForge : ""} ${activeTab === "prompt" && showCodeBody ? styles.bodyPrompt : ""}`}
+            aria-live={showCodeBody ? "polite" : undefined}
+            aria-busy={showCodeBody ? loading : undefined}
           >
             {bodyPlaceholder ? (
               <p className={styles.placeholder}>{bodyPlaceholder}</p>
             ) : activeTab === "runApi" ? (
               <RunApiPanel t={t} />
+            ) : showEmpty ? (
+              <div className={styles.emptyState}>
+                <h3 className={styles.emptyTitle}>
+                  {activeTab === "prompt" ? "Generate an AI prompt" : "Generate TypeScript types"}
+                </h3>
+                <p className={styles.emptyText}>
+                  {activeTab === "prompt"
+                    ? `Builds a Markdown prompt for ${generationScope === "endpoint" ? operationLabel : "this collection"} with its parameters, bodies, and responses, ready to paste into your IDE assistant.`
+                    : `Writes TypeScript interfaces and a typed client for ${generationScope === "endpoint" ? operationLabel : "this collection"} from its OpenAPI contract.`}
+                </p>
+                <div className={styles.emptyActions}>
+                  <button
+                    type="button"
+                    className={`${btn.btn} ${btn.primary} ${btn.sm} focusRing`}
+                    onClick={() => runGenerate(false)}
+                    disabled={generateBlocked}
+                  >
+                    <MaterialIcon name="auto_awesome" size="xs" />
+                    Generate
+                  </button>
+                  <span className={styles.emptyNote}>
+                    {exhausted ? "No AI requests left in this window." : "Uses 1 AI request."}
+                  </span>
+                </div>
+              </div>
             ) : showLoading ? (
-              <p className={styles.placeholder}>{t("common.loading")}</p>
-            ) : error ? (
-              <p className={styles.error}>{error}</p>
+              <div className={styles.loadingState}>
+                <AiShimmer lines={5} />
+                <div className={styles.loadingRow}>
+                  <p className={styles.loadingText} role="status">
+                    {progressStatus}
+                  </p>
+                  <button
+                    type="button"
+                    className={`${btn.btn} ${btn.ghost} ${btn.sm} focusRing`}
+                    onClick={stop}
+                  >
+                    <MaterialIcon name="stop_circle" size="xs" />
+                    Stop
+                  </button>
+                </div>
+              </div>
+            ) : error && !result ? (
+              <div className={styles.error} role="alert">
+                <MaterialIcon name="error" size="sm" className={styles.errorIcon} />
+                <p className={styles.errorText}>
+                  {error}. Nothing was generated.
+                </p>
+                <button
+                  type="button"
+                  className={`${btn.btn} ${btn.secondary} ${btn.sm} focusRing`}
+                  onClick={onRegenerate}
+                  disabled={generateBlocked}
+                >
+                  <MaterialIcon name="refresh" size="xs" />
+                  Try again
+                </button>
+              </div>
             ) : activeTab === "typescript" ? (
               <HighlightedCode
                 code={displayText || t("workspace.emptyOutput")}
@@ -434,31 +515,42 @@ export default function WorkspaceCodePanel({ t }: WorkspaceCodePanelProps) {
                 skin="forgeTs"
               />
             ) : (
-              <HighlightedCode
-                code={displayText || t("workspace.emptyOutput")}
-                language="markdown"
-                className={styles.highlighted}
-              />
+              <AiMarkdown source={displayText} streaming={streaming} className={styles.promptMd} />
             )}
           </div>
 
           {showCodeBody ? (
             <div className={styles.footer}>
-              <div className="flex items-center gap-3">
+              <div className={styles.footerGroup}>
                 <span className={styles.stats}>
-                  {loading
+                  {streaming
                     ? `${t("workspace.stats", { lines, chars })} · ${t("common.streaming")}`
                     : t("workspace.stats", { lines, chars })}
                 </span>
-                <AIFallbackIndicator loading={loading} statusMessage={statusMessage} />
+                {streaming ? (
+                  <span className={styles.streamStatus}>
+                    <span className={styles.streamCaret} aria-hidden />
+                    {progressStatus}
+                  </span>
+                ) : null}
               </div>
-              <div className="flex items-center gap-3">
-                {lastLatencyMs != null ? (
+              <div className={styles.footerGroup}>
+                {streaming ? (
+                  <button
+                    type="button"
+                    className={`${btn.btn} ${btn.ghost} ${btn.sm} focusRing`}
+                    onClick={stop}
+                  >
+                    <MaterialIcon name="stop_circle" size="xs" />
+                    Stop
+                  </button>
+                ) : null}
+                {lastLatencyMs != null && hasCurrent ? (
                   <span className={styles.latency}>
                     {t("footer.latency", { ms: lastLatencyMs })}
                   </span>
                 ) : null}
-                {lastGroqUsage != null && lastGroqUsage.totalTokens > 0 ? (
+                {lastGroqUsage != null && lastGroqUsage.totalTokens > 0 && hasCurrent ? (
                   <span className={styles.tokens} title={t("footer.tokensTitle")}>
                     {t("footer.tokensShort", {
                       total: lastGroqUsage.totalTokens,
@@ -469,7 +561,6 @@ export default function WorkspaceCodePanel({ t }: WorkspaceCodePanelProps) {
             </div>
           ) : null}
         </div>
-
         {showInsightRail && primaryForFile ? (
           <div className={styles.insight}>
             <SchemaInsightPanel

@@ -1,67 +1,287 @@
 {
   "slug": "api-pagination-best-practices",
-  "title": "API Pagination Best Practices: Offset vs Cursor vs Keyset (2026)",
-  "description": "Deep comparison of Offset-Limit, Cursor-based, and Keyset pagination patterns in REST APIs with OpenAPI parameter schemas.",
-  "excerpt": "Master pagination design patterns to handle high-volume dataset queries without database performance degradation.",
+  "title": "API Pagination Best Practices: Offset, Cursor, Keyset",
+  "description": "API pagination best practices: when offset, keyset or cursor pagination fits, how each fails, and how to model pages in OpenAPI and the Link header.",
+  "excerpt": "Offset pagination is easy until rows move or the offset gets large. Here is how keyset and cursor pagination fix that, and how to document them.",
   "category": "api-design",
+  "cluster": "rest-api",
+  "primaryKeyword": "api pagination best practices",
+  "keywords": [
+    "cursor vs offset pagination",
+    "keyset pagination",
+    "link header pagination",
+    "openapi pagination parameters"
+  ],
   "tags": [
     "API Pagination",
     "REST API",
     "API Design",
-    "OpenAPI",
-    "Database Performance"
-  ],
-  "keywords": [
-    "api pagination best practices",
-    "cursor vs offset pagination",
-    "keyset pagination SQL",
-    "openapi pagination parameter schema"
+    "OpenAPI"
   ],
   "author": "rishab",
   "publishedAt": "2026-09-26",
-  "updatedAt": "2026-09-26",
-  "readingTime": "9 min read",
-  "featured": false,
+  "updatedAt": "2026-10-04",
   "content": [
     {
       "type": "paragraph",
-      "text": "Unbounded collection queries crash databases and consume high network bandwidth. Implementing proper pagination guarantees fast response latencies regardless of table size."
+      "text": "Paginate every collection endpoint, cap the page size on the server, and sort by a unique, stable key. Use offset pagination (?limit=25&offset=50) when the data set is small, rarely changes, and users need to jump to page 7. Use keyset pagination, wrapped in an opaque cursor (?cursor=...), for anything large or frequently written: feeds, logs, orders, events. Keyset queries stay fast at any depth and do not skip or repeat rows when records are inserted between requests. Return the next cursor in the body, a Link header with rel=\"next\" if you want generic clients to follow it, and document both in the OpenAPI spec."
+    },
+    {
+      "type": "paragraph",
+      "text": "The [pagination glossary entry](/glossary/pagination) defines the terms. This guide is about choosing between the three methods and the failure modes that decide it."
     },
     {
       "type": "heading",
       "level": 2,
-      "text": "1. Pagination Method Comparison",
-      "id": "pagination-comparison"
+      "text": "Offset pagination and its two failure modes",
+      "id": "offset"
+    },
+    {
+      "type": "paragraph",
+      "text": "Offset pagination maps directly to SQL. Page 3 with 25 rows per page is OFFSET 50 LIMIT 25. Clients like it because they can compute any page number and show \"page 3 of 40\". It fails in two ways, and both get worse as the table grows."
+    },
+    {
+      "type": "code",
+      "language": "sql",
+      "filename": "offset.sql",
+      "code": "SELECT id, created_at, total\nFROM orders\nORDER BY created_at DESC, id DESC\nLIMIT 25 OFFSET 50;"
+    },
+    {
+      "type": "paragraph",
+      "text": "The first failure is cost. The PostgreSQL documentation states that rows skipped by an OFFSET clause still have to be computed inside the server, so a large OFFSET might be inefficient. Page 4,000 makes the database produce and throw away 99,975 rows to return 25. Response time grows with page depth, and a crawler or a script that walks every page pays that cost on every request."
+    },
+    {
+      "type": "paragraph",
+      "text": "The second failure is drift. Offsets count positions, and positions move when rows are inserted or deleted. Suppose a client reads page 1 of orders sorted newest first, rows 1 to 25. Before it asks for page 2, three new orders arrive. They take positions 1 to 3, and everything else shifts down by three. Page 2, which starts at offset 25, now begins with the three orders that were rows 23 to 25 on page 1. The client shows them twice. Deletes cause the opposite problem: rows shift up and the client skips them without any error. For an export or a sync job, a silently skipped row is a data bug."
+    },
+    {
+      "type": "paragraph",
+      "text": "Whatever method you use, the sort order must be unique. PostgreSQL warns that LIMIT and OFFSET give inconsistent results across pages unless ORDER BY constrains the rows into a unique order, because the planner can pick different plans for different LIMIT values. Sorting by created_at alone is not enough when two orders share a timestamp. Add id as a tie-breaker, as in the query above."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Keyset pagination: continue from the last row",
+      "id": "keyset"
+    },
+    {
+      "type": "paragraph",
+      "text": "Keyset pagination, sometimes called seek pagination, asks for rows after the last one the client saw, using the sort key values instead of a position. With an index on (created_at, id), the database can seek straight to the starting point, so page 4,000 costs about the same as page 1. New rows inserted at the top do not shift anything, because the next page is defined by values, not by how many rows came before."
+    },
+    {
+      "type": "code",
+      "language": "sql",
+      "filename": "keyset.sql",
+      "code": "-- $1 and $2 are created_at and id of the last row on the previous page\nSELECT id, created_at, total\nFROM orders\nWHERE (created_at, id) < ($1, $2)\nORDER BY created_at DESC, id DESC\nLIMIT 26;",
+      "caption": "Ask for one row more than the page size. If 26 rows come back, return 25 and a next cursor; if fewer, this is the last page."
+    },
+    {
+      "type": "paragraph",
+      "text": "The row comparison (created_at, id) < ($1, $2) is lexicographic. PostgreSQL compares the elements left to right and stops at the first unequal pair, which is exactly \"older timestamp, or same timestamp and smaller id\". Databases without row value comparison need the expanded form: created_at < $1 OR (created_at = $1 AND id < $2). Two details trip people up. The sort columns should be NOT NULL, because a null in the pair makes the comparison unknown and that row never matches. And the comparison direction must follow the sort direction: descending order uses less-than, ascending uses greater-than."
+    },
+    {
+      "type": "paragraph",
+      "text": "Keyset has real limits. A client cannot jump to page 40; it can only move forward, or backward if you also implement the reverse query. Every sort option needs its own index and its own comparison, so an endpoint that lets users sort by any of eight columns gets expensive to support. And there is no cheap total count; if you need one, compute it separately and expect it to be approximate on large tables."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Cursor pagination: keyset behind an opaque token",
+      "id": "cursor"
+    },
+    {
+      "type": "paragraph",
+      "text": "A cursor is a token the server hands out and the client returns unchanged. Most cursor implementations are keyset pagination underneath: the token encodes the last row's sort values. The difference is the contract. With ?after_created_at=...&after_id=..., clients learn your sort columns and depend on them. With ?cursor=eyJ..., they depend on nothing, and you can add a tie-breaker column, change the sort, or move storage later without a breaking change."
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Encode the sort values and the filters the page was built with, for example base64url of {\"c\":\"2026-10-01T09:12:44Z\",\"i\":\"ord_8812\",\"status\":\"paid\"}. A cursor reused with a different status filter would return wrong rows, so reject it with 400.",
+        "Treat the token as untrusted input. Decode it, validate every field, and use parameterized queries. If clients must not tamper with it, sign it with an HMAC.",
+        "Decide whether cursors expire. Keyset cursors can stay valid indefinitely; cursors that point into a server-side snapshot cannot, and the docs should say how long they last and what error an expired one returns.",
+        "Return null, not an empty string, as the next cursor on the last page, so clients can loop with while (cursor !== null)."
+      ]
     },
     {
       "type": "table",
-      "headers": ["Pagination Type", "Query Signature", "SQL Complexity", "Data Drift Prevention", "Use Case"],
-      "rows": [
-        ["Offset-Limit", "?page=3&limit=20", "OFFSET 40 LIMIT 20 (O(N))", "Poor (Duplicate/missing items on inserts)", "Small static tables, basic admin panels"],
-        ["Cursor-Based", "?startingAfter=cursor_xyz", "WHERE id > cursor LIMIT 20 (O(1))", "Perfect (Immutability guarantee)", "Real-time feeds, public APIs, mobile apps"],
-        ["Keyset", "?lastCreatedAt=2026-09-26T12:00:00Z", "WHERE created_at < ts LIMIT 20 (O(1))", "High", "Time-series logs, event streaming"]
+      "headers": [
+        "",
+        "Offset",
+        "Keyset",
+        "Cursor (opaque keyset)"
       ],
-      "caption": "REST API Pagination Technical Comparison"
+      "rows": [
+        [
+          "Request",
+          "?limit=25&offset=50",
+          "?limit=25&after_id=ord_8812",
+          "?limit=25&cursor=eyJj..."
+        ],
+        [
+          "Cost at depth",
+          "Grows with offset",
+          "Flat with a matching index",
+          "Flat with a matching index"
+        ],
+        [
+          "Inserts between requests",
+          "Duplicates rows",
+          "Stable",
+          "Stable"
+        ],
+        [
+          "Deletes between requests",
+          "Skips rows",
+          "Stable",
+          "Stable"
+        ],
+        [
+          "Jump to page N",
+          "Yes",
+          "No",
+          "No"
+        ],
+        [
+          "Change sort internals later",
+          "Yes",
+          "Breaking for clients",
+          "Yes"
+        ],
+        [
+          "Good fit",
+          "Small admin tables, search result pages",
+          "Internal services",
+          "Public APIs, feeds, sync and export jobs"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Advertise the next page with the Link header",
+      "id": "link-header"
+    },
+    {
+      "type": "paragraph",
+      "text": "RFC 8288 defines the Link header: a target URI in angle brackets followed by parameters such as rel, with several links separated by commas. The relation types next, prev, first and last are registered with IANA, so a generic HTTP client can follow pages without knowing your body format."
+    },
+    {
+      "type": "code",
+      "language": "http",
+      "filename": "page-response.http",
+      "code": "HTTP/1.1 200 OK\nContent-Type: application/json\nLink: <https://api.example.com/v1/orders?limit=25&cursor=eyJjIjoiMjAyNi0xMC0wMVQwOToxMjo0NFoiLCJpIjoib3JkXzg4MTIifQ>; rel=\"next\"\nAccess-Control-Expose-Headers: Link\n\n{\"data\": [{\"id\": \"ord_8812\", \"createdAt\": \"2026-10-01T09:12:44Z\", \"total\": 4200}], \"nextCursor\": \"eyJjIjoiMjAyNi0xMC0wMVQwOToxMjo0NFoiLCJpIjoib3JkXzg4MTIifQ\"}",
+      "caption": "The body is shortened to one order. On the last page, omit the next link and return nextCursor: null."
+    },
+    {
+      "type": "paragraph",
+      "text": "Send the cursor in the body as well. Browser code calling your API from another origin cannot read Link by default: MDN lists the CORS-safelisted response headers (Cache-Control, Content-Language, Content-Length, Content-Type, Expires, Last-Modified, Pragma), and Link is not among them. Either add Access-Control-Expose-Headers: Link, as above, or make sure the body alone is enough. Building the full next URL on the server also saves clients from reassembling filters, which is a common source of bugs when a filter is dropped on page 2."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Model cursor pagination in OpenAPI",
+      "id": "openapi"
+    },
+    {
+      "type": "paragraph",
+      "text": "The spec should tell a client everything it needs to walk the collection: the maximum page size, the cursor parameter, what the response looks like on the last page, and which error a bad cursor produces. Here is the orders endpoint from the examples above."
     },
     {
       "type": "code",
       "language": "yaml",
-      "filename": "cursor-pagination-schema.yaml",
-      "code": "components:\n  schemas:\n    PaginatedResponse:\n      type: object\n      required:\n        - data\n        - hasMore\n      properties:\n        data:\n          type: array\n          items:\n            type: object\n        hasMore:\n          type: boolean\n          example: true\n        nextCursor:\n          type: string\n          example: cur_92847293"
+      "filename": "orders.yaml",
+      "code": "openapi: 3.1.0\ninfo:\n  title: Orders API\n  version: 1.0.0\npaths:\n  /v1/orders:\n    get:\n      summary: List orders\n      description: Returns orders sorted by createdAt descending, then id descending. Pass the nextCursor value from the previous page to get the next one.\n      parameters:\n        - name: limit\n          in: query\n          description: Page size. Values above 100 are rejected with 400.\n          schema:\n            type: integer\n            minimum: 1\n            maximum: 100\n            default: 25\n        - name: cursor\n          in: query\n          description: Opaque token from a previous response. Omit for the first page.\n          schema:\n            type: string\n      responses:\n        \"200\":\n          description: One page of orders.\n          headers:\n            Link:\n              description: RFC 8288 links with rel=\"next\" when another page exists.\n              schema:\n                type: string\n          content:\n            application/json:\n              schema:\n                type: object\n                required: [data, nextCursor]\n                properties:\n                  data:\n                    type: array\n                    items:\n                      $ref: \"#/components/schemas/Order\"\n                  nextCursor:\n                    type: [string, \"null\"]\n                    description: Null on the last page.\n        \"400\":\n          description: limit is out of range or cursor is malformed or expired.\ncomponents:\n  schemas:\n    Order:\n      type: object\n      required: [id, createdAt, total]\n      properties:\n        id:\n          type: string\n        createdAt:\n          type: string\n          format: date-time\n        total:\n          type: integer"
+    },
+    {
+      "type": "paragraph",
+      "text": "In that spec, nextCursor is required and nullable (type: [string, \"null\"] is the OpenAPI 3.1 form; 3.0 uses nullable: true), so clients never have to tell a missing field from the end of the list. limit has both a maximum and a default, so a client that omits it still gets a bounded page. The description states the sort order, which the schema cannot express. For a shorter snippet that shows the parameter and wrapper shape on its own, see the [OpenAPI pagination example](/examples/openapi-pagination-example)."
+    },
+    {
+      "type": "paragraph",
+      "text": "APIForge's [API quality score](/api-score) gives this spec 100. That number says the operation is named, versioned, documented and has an error response; the score has no pagination rule, so it will not tell you that a list endpoint lacks a limit. Check that by hand: search the spec for every GET that returns an array and confirm each one has a capped limit and a cursor or offset parameter."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Edge cases to decide before you ship",
+      "id": "edge-cases"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Oversized limit: rejecting limit=10000 with 400 tells the client what went wrong. Silently clamping it to 100 is friendlier, but then the client must not assume a short page means the end. Pick one and document it.",
+        "End of data: use nextCursor: null or a missing next link as the only end signal. A page with fewer rows than limit is not reliable, because filters applied after the query can shorten any page.",
+        "Total counts: a COUNT(*) on a large filtered table can cost more than the page query. Offer it as an opt-in parameter, or return an estimate and say so.",
+        "Changed sort or filters: a cursor built for status=paid must not be accepted with status=open. Encode the filters in the cursor and return 400 on mismatch.",
+        "Backward paging: if clients need a previous button, return a prev cursor built from the first row of the page and run the comparison in the other direction, then reverse the rows before returning them.",
+        "Very deep offset: if you keep offset pagination, set a maximum offset and point clients that need everything to a cursor-based export endpoint."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "To check the behavior on a live API, load the spec in the [API testing workbench](/api-testing), send the list request, then paste the nextCursor value into the cursor parameter and send again. Insert a record between the two calls and compare the pages for duplicates. Broader resource and query design is covered in [REST API design best practices](/guides/rest-api-design-best-practices), and the schema side of the wrapper object in [OpenAPI response schema best practices](/guides/openapi-response-schema-best-practices)."
     },
     {
       "type": "tool",
-      "tool": "api-score",
-      "title": "Analyze Pagination Metadata Schemas",
-      "description": "Upload your API specification into APIForge to inspect list endpoints for proper pagination query parameters and response objects.",
-      "buttonText": "Check Pagination Score",
-      "href": "/api-score"
+      "tool": "api-testing",
+      "title": "Walk a paginated endpoint",
+      "description": "Send list requests against your API, pass the cursor from one page to the next, and validate each page against the response schema.",
+      "buttonText": "Open the testing workbench",
+      "href": "/api-testing"
+    },
+    {
+      "type": "relatedContent",
+      "slugs": [
+        "rest-api-design-best-practices",
+        "openapi-response-schema-best-practices",
+        "api-rate-limiting-best-practices"
+      ]
+    },
+    {
+      "type": "externalReference",
+      "title": "RFC 8288: Web Linking",
+      "url": "https://www.rfc-editor.org/rfc/rfc8288.html",
+      "source": "IETF"
+    },
+    {
+      "type": "externalReference",
+      "title": "Link Relation Types registry (next, prev, first, last)",
+      "url": "https://www.iana.org/assignments/link-relations/link-relations.xhtml",
+      "source": "IANA"
+    },
+    {
+      "type": "externalReference",
+      "title": "PostgreSQL: LIMIT and OFFSET",
+      "url": "https://www.postgresql.org/docs/current/queries-limit.html",
+      "source": "PostgreSQL documentation"
+    },
+    {
+      "type": "externalReference",
+      "title": "PostgreSQL: Row constructor comparison",
+      "url": "https://www.postgresql.org/docs/current/functions-comparisons.html",
+      "source": "PostgreSQL documentation"
+    },
+    {
+      "type": "externalReference",
+      "title": "Access-Control-Expose-Headers",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Access-Control-Expose-Headers",
+      "source": "MDN Web Docs"
     }
   ],
   "faqs": [
     {
-      "question": "Why is offset-limit pagination dangerous for large SQL tables?",
-      "answer": "SQL engines executing OFFSET 1000000 LIMIT 20 must scan and throw away 1,000,000 index entries before returning 20 records, leading to high CPU usage and slow responses."
+      "question": "Is cursor pagination always better than offset pagination?",
+      "answer": "No. Offset pagination is fine for small, slowly changing data where users want page numbers, such as an admin table. Cursor pagination wins when the collection is large or written often, because it stays fast at depth and does not skip or repeat rows."
+    },
+    {
+      "question": "What should a pagination cursor contain?",
+      "answer": "Usually the sort key values of the last row returned, plus the filters the page was built with, encoded as an opaque string. Clients should treat it as a black box and send it back unchanged. Validate it on the server like any other input."
+    },
+    {
+      "question": "Should pagination links go in the Link header or the response body?",
+      "answer": "Both work, and you can send both. The Link header with rel=\"next\" is standard and lets generic clients follow pages. The body is easier for browser code, which cannot read Link from a cross-origin response unless the server exposes it with Access-Control-Expose-Headers."
     }
   ]
 }

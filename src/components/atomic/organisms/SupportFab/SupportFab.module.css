@@ -1,0 +1,225 @@
+/* Floating support action. A small action badge, so it is the one place a pill shape is allowed. */
+
+.fab {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  /* Above page content and the header (50), below drawers (1000) and modals (120). */
+  z-index: 60;
+  animation: enter 360ms var(--ease-out) 1.2s both;
+}
+
+.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  padding: 0 16px 0 8px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 999px;
+  background: var(--color-surface-container);
+  box-shadow: var(--shadow-float);
+  color: var(--color-on-surface);
+  text-align: left;
+  transition:
+    transform 180ms var(--ease-out),
+    border-color 140ms ease,
+    width 200ms var(--ease-out),
+    padding 200ms var(--ease-out);
+}
+
+.button:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-primary);
+}
+
+.button:active {
+  transform: translateY(0);
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.heart {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--gradient-primary);
+  color: var(--color-cta-foreground);
+}
+
+.heart :global(.materialSymbols) {
+  font-size: 16px;
+}
+
+.button:hover .heart,
+.button:focus-visible .heart {
+  animation: beat 520ms var(--ease-out) 1;
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.15;
+}
+
+.label {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+}
+
+.sub {
+  display: none;
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  color: var(--color-on-surface-subtle);
+}
+
+@media (min-width: 640px) {
+  .button {
+    height: 48px;
+  }
+
+  .sub {
+    display: block;
+  }
+}
+
+/* —— Dismiss: a 20px corner disc, revealed on hover / keyboard focus —— */
+.dismiss {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 50%;
+  background: var(--color-surface-container-high);
+  color: var(--color-on-surface-variant);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+
+/* Keep a 40px touch target around the small disc. */
+.dismiss::before {
+  content: "";
+  position: absolute;
+  inset: -10px;
+}
+
+.dismiss :global(.materialSymbols) {
+  font-size: 12px;
+}
+
+.fab:hover .dismiss,
+.fab:focus-within .dismiss {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.dismiss:hover {
+  color: var(--color-on-surface);
+  border-color: var(--color-primary);
+}
+
+.dismiss:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Touch screens have no hover: keep the dismiss reachable. */
+@media (hover: none) {
+  .dismiss {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+/* —— Small screens: collapse to a 48px icon disc after scrolling —— */
+@media (max-width: 639px) {
+  .collapsed .button {
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    gap: 0;
+  }
+
+  .collapsed .text {
+    display: none;
+  }
+
+  .collapsed .heart {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+@keyframes beat {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.22);
+  }
+  60% {
+    transform: scale(0.94);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fab {
+    animation: enter-fade 200ms ease 1.2s both;
+  }
+
+  .button {
+    transition: border-color 140ms ease;
+  }
+
+  .button:hover {
+    transform: none;
+  }
+
+  .button:hover .heart,
+  .button:focus-visible .heart {
+    animation: none;
+  }
+}
+
+@keyframes enter-fade {
+  from {
+    opacity: 0;
+  }
+}

@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { getAllExamples } from "@/lib/content/loader";
 import { createBaseMetadata } from "@/lib/seo/metadata";
 import { generateBreadcrumbJsonLd } from "@/lib/seo/jsonld";
 import LandingHeader from "@/components/sections/LandingHeader/LandingHeader";
 import LandingFooter from "@/components/sections/LandingFooter/LandingFooter";
-import Breadcrumbs from "@/components/content/Breadcrumbs";
+import ArticleHero from "@/components/content/ArticleHero";
 import styles from "@/components/content/content.module.css";
+import ContentIndex from "@/components/content/ContentIndex";
+import { formatLabel } from "@/components/content/labels";
 
 
 export const metadata: Metadata = createBaseMetadata({
-  title: "OpenAPI & Swagger Specification Examples | APIForge",
+  title: "OpenAPI & Swagger Specification Examples",
   description: "Real-world valid OpenAPI 3.0 and Swagger 2.0 specification examples, anti-patterns, error responses, pagination models, and authentication schemas.",
   path: "/examples",
   keywords: ["openapi examples", "swagger specs example", "good openapi vs bad openapi"],
@@ -31,25 +32,23 @@ export default function ExamplesIndexPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
       <LandingHeader minimal />
-      <main className={styles.container}>
-        <Breadcrumbs items={[{ label: "Examples", href: "/examples" }]} />
-        <header className={styles.header}>
-          <span className={styles.categoryBadge}>CODE PATTERNS</span>
-          <h1 className={styles.title}>OpenAPI & Swagger Code Examples</h1>
-          <p className={styles.description}>
-            Side-by-side bad vs good OpenAPI patterns, error schema templates, and pagination specifications.
-          </p>
-        </header>
+      <ArticleHero
+        backdrop
+        wide
+        breadcrumbs={[{ label: "Examples", href: "/examples" }]}
+        title={<>OpenAPI & Swagger Code Examples</>}
+        description={<>Side-by-side bad vs good OpenAPI patterns, error schema templates, and pagination specifications.</>}
+      />
+      <main className={`${styles.container} ${styles.containerWide} ${styles.containerAfterHero}`}>
 
-        <div className={styles.relatedGrid}>
-          {examples.map((ex) => (
-            <Link key={ex.slug} href={`/examples/${ex.slug}`} className={styles.relatedCard}>
-              <span className={styles.relatedTag}>{ex.category.toUpperCase()}</span>
-              <h2 className={styles.relatedTitle}>{ex.title}</h2>
-              <p className={styles.relatedExcerpt}>{ex.description}</p>
-            </Link>
-          ))}
-        </div>
+        <ContentIndex
+          items={examples.map((ex) => ({
+            href: `/examples/${ex.slug}`,
+            title: ex.title,
+            description: ex.description,
+            meta: [formatLabel(ex.category)],
+          }))}
+        />
       </main>
       <LandingFooter />
     </div>

@@ -1,418 +1,264 @@
+/*
+ * Landing hero. One job: get a spec URL into the field.
+ * Centered column: headline, one-line promise, the paste field, two sample specs.
+ */
 .hero {
+  --hero-max: 1000px;
   position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  min-height: calc(85vh - var(--header-h, 56px));
-  box-sizing: border-box;
-  overflow: hidden;
-  padding: 64px var(--space-4) 40px;
+  isolation: isolate;
+  padding: clamp(56px, 8vw, 104px) var(--space-6) clamp(56px, 7vw, 96px);
   scroll-margin-top: calc(var(--header-h) + var(--space-2));
 }
 
-@media (min-width: 768px) {
-  .hero {
-    min-height: max(680px, calc(88vh - var(--header-h, 56px)));
-    padding: 88px var(--space-6) 52px;
-  }
-}
-
-.heroMarquee {
-  position: relative;
-  z-index: 1;
-  align-self: stretch;
-  width: 100%;
-  margin-top: 56px;
-}
-
-.heroMesh {
+/* Decorative layers are clipped to the hero; the text never is. */
+.atmosphere,
+.grid {
+  position: absolute;
+  inset: 0 0 auto;
   pointer-events: none;
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(
-      145deg,
-      color-mix(in srgb, var(--color-primary-container) 14%, var(--color-surface)) 0%,
-      var(--color-surface) 42%,
-      color-mix(in srgb, var(--color-primary) 8%, var(--color-surface)) 100%
-    );
 }
 
-.heroMesh::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    125deg,
-    color-mix(in srgb, var(--color-primary) 16%, transparent) 0%,
-    transparent 38%,
-    color-mix(in srgb, var(--color-method-post) 12%, transparent) 100%
+.atmosphere {
+  z-index: -2;
+  height: min(900px, 100%);
+  overflow: clip;
+  background: radial-gradient(
+    ellipse 46% 44% at 50% 22%,
+    color-mix(in srgb, var(--color-primary-container) 13%, transparent),
+    transparent 70%
   );
-  opacity: 0.45;
 }
 
-:global(.light) .heroMesh {
-  background:
-    linear-gradient(
-      145deg,
-      color-mix(in srgb, var(--color-primary) 22%, var(--color-surface)) 0%,
-      var(--color-surface) 55%,
-      color-mix(in srgb, var(--color-method-post) 12%, var(--color-surface)) 100%
-    );
-}
-
-.gridSubtle {
-  pointer-events: none;
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(
-      to right,
-      color-mix(in srgb, var(--color-on-surface-variant) 5%, transparent) 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      to bottom,
-      color-mix(in srgb, var(--color-on-surface-variant) 5%, transparent) 1px,
-      transparent 1px
-    );
-  background-size: 40px 40px;
-  opacity: 0.85;
+.grid {
+  z-index: -1;
+  height: 760px;
+  overflow: clip;
 }
 
 .inner {
-  position: relative;
-  z-index: 1;
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: var(--hero-max);
+  margin: 0 auto;
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   width: 100%;
-  max-width: 52rem;
-  flex-direction: column;
-  align-items: center;
-  align-self: center;
   text-align: center;
-  margin: auto 0;
+  animation: rise 600ms var(--ease-out) both;
 }
 
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin-bottom: 28px;
-  border-radius: 9999px;
-  border: var(--glass-border);
-  background: color-mix(
-    in srgb,
-    var(--color-surface-container-highest) 40%,
-    transparent
-  );
-  padding: 7px 16px;
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  animation: heroFadeUp 0.65s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .badge {
-    animation: none;
-  }
-}
-
-.badgeDot {
-  width: 8px;
-  height: 8px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  background: var(--color-method-get);
-}
-
-.badgeText {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-method-get);
-}
-
+/* Sized to the column, never to the viewport: no line can outgrow its box. */
 .title {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.1em;
-  margin: 0 0 24px;
+  margin: 0;
+  max-width: 100%;
   font-family: var(--font-display);
-  font-size: clamp(2.35rem, 8.5vw, 4.25rem);
-  font-weight: 900;
-  line-height: 1.05;
-  letter-spacing: -0.05em;
+  font-size: clamp(2.2rem, 1rem + 4.2vw, 4.25rem);
+  font-weight: 800;
+  line-height: 1.04;
+  letter-spacing: -0.04em;
   color: var(--color-on-surface);
-  animation: heroFadeUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .title {
-    animation: none;
-  }
-}
-
-@keyframes heroFadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  text-wrap: balance;
+  overflow-wrap: break-word;
 }
 
 .titleLine {
   display: block;
 }
 
-.titleGradient {
-  display: block;
-  background: linear-gradient(
-    92deg,
-    var(--color-primary) 0%,
-    color-mix(in srgb, var(--color-method-post) 85%, var(--color-primary)) 100%
-  );
+/* The page's one gradient phrase (identity element, DESIGN.md). Static. */
+.titleAccent {
+  padding: 0 0.04em 0.1em;
+  background: var(--gradient-display-accent);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
 }
 
-.subtitle {
-  margin: 0 auto 36px;
-  max-width: 38rem;
-  font-size: clamp(1rem, 2.5vw, 1.15rem);
+.lede {
+  max-width: 60ch;
+  margin: var(--space-6) 0 0;
+  font-size: clamp(1rem, 0.94rem + 0.3vw, 1.1875rem);
   font-weight: 500;
-  line-height: 1.68;
+  line-height: 1.62;
   color: var(--color-on-surface-variant);
+  text-wrap: pretty;
 }
 
-.inputCanvas {
+.formSlot {
+  display: flex;
+  justify-content: center;
   width: 100%;
-  max-width: 44rem;
-  border-radius: var(--radius-md);
-  border: 1px solid color-mix(in srgb, var(--color-outline-variant) 10%, transparent);
-  background: var(--color-surface-container);
-  padding: 8px;
-  box-shadow: var(--shadow-float);
-  transition:
-    box-shadow 0.3s ease,
-    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  margin-top: clamp(28px, 3.5vw, 36px);
 }
 
-.inputCanvas:hover {
-  box-shadow:
-    var(--shadow-float),
-    0 0 32px color-mix(in srgb, var(--color-primary-container) 12%, transparent);
-}
-
-.inputCanvas:focus-within {
-  box-shadow:
-    var(--shadow-float),
-    0 0 0 1px color-mix(in srgb, var(--color-primary) 30%, transparent),
-    0 0 36px color-mix(in srgb, var(--color-primary-container) 14%, transparent);
-}
-
-.inputRow {
+/* —— Samples: two real specs, as cards —— */
+.samples {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  gap: var(--space-2);
-}
-
-@media (min-width: 768px) {
-  .inputRow {
-    flex-direction: row;
-    align-items: stretch;
-  }
-}
-
-.inputWrap {
-  position: relative;
-  display: flex;
-  min-height: 0;
-  flex: 1;
   align-items: center;
-}
-
-.linkIcon {
-  position: absolute;
-  left: var(--space-4);
-  color: var(--color-outline-variant);
-  pointer-events: none;
-}
-
-.input {
+  gap: var(--space-3);
   width: 100%;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: var(--color-surface-container-high);
-  padding: 1rem 1rem 1rem 3rem;
-  font-size: 1rem;
-  font-weight: 500;
-  color: var(--color-on-surface);
-  font-family: var(--font-body);
-}
-
-.input::placeholder {
-  color: color-mix(in srgb, var(--color-outline-variant) 60%, transparent);
-}
-
-.input:focus {
-  outline: none;
-}
-
-.parseBtn {
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: 1rem var(--space-8);
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--color-on-primary);
-  background: var(--color-cta-fill);
-  font-family: var(--font-body);
-  cursor: pointer;
-  box-shadow: var(--shadow-ambient);
-  transition:
-    filter 0.2s ease,
-    transform 0.15s ease,
-    opacity 0.2s ease;
-}
-
-.parseBtn:hover:not(:disabled) {
-  filter: brightness(1.06);
-  opacity: 0.95;
-}
-
-.parseBtn:active:not(:disabled) {
-  transform: scale(0.98);
-}
-
-.parseBtn:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-
-.parseIcon {
-  flex-shrink: 0;
-}
-
-.error {
-  margin-top: var(--space-4);
-  max-width: 42rem;
-  font-size: 0.875rem;
-  line-height: 1.4;
-  color: var(--color-error);
-}
-
-.supporting {
-  margin-top: var(--space-7);
-}
-
-.supportsRow {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  column-gap: var(--space-5);
-  row-gap: var(--space-3);
-}
-
-.supportsLabel {
-  flex-shrink: 0;
-  padding-top: 2px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--color-outline-variant);
-}
-
-.supportsTags {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-3);
-}
-
-.tagPrimary {
-  border-radius: var(--radius-sm);
-  background: var(--color-surface-container-high);
-  padding: 6px 10px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: var(--color-method-post);
-}
-
-.tagMuted {
-  border-radius: var(--radius-sm);
-  background: var(--color-surface-container-high);
-  padding: 6px 10px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: var(--color-outline-variant);
-}
-
-.samplesRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-3);
-  margin-top: 16px;
+  margin-top: var(--space-6);
 }
 
 .samplesLabel {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-on-surface-subtle);
+}
+
+.chipList {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Sample chips: vibrant on purpose. Each carries its own color and floods with it on hover. */
+.chip {
+  --c: var(--color-primary);
+  --on: var(--color-cta-foreground);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 42px;
+  padding: 0 16px 0 14px;
+  border: 1px solid color-mix(in srgb, var(--c) 55%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--c) 14%, var(--color-surface-container-low));
+  font-family: inherit;
+  color: var(--color-on-surface);
+  cursor: pointer;
+  overflow: hidden;
+  transition: color 180ms ease, border-color 180ms ease, box-shadow 220ms ease, transform 160ms var(--ease-out);
+}
+
+.chip_green {
+  --c: var(--color-method-get);
+  --on: var(--color-surface-container-lowest);
+}
+
+/* The flood: a circle of the chip color grows from the left on hover. */
+.chip::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: var(--c);
+  clip-path: circle(0 at 22px 50%);
+  transition: clip-path 360ms var(--ease-out);
+}
+
+.chip > * {
+  position: relative;
+  z-index: 1;
+}
+
+.chip:hover:not(:disabled),
+.chip:focus-visible {
+  color: var(--on);
+  border-color: var(--c);
+  box-shadow: 0 8px 24px -10px color-mix(in srgb, var(--c) 75%, transparent);
+  transform: translateY(-1px);
+}
+
+.chip:hover:not(:disabled)::before,
+.chip:focus-visible::before {
+  clip-path: circle(160% at 22px 50%);
+}
+
+.chip:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.chip:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.chipDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--c) 60%, transparent);
+  animation: ping 2.4s ease-out infinite;
+  transition: background-color 180ms ease;
+}
+
+.chip:hover:not(:disabled) .chipDot {
+  background: var(--on);
+  animation: none;
+}
+
+.chipName {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.chipMeta {
+  font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
   color: var(--color-on-surface-variant);
+  transition: color 180ms ease;
+}
+
+.chip:hover:not(:disabled) .chipMeta {
+  color: inherit;
   opacity: 0.8;
 }
 
-.samplesBtns {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
+.chipArrow {
+  margin-left: -2px;
+  transition: transform 220ms var(--ease-out);
 }
 
-.sampleChip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border-radius: 9999px;
-  border: 1px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
-  background: var(--color-cta-fill);
-  padding: 6px 14px;
-  font-family: var(--font-body);
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--color-on-primary);
-  cursor: pointer;
-  box-shadow: var(--shadow-ambient);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+.chip:hover:not(:disabled) .chipArrow {
+  transform: translateX(3px);
 }
 
-.sampleChip:hover {
-  filter: brightness(1.12);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--color-primary) 40%, transparent);
+@keyframes ping {
+  70%,
+  100% {
+    box-shadow: 0 0 0 7px transparent;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .copy,
+  .chipDot {
+    animation: none;
+  }
+
+  .chip::before {
+    transition: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+
 }

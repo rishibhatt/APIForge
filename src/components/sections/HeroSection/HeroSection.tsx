@@ -1,9 +1,10 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import type { TranslateFn } from "@/context/LanguageContext";
 import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
-import LandingMarquee from "@/components/sections/LandingMarquee/LandingMarquee";
 import { useWorkspaceStore } from "@/store/workspaceStore";
+import SpecUrlForm from "./SpecUrlForm";
 import styles from "./HeroSection.module.css";
 
 export interface HeroSectionProps {
@@ -14,6 +15,16 @@ export interface HeroSectionProps {
   onSelectSampleUrl?: (url: string) => void;
 }
 
+export const SAMPLE_SPECS = [
+  { label: "Swagger Petstore", meta: "20 endpoints", tone: "violet", url: "https://petstore.swagger.io/" },
+  {
+    label: "Fake REST API",
+    meta: "27 endpoints",
+    tone: "green",
+    url: "https://fakerestapi.azurewebsites.net/index.html",
+  },
+] as const;
+
 export default function HeroSection({
   t,
   isLoading,
@@ -21,8 +32,23 @@ export default function HeroSection({
   onForge,
   onSelectSampleUrl,
 }: HeroSectionProps) {
-  const specUrlInput = useWorkspaceStore((s) => s.specUrlInput);
   const setSpecUrlInput = useWorkspaceStore((s) => s.setSpecUrlInput);
+
+  // Deep link: /?spec=<url> opens that spec straight in the workspace.
+  const deepLinkHandled = useRef(false);
+  useEffect(() => {
+    if (deepLinkHandled.current) return;
+    deepLinkHandled.current = true;
+    const spec = new URLSearchParams(window.location.search).get("spec");
+    if (!spec || !/^https?:\/\//i.test(spec)) return;
+    // Consume the param so returning to the landing page never re-parses it.
+    const url = new URL(window.location.href);
+    url.searchParams.delete("spec");
+    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+    setSpecUrlInput(spec);
+    if (onSelectSampleUrl) onSelectSampleUrl(spec);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSelectSample = (url: string) => {
     setSpecUrlInput(url);
@@ -34,105 +60,57 @@ export default function HeroSection({
   };
 
   return (
-    <section className={styles.hero} id="parse-api">
-      <div className={styles.heroMesh} aria-hidden />
-      <div className={styles.gridSubtle} aria-hidden />
+    <section className={styles.hero} id="parse-api" aria-labelledby="hero-heading">
+      <div className={styles.atmosphere} aria-hidden />
+      <div className={`gridBackdrop ${styles.grid}`} aria-hidden />
 
       <div className={styles.inner}>
-        <div className={styles.badge}>
-          <span className={styles.badgeDot} aria-hidden />
-          <span className={styles.badgeText}>{t("landing.engineBadge")}</span>
-        </div>
+        <div className={styles.copy}>
+          <h1 id="hero-heading" className={styles.title}>
+            <span className={styles.titleLine}>Parse, test, and grade</span>{" "}
+            <span className={`${styles.titleLine} ${styles.titleAccent}`}>any OpenAPI or Swagger spec.</span>
+          </h1>
 
-        <h1 className={styles.title}>
-          <span className={styles.titleLine}>{t("landing.titleLine1")}</span>
-          <span className={styles.titleGradient}>{t("landing.titleLine2")}</span>
-        </h1>
+          <p className={styles.lede}>
+            A free online OpenAPI and Swagger tool. Paste a spec URL to parse it, send requests
+            without CORS errors, validate responses against the schema, score the API design from
+            0 to 100, and generate TypeScript types and tests.
+          </p>
 
-        <p className={styles.subtitle}>{t("landing.subtitle")}</p>
-
-        <div className={styles.inputCanvas}>
-          <div className={styles.inputRow}>
-            <div className={styles.inputWrap}>
-              <MaterialIcon
-                name="link"
-                className={styles.linkIcon}
-                size="md"
-              />
-              <label htmlFor="landing-forge-url" className="srOnly">
-                {t("landing.inputPlaceholder")}
-              </label>
-              <input
-                id="landing-forge-url"
-                type="url"
-                name="url"
-                autoComplete="url"
-                placeholder={t("landing.inputPlaceholder")}
-                className={`${styles.input} focusRing`}
-                value={specUrlInput}
-                onChange={(e) => setSpecUrlInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") onForge();
-                }}
-              />
-            </div>
-            <button
-              type="button"
-              className={`${styles.parseBtn} focusRing`}
-              onClick={onForge}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <MaterialIcon name="refresh" className={styles.spinnerIcon} size="sm" />
-                  <span>{t("common.loading")}</span>
-                </>
-              ) : (
-                <>
-                  <span>{t("landing.parseCta")}</span>
-                  <MaterialIcon name="bolt" className={styles.parseIcon} size="sm" />
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {error ? <p className={styles.error}>{error}</p> : null}
-
-        <div className={styles.supporting}>
-          <div className={styles.supportsRow}>
-            <span className={styles.supportsLabel}>{t("landing.supports")}</span>
-            <div className={styles.supportsTags}>
-              <span className={styles.tagPrimary}>{t("landing.tagOpenApi")}</span>
-              <span className={styles.tagMuted}>{t("landing.tagSwagger")}</span>
-            </div>
+          <div className={styles.formSlot}>
+            <SpecUrlForm
+              id="landing-forge-url"
+              t={t}
+              isLoading={isLoading}
+              error={error}
+              onForge={onForge}
+              autoFocus
+              size="hero"
+            />
           </div>
 
-          <div className={styles.samplesRow}>
-            <span className={styles.samplesLabel}>Try Sample Specs:</span>
-            <div className={styles.samplesBtns}>
-              <button
-                type="button"
-                className={styles.sampleChip}
-                onClick={() => handleSelectSample("https://petstore.swagger.io/")}
-              >
-                <MaterialIcon name="pets" size="xs" />
-                Swagger Petstore
-              </button>
-              <button
-                type="button"
-                className={styles.sampleChip}
-                onClick={() => handleSelectSample("https://fakerestapi.azurewebsites.net/index.html")}
-              >
-                <MaterialIcon name="api" size="xs" />
-                Fake REST API
-              </button>
-            </div>
+          <div className={styles.samples}>
+            <p className={styles.samplesLabel}>No spec handy? Try one:</p>
+            <ul className={styles.chipList}>
+              {SAMPLE_SPECS.map((s) => (
+                <li key={s.url}>
+                  <button
+                    type="button"
+                    className={`${styles.chip} ${styles[`chip_${s.tone}`]}`}
+                    onClick={() => handleSelectSample(s.url)}
+                    disabled={isLoading}
+                  >
+                    <span className={styles.chipDot} aria-hidden />
+                    <span className={styles.chipName}>{s.label}</span>
+                    <span className={styles.chipMeta}>{s.meta}</span>
+                    <MaterialIcon name="arrow_forward" size="xs" className={styles.chipArrow} />
+                  </button>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </div>
-
-      <LandingMarquee t={t} className={styles.heroMarquee} />
     </section>
   );
 }

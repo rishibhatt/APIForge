@@ -1,39 +1,32 @@
+/* Method chip: mono uppercase text on a 12% tint with a 28% tinted hairline, 2px radius. */
 .badge {
+  --m: var(--color-on-surface-variant);
+  display: inline-flex;
   flex-shrink: 0;
+  min-width: 46px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--m) 28%, transparent);
   border-radius: var(--radius-xs);
-  padding: 2px 6px;
+  padding: 0 6px;
   font-family: var(--font-mono);
-  font-size: 0.625rem;
-  font-weight: 800;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
   text-transform: uppercase;
+  color: var(--m);
+  background: color-mix(in srgb, var(--m) 12%, transparent);
+  box-sizing: border-box;
+  white-space: nowrap;
 }
 
-.get {
-  background: color-mix(in srgb, var(--color-method-get) 10%, transparent);
-  color: var(--color-method-get);
-}
-
-.post {
-  background: color-mix(in srgb, var(--color-method-post) 10%, transparent);
-  color: var(--color-method-post);
-}
-
-.put {
-  background: color-mix(in srgb, var(--color-method-put) 10%, transparent);
-  color: var(--color-method-put);
-}
-
-.patch {
-  background: color-mix(in srgb, var(--color-method-patch) 10%, transparent);
-  color: var(--color-method-patch);
-}
-
-.delete {
-  background: color-mix(in srgb, var(--color-method-delete) 10%, transparent);
-  color: var(--color-method-delete);
-}
-
-.default {
-  background: color-mix(in srgb, var(--color-on-surface) 6%, transparent);
-  color: var(--color-on-surface-muted);
-}
+.get { --m: var(--color-method-get); }
+.post { --m: var(--color-method-post); }
+.put { --m: var(--color-method-put); }
+.patch { --m: var(--color-method-patch); }
+.delete { --m: var(--color-method-delete); }
+.head { --m: var(--color-method-head); }
+.options { --m: var(--color-method-options); }
+.default { --m: var(--color-on-surface-variant); }

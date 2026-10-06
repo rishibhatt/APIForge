@@ -5,9 +5,9 @@ import RoastMyApiPageClient from "./RoastMyApiPageClient";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://apiforge.info";
 
 export const metadata: Metadata = {
-  title: "Roast My API — Brutally Honest API Quality & REST Review | APIForge",
+  title: "Roast My API: Free OpenAPI and Swagger Spec Review",
   description:
-    "Paste your Swagger or OpenAPI specification and get a brutally honest, shareable API quality audit powered by APIForge's deterministic quality engine.",
+    "Paste an OpenAPI or Swagger URL and get a 0 to 100 design score, a roast written about your real endpoints, a reaction meme, and a share card. Free, no sign-up.",
   keywords: [
     "Roast My API",
     "API roast",
@@ -33,25 +33,16 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "Roast My API | APIForge — Brutally Honest API Review",
-    description: "You shipped it. Let's see what you shipped. Get a brutally honest, deterministic API quality audit.",
+    title: "Roast My API: Brutally Honest OpenAPI Review",
+    description: "You shipped it. Let's see what you shipped. Paste an OpenAPI or Swagger spec and get a brutally honest, deterministic, shareable API quality audit.",
     url: `${SITE_URL}/roast-my-api`,
     siteName: "APIForge",
     type: "website",
-    images: [
-      {
-        url: `${SITE_URL}/opengraph-image`,
-        width: 1200,
-        height: 630,
-        alt: "APIForge Roast My API",
-      },
-    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Roast My API | APIForge",
-    description: "Your API works. Let's see if it's actually good. Run a deterministic API audit.",
-    images: [`${SITE_URL}/twitter-image`],
+    title: "Roast My API: Brutally Honest OpenAPI Review",
+    description: "Your API works. Let's see if it's actually good. Paste an OpenAPI or Swagger spec and get a deterministic, shareable API quality audit.",
   },
 };
 
@@ -79,9 +70,7 @@ export default function RoastMyApiPage() {
       />
       <Suspense
         fallback={
-          <div style={{ padding: "5rem 1.5rem", textAlign: "center", color: "#a1a1aa" }}>
-            Loading Roast My API...
-          </div>
+          <div className="roastZone" style={{ minHeight: "100vh", background: "var(--color-surface)" }} />
         }
       >
         <RoastMyApiPageClient />

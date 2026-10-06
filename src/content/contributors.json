@@ -1,0 +1,54 @@
+[
+  {
+    "id": "rishab-bhatt",
+    "name": "Rishab Bhatt",
+    "handle": "rishibhatt",
+    "avatarUrl": "https://github.com/rishibhatt.png?size=96",
+    "url": "https://rishieee.netlify.app",
+    "tier": "maintainer",
+    "note": "Builds and maintains APIForge."
+  },
+  {
+    "id": "example-ada-sponsor",
+    "name": "Ada Example",
+    "handle": "ada-example",
+    "tier": "sponsor",
+    "since": "2026-09",
+    "note": "Placeholder entry that shows how a sponsor looks.",
+    "example": true
+  },
+  {
+    "id": "example-sam-sample",
+    "name": "Sam Sample",
+    "tier": "supporter",
+    "since": "2026-09",
+    "note": "Placeholder entry that shows how a supporter looks.",
+    "example": true
+  },
+  {
+    "id": "example-priya-placeholder",
+    "name": "Priya Placeholder",
+    "handle": "priya-placeholder",
+    "tier": "supporter",
+    "since": "2026-10",
+    "example": true
+  },
+  {
+    "id": "example-jonas-demo",
+    "name": "Jonas Demo",
+    "handle": "jonas-demo",
+    "tier": "contributor",
+    "since": "2026-08",
+    "note": "Placeholder entry that shows how a code contributor looks.",
+    "example": true
+  },
+  {
+    "id": "example-mei-mockdata",
+    "name": "Mei Mockdata",
+    "handle": "mei-mockdata",
+    "tier": "contributor",
+    "since": "2026-10",
+    "note": "Placeholder entry for a rule suggestion.",
+    "example": true
+  }
+]

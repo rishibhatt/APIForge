@@ -7,23 +7,8 @@ import type {
 } from "./types";
 import { CANONICAL_AUTHOR } from "./authors";
 import { CLUSTERS_REGISTRY } from "./clusters";
-
-// Legacy JSON imports
-import openapiBestPractices from "@/content/guides/openapi-best-practices.json";
-import restApiDesignBestPractices from "@/content/guides/rest-api-design-best-practices.json";
-import swaggerVsOpenapi from "@/content/guides/swagger-vs-openapi.json";
-import validateSwaggerOpenapiSpec from "@/content/guides/validate-swagger-openapi-spec.json";
-import apiVersioningBestPractices from "@/content/guides/api-versioning-best-practices.json";
-import restApiErrorHandling from "@/content/guides/rest-api-error-handling.json";
-import apiNamingConventions from "@/content/guides/api-naming-conventions.json";
-import openapiResponseSchemaBestPractices from "@/content/guides/openapi-response-schema-best-practices.json";
-import apiDocumentationBestPractices from "@/content/guides/api-documentation-best-practices.json";
-import apiSecurityBestPractices from "@/content/guides/api-security-best-practices.json";
-import apiPaginationBestPractices from "@/content/guides/api-pagination-best-practices.json";
-import apiRateLimitingBestPractices from "@/content/guides/api-rate-limiting-best-practices.json";
-import apiTestingBestPractices from "@/content/guides/api-testing-best-practices.json";
-import commonOpenapiErrors from "@/content/guides/common-openapi-errors.json";
-import apiQualityChecklist from "@/content/guides/api-quality-checklist.json";
+import { readingTimeFor } from "./metrics";
+import { guideSources } from "@/content/guides/index";
 
 // Glossary imports
 import openapiGlossary from "@/content/glossary/openapi.json";
@@ -69,6 +54,8 @@ interface RawArticleData {
   featured?: boolean;
   keywords?: string[];
   tags?: string[];
+  cluster?: ContentCluster;
+  primaryKeyword?: string;
 }
 
 interface RawGlossaryData {
@@ -124,6 +111,7 @@ function convertArticleToItem(article: RawArticleData): KnowledgeItem {
   else if (slug.includes("pagination") || slug.includes("rate-limiting")) cluster = "api-performance";
   else if (slug.includes("rest-api")) cluster = "rest-api";
   else if (slug.includes("quality") || slug.includes("checklist")) cluster = "api-quality";
+  if (article.cluster && CLUSTERS_REGISTRY[article.cluster]) cluster = article.cluster;
 
   return {
     id: `guide-${article.slug}`,
@@ -139,19 +127,20 @@ function convertArticleToItem(article: RawArticleData): KnowledgeItem {
     difficulty: "intermediate",
     publishedAt: article.publishedAt || "2026-09-01",
     updatedAt: article.updatedAt || article.publishedAt,
-    readingTime: article.readingTime || "6 min read",
+    readingTime: readingTimeFor(article.content),
     author: article.author || CANONICAL_AUTHOR.id || "rishab",
     blocks: article.content,
     answerFirst: article.description,
     faqs: article.faqs || [],
     featured: article.featured || false,
     seo: {
-      title: `${article.title} — APIForge Guide`,
+      title: article.title,
       description: article.description,
       keywords: article.keywords || article.tags || [],
     },
     tags: article.tags || [],
     keywords: article.keywords || [],
+    primaryKeyword: article.primaryKeyword,
     tool: CLUSTERS_REGISTRY[cluster] ? {
       href: CLUSTERS_REGISTRY[cluster].defaultToolHref,
       title: CLUSTERS_REGISTRY[cluster].defaultToolTitle,
@@ -443,23 +432,7 @@ const ADDITIONAL_REFERENCES: KnowledgeItem[] = [
   },
 ];
 
-const rawGuides = [
-  openapiBestPractices,
-  restApiDesignBestPractices,
-  swaggerVsOpenapi,
-  validateSwaggerOpenapiSpec,
-  apiVersioningBestPractices,
-  restApiErrorHandling,
-  apiNamingConventions,
-  openapiResponseSchemaBestPractices,
-  apiDocumentationBestPractices,
-  apiSecurityBestPractices,
-  apiPaginationBestPractices,
-  apiRateLimitingBestPractices,
-  apiTestingBestPractices,
-  commonOpenapiErrors,
-  apiQualityChecklist,
-].map((item) => convertArticleToItem(item as RawArticleData));
+const rawGuides = guideSources.map((item) => convertArticleToItem(item as RawArticleData));
 
 const rawGlossary = [
   openapiGlossary,

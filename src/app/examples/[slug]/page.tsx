@@ -5,10 +5,13 @@ import { createExampleMetadata } from "@/lib/seo/metadata";
 import { generateBreadcrumbJsonLd } from "@/lib/seo/jsonld";
 import LandingHeader from "@/components/sections/LandingHeader/LandingHeader";
 import LandingFooter from "@/components/sections/LandingFooter/LandingFooter";
-import Breadcrumbs from "@/components/content/Breadcrumbs";
+import ArticleHero from "@/components/content/ArticleHero";
 import ArticleCodeBlock from "@/components/content/ArticleCodeBlock";
 import ArticleCTA from "@/components/content/ArticleCTA";
 import ShareButtons from "@/components/content/ShareButtons";
+import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
+import MetaRow from "@/components/content/MetaRow";
+import { formatDate, formatLabel } from "@/components/content/labels";
 import styles from "@/components/content/content.module.css";
 
 
@@ -49,44 +52,67 @@ export default function ExampleDetailPage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
       <LandingHeader minimal />
-      <main className={styles.container}>
-        <Breadcrumbs
-          items={[
+      <ArticleHero
+        breadcrumbs={[
             { label: "Examples", href: "/examples" },
             { label: example.title, href: `/examples/${example.slug}` },
           ]}
-        />
-        <header className={styles.header}>
-          <span className={styles.categoryBadge}>{example.category.toUpperCase()}</span>
-          <h1 className={styles.title}>{example.title}</h1>
-          <p className={styles.description}>{example.description}</p>
-        </header>
+        title={<>{example.title}</>}
+        description={<>{example.description}</>}
+        meta={
+          <MetaRow
+            items={[
+              "Example",
+              formatLabel(example.category),
+              <>
+                {example.updatedAt && example.updatedAt !== example.publishedAt ? "Updated " : "Published "}
+                <time dateTime={example.updatedAt ?? example.publishedAt}>
+                  {formatDate(example.updatedAt ?? example.publishedAt)}
+                </time>
+              </>,
+            ]}
+          />
+        }
+      />
+      <main className={`${styles.container} ${styles.containerAfterHero}`}>
 
         <section className={styles.articleBody}>
-          <h2 className={styles.heading2}>Problem Statement</h2>
+          <h2 className={styles.heading2}>The problem</h2>
           <p className={styles.paragraph}>{example.problemStatement}</p>
 
-          <div className={`${styles.callout} ${styles.callout_danger}`}>
-            <h3 className={styles.calloutTitle}>❌ Anti-Pattern / Bad Implementation</h3>
-            <p className={styles.calloutText}>{example.badExample.explanation}</p>
-          </div>
-          <ArticleCodeBlock
-            language={example.badExample.language}
-            code={example.badExample.code}
-            filename="bad-pattern.yaml"
-          />
+          <section className={styles.exampleBlock} aria-labelledby="example-avoid">
+            <h3 id="example-avoid" className={styles.exampleHead}>
+              <span className={`${styles.exampleVerdict} ${styles.exampleVerdictBad}`}>
+                <MaterialIcon name="cancel" size="sm" />
+                Avoid
+              </span>
+              <span className={styles.exampleTitle}>The anti-pattern</span>
+            </h3>
+            <ArticleCodeBlock
+              language={example.badExample.language}
+              code={example.badExample.code}
+              filename={`bad-pattern.${example.badExample.language === "json" ? "json" : "yaml"}`}
+            />
+            <p className={styles.exampleExplain}>{example.badExample.explanation}</p>
+          </section>
 
-          <div className={`${styles.callout} ${styles.callout_tip}`}>
-            <h3 className={styles.calloutTitle}>✓ Refactored / Recommended Implementation</h3>
-            <p className={styles.calloutText}>{example.goodExample.explanation}</p>
-          </div>
-          <ArticleCodeBlock
-            language={example.goodExample.language}
-            code={example.goodExample.code}
-            filename="good-pattern.yaml"
-          />
+          <section className={styles.exampleBlock} aria-labelledby="example-prefer">
+            <h3 id="example-prefer" className={styles.exampleHead}>
+              <span className={`${styles.exampleVerdict} ${styles.exampleVerdictGood}`}>
+                <MaterialIcon name="check_circle" size="sm" />
+                Prefer
+              </span>
+              <span className={styles.exampleTitle}>The refactored version</span>
+            </h3>
+            <ArticleCodeBlock
+              language={example.goodExample.language}
+              code={example.goodExample.code}
+              filename={`good-pattern.${example.goodExample.language === "json" ? "json" : "yaml"}`}
+            />
+            <p className={styles.exampleExplain}>{example.goodExample.explanation}</p>
+          </section>
 
-          <h2 className={styles.heading2}>How APIForge Checks This</h2>
+          <h2 className={styles.heading2}>How APIForge checks this</h2>
           <ul className={styles.unorderedList}>
             {example.apiforgeChecks.map((check, i) => (
               <li key={i}>{check}</li>
@@ -96,7 +122,7 @@ export default function ExampleDetailPage({
 
         <ArticleCTA
           title="Test your own OpenAPI specification against these checks"
-          buttonText="Run API Score Check"
+          buttonText="Score your spec"
           href="/api-score"
         />
 

@@ -77,7 +77,7 @@ export function normalizeCaption(caption: string): string {
   return caption
     .toLowerCase()
     .replace(/[^\w\s]/g, "")
-    .replace(/\d+/g, "#")
+    .replace(/\d+/g, "0") // stays a word char, so normalizing twice is a no-op
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -93,6 +93,43 @@ interface RoastContext {
   primaryEndpoint?: string;
   topCategory?: string;
   personality?: string;
+}
+
+function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/** Short noun phrase naming a real finding, for meme captions. */
+export function captionSubject(ruleId: string, path: string, count: number): string {
+  const at = path ? ` ${path}` : "";
+  switch (ruleId) {
+    case "ACTION_IN_PATH":
+      return path ? `${path} with a verb in the URL` : `${count} routes with verbs in the URL`;
+    case "GET_WITH_BODY":
+      return `a GET with a request body${path ? ` (${path})` : ""}`;
+    case "VERB_METHOD_MISMATCH":
+      return path ? `${path} saying the verb twice` : "paths that repeat their HTTP verb";
+    case "CAMEL_CASE_PATH":
+      return `camelCase in${at || " the URLs"}`;
+    case "UNDERSCORE_PATH":
+      return `underscores in${at || " the URLs"}`;
+    case "MISSING_SUCCESS_RESPONSE":
+      return path ? `${path} with no documented 2xx` : `${count} operations with no documented 2xx`;
+    case "MISSING_ERROR_RESPONSE":
+      return path ? `${path} with zero error responses` : `${count} operations with zero error responses`;
+    case "UNDOCUMENTED_OPERATIONS":
+      return path ? `${path} with no description` : `${count} undocumented operations`;
+    case "MISSING_VERSIONING":
+      return "an API with no version anywhere";
+    case "SINGULAR_PLURAL_MIX":
+      return path ? `${path} mixing singular and plural` : "singular and plural resources mixed together";
+    case "DEEP_NESTING":
+      return path ? `how deep ${path} goes` : "six levels of nested paths";
+    case "DUPLICATE_OPERATIONS":
+      return path ? `${path} defined twice` : "duplicate operations";
+    default:
+      return path ? `whatever ${path} is doing` : `${count} findings in one spec`;
+  }
 }
 
 function extractRoastContext(summary: RoastSummary): RoastContext {
@@ -125,191 +162,66 @@ export function generateMemeCaption(
   const recentCaptions = (options.recentCaptions || []).map(normalizeCaption);
 
   const rawCandidates: string[] = [];
+  const top = summary.topPatterns[0];
+  const path = primaryEndpoint ?? "";
 
-  const epLabel = primaryEndpoint ? ` (${primaryEndpoint})` : "";
-  const findingText = primaryFindingSummary ? `: ${primaryFindingSummary}` : "";
+  // What the meme is reacting to: always a real finding, never an invented one.
+  const subject = top ? captionSubject(top.ruleId, path, top.count) : "";
+  const clean = !top || totalFindings === 0;
+  void primaryFindingSummary;
+  void topCategory;
 
-  // Meme-specific comedic delivery logic based on actual API data
   switch (memeId) {
     case "perfect":
-      if (score >= 90) {
-        rawCandidates.push(
-          `Score: ${score}/100. Annoyingly clean. We found ${totalFindings} minor finding(s) just to keep your ego manageable.`,
-          `Bro got a ${score}/100 and actually read the REST API design specification.`,
-          `${score}/100. Rare footage of an API with zero catastrophic design crimes.`,
-          `${score}/100. APIForge tried to bully this spec, but there's almost nothing to roast.`,
-          `Annoyingly good design. ${totalEndpoints} endpoint(s) and zero structural crimes.`,
-        );
-      } else if (score >= 75) {
-        rawCandidates.push(
-          `Score: ${score}/100. Pretty clean. Unfortunately, your ${topCategory} conventions still have unresolved feelings.`,
-          `${score}/100. Posing like a pristine production spec while ${totalFindings} finding(s) exist in the background.`,
-          `Flexing a ${score}/100 score while ${primaryEndpoint || "one endpoint"} is doing side quests.`,
-          `${score}/100. Good attempt at REST conventions, but APIForge noticed${findingText}.`,
-        );
-      } else {
-        rawCandidates.push(
-          `Score: ${score}/100 and still posing with total, unearned confidence.`,
-          `Bro got a ${score}/100 and walked into the code review smiling.`,
-          `Flexing like a 100/100 spec despite ${totalFindings} findings under the rug.`,
-          `Score: ${score}/100. The optimism is unmatched. The API quality is... elsewhere.`,
-        );
-      }
+      rawCandidates.push(
+        ...(clean
+          ? [`${score}/100. Zero findings. The posing is earned.`, `${totalEndpoints} endpoints, zero findings. Let them pose.`]
+          : score >= 85
+            ? [`${score}/100 and posing like nobody will notice ${subject}.`, `Flexing a ${score}/100 with ${subject} right there in the spec.`]
+            : [`Posing with a ${score}/100 like ${subject} isn't in the spec.`, `${score}/100 and still walking into review with this energy.`]),
+      );
       break;
-
     case "slapping":
-      if (topCategory === "http-semantics" || (primaryFindingSummary && primaryFindingSummary.includes("GET"))) {
-        rawCandidates.push(
-          `GET request with a body detected? HTTP standards saw this and started swinging.`,
-          `APIForge correcting your GET request payload decisions at 2 AM...`,
-          `Senior engineer entering the code review for HTTP verbs swinging.`,
-        );
-      }
-      if (topCategory === "naming") {
-        rawCandidates.push(
-          `APIForge correcting your verb-in-path decisions...`,
-          `When path casing switches mid-sentence in production...`,
-          `When every single endpoint has its own custom naming convention...`,
-        );
-      }
-      if (score >= 85) {
-        rawCandidates.push(
-          `${score}/100 and APIForge STILL found one flaw worth correcting.`,
-          `Senior dev inspecting ${score}/100 spec to correct the 1 remaining warning...`,
-        );
-      } else {
-        rawCandidates.push(
-          `${totalFindings} issues detected? Senior dev entering the code review swinging.`,
-          `APIForge isn't reviewing your ${score}/100 API, it's disciplining it.`,
-          `When APIForge finds ${primaryFindingSummary || "naming chaos"}...`,
-          `${totalFindings} findings detected. Bro submitted an API and a cry for help.`,
-          `HTTP standards saw ${primaryEndpoint || "this spec"} and started throwing hands.`,
-        );
-      }
+      rawCandidates.push(
+        ...(clean
+          ? [`APIForge looking for something to correct in a ${score}/100 spec.`, `Senior dev reviewing ${totalEndpoints} clean endpoints, hand raised, nothing to hit.`]
+          : [`APIForge meeting ${subject} in code review.`, `Senior dev after spotting ${subject}.`, `${totalFindings} findings. Starting with ${subject}.`]),
+      );
       break;
-
     case "eww":
-      if (topCategory === "errors") {
-        rawCandidates.push(
-          `When every failure returns a mystery box instead of a proper 4xx status...`,
-          `200 OK for an error payload? Your API believes bad news should arrive wearing a party hat.`,
-          `Opening endpoint failure response and getting plain HTML error text...`,
-        );
-      }
-      if (topCategory === "documentation") {
-        rawCandidates.push(
-          `APIForge finding another completely un-documented endpoint${epLabel}...`,
-          `Opening endpoint schema with zero parameter descriptions...`,
-        );
-      }
-      if (score >= 85) {
-        rawCandidates.push(
-          `${score}/100 and somehow this one endpoint${epLabel} still looks like it was written during a fire drill.`,
-          `Overall ${score}/100, but looking at ${primaryEndpoint || "this schema"} response payload like...`,
-        );
-      } else {
-        rawCandidates.push(
-          `APIForge looking at ${primaryFindingSummary || "this payload"}: Absolutely not.`,
-          `${score}/100. The API passes structural validation, but spiritually fails.`,
-          `Opening endpoint number ${totalEndpoints} and reading the payload schema...`,
-          `Score: ${score}/100. Looking at ${totalFindings} findings like...`,
-          `When the API documentation disappears right when you need it most...`,
-        );
-      }
+      rawCandidates.push(
+        ...(clean
+          ? [`Looking for a flaw in a ${score}/100 spec and finding nothing. Gross.`, `APIForge, disgusted by how clean ${totalEndpoints} endpoints can be.`]
+          : [`APIForge opening ${subject}.`, `Reviewing ${subject} like:`, `When the first thing you see is ${subject}.`]),
+      );
       break;
-
     case "confused":
-      if (topCategory === "naming") {
-        rawCandidates.push(
-          `When /users suddenly becomes /getAllUsers in the middle of a spec...`,
-          `APIForge trying to understand your URL casing strategy...`,
-          `Reading this API naming convention like a mystery novel...`,
-        );
-      }
-      if (topCategory === "versioning" || topCategory === "structure") {
-        rawCandidates.push(
-          `Trying to calculate the nested path depth of /v1/v2/users/id/items...`,
-          `APIForge trying to understand why this payload is nested 6 levels deep...`,
-        );
-      }
-      if (score >= 85) {
-        rawCandidates.push(
-          `${score}/100, but APIForge is still trying to understand why ${primaryEndpoint || "this path"} exists.`,
-          `Wait... an API this clean actually exists in production?`,
-        );
-      } else {
-        rawCandidates.push(
-          `APIForge trying to understand your API design choices be like...`,
-          `Wait... why does ${primaryFindingSummary || "this endpoint behave like this"}?`,
-          `${totalFindings} issues detected. Reading this spec like a code review puzzle.`,
-          `When HTTP methods and path verbs start arguing in the same spec...`,
-          `Trying to parse ${totalEndpoints} endpoints with 4 different architectural patterns...`,
-        );
-      }
+      rawCandidates.push(
+        ...(clean
+          ? [`Trying to find a single finding in ${totalEndpoints} clean endpoints.`, `APIForge wondering who wrote a ${score}/100 spec on purpose.`]
+          : [`Trying to understand ${subject}.`, `APIForge reading ${subject} for the third time.`, `Frontend dev writing a typed client against ${subject}.`]),
+      );
       break;
-
     case "classic":
-      if (topCategory === "http-semantics") {
-        rawCandidates.push(
-          `This is classic: returning 200 OK for internal server errors.`,
-          `Classic: POST request returning an empty body with zero status headers.`,
-          `Ah yes. The classic 'HTTP is merely a suggestion' approach.`,
-        );
-      }
-      if (topCategory === "naming") {
-        rawCandidates.push(
-          `Ah yes, classic... camelCase, snake_case, and kebab-case all in one payload.`,
-          `When the endpoint path is literally /get_user_info_final_v2_new... classic.`,
-        );
-      }
-      if (score >= 85) {
-        rawCandidates.push(
-          `${score}/100. This is classic: almost flawless, yet ${primaryFindingSummary || "one tiny detail"} sneaked in.`,
-          `Classic senior dev move: ${score}/100 and zero fluff.`,
-        );
-      } else {
-        rawCandidates.push(
-          `Ah yes, classic... ${primaryFindingSummary || "classic REST anti-pattern"}.`,
-          `This is classic: ${totalFindings} findings across ${totalEndpoints} endpoints.`,
-          `Classic API design: 15 query parameters and zero schema descriptions.`,
-          `When ${primaryEndpoint || "an endpoint"} is literally doing side quests... classic.`,
-        );
-      }
+      rawCandidates.push(
+        ...(clean
+          ? [`A ${score}/100 spec with zero findings. Classic overachiever.`, `Ah yes. Classic ${score}/100 behaviour.`]
+          : [`Ah yes. Classic ${subject}.`, `${capitalize(subject)}. A classic, unfortunately.`]),
+      );
       break;
-
     case "who_are_you":
-      if (topCategory === "documentation" || (primaryFindingSummary && primaryFindingSummary.includes("summary"))) {
-        rawCandidates.push(
-          `Inspecting an endpoint with no summary, no description and no schema: WHO ARE YOU?`,
-          `Found an endpoint with zero documentation: Wait a minute... WHO ARE YOU?`,
-        );
-      }
-      if (primaryEndpoint) {
-        rawCandidates.push(
-          `Inspecting path ${primaryEndpoint}: Wait a minute... WHO ARE YOU?`,
-          `Looking at ${primaryEndpoint} like: Wait a minute... WHO ARE YOU?`,
-        );
-      }
-      if (score >= 85) {
-        rawCandidates.push(
-          `${score}/100. APIForge inspecting your single remaining warning: Wait a minute... WHO ARE YOU?`,
-          `Looking at the 1% un-documented edge case: Wait a minute... WHO ARE YOU?`,
-        );
-      } else {
-        rawCandidates.push(
-          `${totalFindings} findings detected. APIForge isn't reviewing your spec, it's conducting an investigation.`,
-          `When ${primaryFindingSummary || "an unmodeled endpoint appears"}: Wait a minute... WHO ARE YOU?`,
-          `Looking at operationId 'handleRequest_v2': Wait a minute... WHO ARE YOU?`,
-          `When a 404 response payload returns a 2MB binary buffer: Wait a minute... WHO ARE YOU?`,
-        );
-      }
+      rawCandidates.push(
+        ...(clean
+          ? [`A spec with zero findings: wait a minute… who are you?`, `${score}/100 and nothing to report: who are you?`]
+          : [`Looking at ${subject}: wait a minute… who are you?`, `Finding ${subject} in a ${score}/100 spec: who are you?`]),
+      );
       break;
   }
 
-  // Also include general fallback templates for the meme from config
-  const memeConfig = ROAST_MEMES.find((m) => m.id === memeId);
-  if (memeConfig) {
-    rawCandidates.push(...memeConfig.captionTemplates);
+  // Generic per-meme lines only when the switch produced nothing.
+  if (rawCandidates.length === 0) {
+    const memeConfig = ROAST_MEMES.find((m) => m.id === memeId);
+    if (memeConfig) rawCandidates.push(...memeConfig.captionTemplates);
   }
 
   // Filter out recently shown captions to avoid near-duplicate repetition
@@ -318,7 +230,10 @@ export function generateMemeCaption(
   );
 
   if (freshCandidates.length === 0) {
-    freshCandidates = rawCandidates;
+    // Everything was shown recently: allow repeats, but never the one just shown.
+    const last = recentCaptions[recentCaptions.length - 1];
+    freshCandidates = rawCandidates.filter((c) => normalizeCaption(c) !== last);
+    if (freshCandidates.length === 0) freshCandidates = rawCandidates;
   }
 
   // Pick candidate using seed or random

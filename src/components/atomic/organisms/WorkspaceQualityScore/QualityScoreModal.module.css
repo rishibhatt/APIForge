@@ -3,65 +3,79 @@
   inset: 0;
   z-index: 100;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  padding: var(--space-4) var(--space-3);
-  padding-bottom: max(var(--space-4), env(safe-area-inset-bottom, 0px));
+  padding: var(--space-4);
   overflow-y: auto;
+  overscroll-behavior: contain;
   background: var(--color-overlay-scrim);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
   box-sizing: border-box;
+  animation: fadeIn 0.15s ease;
 }
 
 .panel {
   position: relative;
   width: 100%;
-  max-width: 36rem;
-  margin-top: max(16px, 4vh);
-  margin-bottom: var(--space-8);
+  max-width: min(840px, 94vw);
+  max-height: min(600px, 94vh);
+  min-width: 0;
+  margin: auto;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-float);
   outline: none;
   box-sizing: border-box;
+  animation: rise 0.2s var(--ease-out);
 }
 
-@media (max-width: 640px) {
+/* Mobile: full-height sheet. */
+@media (max-width: 767px) {
   .backdrop {
-    padding: var(--space-2);
+    padding: 0;
+    align-items: flex-start;
   }
+
   .panel {
-    margin-top: max(8px, 1vh);
-    margin-bottom: var(--space-4);
+    max-height: none;
+    min-height: 100dvh;
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
   }
 }
 
+/* Close sits inside the card's top-right corner */
 .toolbar {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: var(--space-3);
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 2;
 }
 
 .closeBtn {
   display: flex;
+  width: 32px;
+  height: 32px;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
   padding: 0;
-  border: 1px solid color-mix(in srgb, var(--color-on-surface) 12%, transparent);
-  border-radius: 9999px;
-  background: var(--color-surface-container-lowest);
-  color: var(--color-on-surface-muted);
-  box-shadow: var(--shadow-ambient);
-  transition:
-    background 0.2s ease,
-    color 0.2s ease,
-    transform 0.2s ease;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-container);
+  color: var(--color-on-surface-variant);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .closeBtn:hover {
-  background: var(--color-interactive-hover);
+  background: var(--color-surface-container-high);
   color: var(--color-on-surface);
-  transform: scale(1.04);
+}
+
+@media (max-width: 767px) {
+  .closeBtn {
+    width: 40px;
+    height: 40px;
+  }
 }
 
 .cardWrap {
@@ -69,4 +83,42 @@
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop,
+  .panel {
+    animation: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .cardWrap {
+    display: flex;
+    min-height: 100dvh;
+  }
+
+  .cardWrap > * {
+    flex: 1;
+  }
 }

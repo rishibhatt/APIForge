@@ -7,6 +7,8 @@ function variant(method: string): string {
   if (x === "PUT") return styles.put;
   if (x === "PATCH") return styles.patch;
   if (x === "DELETE") return styles.delete;
+  if (x === "HEAD") return styles.head;
+  if (x === "OPTIONS") return styles.options;
   return styles.default;
 }
 

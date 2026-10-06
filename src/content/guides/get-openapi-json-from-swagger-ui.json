@@ -1,0 +1,263 @@
+{
+  "slug": "get-openapi-json-from-swagger-ui",
+  "title": "How to Get the OpenAPI JSON from a Swagger UI Page",
+  "description": "Find the OpenAPI JSON behind any Swagger UI page: default URLs for FastAPI, NestJS, Spring and ASP.NET Core, and how to read it from the page config.",
+  "excerpt": "Swagger UI only displays a spec. Here is how to find the JSON or YAML file it loads, framework by framework.",
+  "category": "swagger",
+  "cluster": "openapi",
+  "primaryKeyword": "get openapi json from swagger ui",
+  "keywords": ["download swagger json", "swagger ui openapi url", "export openapi spec", "swagger.json url"],
+  "tags": ["Swagger UI", "OpenAPI", "FastAPI", "NestJS", "Spring Boot", "ASP.NET Core"],
+  "author": "rishab",
+  "publishedAt": "2026-10-03",
+  "updatedAt": "2026-10-03",
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "Swagger UI is a viewer that downloads your API description from a URL set in its configuration, or reads an object embedded in the page. To get the OpenAPI JSON, find that URL. The fastest way is the browser: open DevTools, switch to the Network tab, filter by \"json\", and reload the docs page. The request whose response starts with an \"openapi\" or \"swagger\" key is the file you want. If that does not work, the sections below cover framework defaults, the Swagger UI config, embedded specs, and the reasons a spec URL returns a 404."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Try the framework's default spec URL first",
+      "id": "framework-defaults"
+    },
+    {
+      "type": "paragraph",
+      "text": "Most backends that ship Swagger UI generate the spec at a predictable path. If you know which framework serves the API, this table usually gets you the file in one request. Every path below can be changed in configuration, so treat it as a first guess."
+    },
+    {
+      "type": "table",
+      "headers": ["Framework", "Swagger UI page", "Spec URL", "Setting that changes it"],
+      "rows": [
+        ["FastAPI", "/docs", "/openapi.json", "openapi_url (set to None to disable the spec and the docs)"],
+        ["NestJS (@nestjs/swagger)", "/api (the path passed to SwaggerModule.setup)", "/api-json and /api-yaml", "jsonDocumentUrl and yamlDocumentUrl"],
+        ["Spring Boot (springdoc-openapi)", "/swagger-ui.html", "/v3/api-docs and /v3/api-docs.yaml", "springdoc.api-docs.path"],
+        ["ASP.NET Core with Swashbuckle", "/swagger", "/swagger/v1/swagger.json", "SwaggerEndpoint in UseSwaggerUI options"],
+        ["ASP.NET Core 9+ built-in OpenAPI", "none by default", "/openapi/v1.json", "the route passed to MapOpenApi"]
+      ],
+      "caption": "Default spec locations, taken from each framework's documentation (sources at the end of this guide)."
+    },
+    {
+      "type": "paragraph",
+      "text": "Two details trip people up. NestJS appends -json to whatever path you gave the docs, so docs at /docs/v2 put the spec at /docs/v2-json. Swashbuckle uses the document name in the path, so a document registered as \"public\" lives at /swagger/public/swagger.json, not v1."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Read the spec URL from the Swagger UI configuration",
+      "id": "read-config"
+    },
+    {
+      "type": "paragraph",
+      "text": "When the defaults miss, the page itself tells you where the spec lives. Swagger UI accepts four configuration options that point at an API description, and every hosted docs page uses at least one of them:"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "url: a single URL to the definition, usually swagger.json, swagger.yaml, or openapi.json.",
+        "urls: an array of named definitions shown in a dropdown in the top bar. urls.primaryName picks which one loads first.",
+        "configUrl: a URL to a separate JSON config document, which then contains url or urls.",
+        "spec: the whole definition as a JavaScript object inside the page. No separate file exists in this case."
+      ]
+    },
+    {
+      "type": "steps",
+      "title": "Find the config in the page source",
+      "steps": [
+        {
+          "title": "Open the page source",
+          "description": "Use View Source (Ctrl+U or Cmd+Option+U) on the docs page. Search for SwaggerUIBundle. Older pages call it inline with the options object right there."
+        },
+        {
+          "title": "Follow swagger-initializer.js",
+          "description": "Swagger UI 4 and later moved the call into a separate file called swagger-initializer.js. Find its script tag, open the file, and look for the url or urls key."
+        },
+        {
+          "title": "Check for swagger-ui-init.js",
+          "description": "NestJS and swagger-ui-express serve a file called swagger-ui-init.js. On those pages the full document often sits inside it under a \"swaggerDoc\" key instead of behind a URL."
+        },
+        {
+          "title": "Resolve relative paths",
+          "description": "A value like ./v1/swagger.json is relative to the docs page, not the domain root. On https://example.com/docs/index.html it resolves to https://example.com/docs/v1/swagger.json."
+        }
+      ]
+    },
+    {
+      "type": "code",
+      "language": "javascript",
+      "filename": "swagger-initializer.js",
+      "code": "window.onload = function () {\n  window.ui = SwaggerUIBundle({\n    url: \"/internal/v2/openapi.json\",\n    dom_id: \"#swagger-ui\",\n    presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],\n    layout: \"StandaloneLayout\"\n  });\n};",
+      "caption": "A typical initializer. The url value is the spec, here /internal/v2/openapi.json."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Use the Network tab when the config is minified",
+      "id": "network-tab"
+    },
+    {
+      "type": "paragraph",
+      "text": "Some docs pages bundle and minify everything, so searching the source is slow. The Network tab skips that problem because it shows what the browser fetched. Open DevTools, select Network, tick Preserve log, and reload. Filter by Fetch/XHR, then click each JSON or YAML response and look at the first lines. An OpenAPI 3 file starts with an openapi field such as \"3.0.3\" or \"3.1.0\"; a Swagger 2.0 file starts with \"swagger\": \"2.0\". Right-click the request and choose Copy as cURL to replay it with the same cookies and headers, which matters when the docs sit behind a login."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Save the spec from the command line",
+      "id": "command-line"
+    },
+    {
+      "type": "paragraph",
+      "text": "Once you have the URL, download it and confirm it is a spec before you feed it to a generator or a linter. Servers sometimes answer a wrong path with an HTML error page and a 200 status, and tools then fail with confusing parse errors."
+    },
+    {
+      "type": "code",
+      "language": "bash",
+      "code": "# Download the spec\ncurl -sSL https://api.example.com/openapi.json -o openapi.json\n\n# Print the version field: \"3.x\" for OpenAPI, \"2.0\" for Swagger\njq -r '.openapi // .swagger' openapi.json\n\n# Count the paths to confirm you got the full document\njq '.paths | length' openapi.json",
+      "caption": "If jq prints null for the first command, the file is not an OpenAPI or Swagger document."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Why the spec URL returns a 404 or HTML",
+      "id": "troubleshooting"
+    },
+    {
+      "type": "decisionTree",
+      "title": "Common causes and fixes",
+      "description": "Work down this table when the docs page loads but the spec URL fails.",
+      "nodes": [
+        {
+          "condition": "The app sits behind a reverse proxy or in a virtual directory",
+          "recommendation": "The UI requests the spec from the domain root while the app lives under a prefix. Prepend the prefix, or configure a relative endpoint such as ./swagger/v1/swagger.json in Swashbuckle.",
+          "alternative": "Check the proxy for a rewrite rule that strips the prefix."
+        },
+        {
+          "condition": "Docs work locally but not on staging or production",
+          "recommendation": "Many templates enable the spec and the UI only in development. The ASP.NET Core template, for example, wraps UseSwagger in an IsDevelopment check.",
+          "alternative": "Ask the API owner for an exported file instead of turning docs on in production."
+        },
+        {
+          "condition": "FastAPI docs return 404 too",
+          "recommendation": "openapi_url is set to None, which disables the spec and both docs UIs.",
+          "alternative": "Look for a custom openapi_url such as /api/v1/openapi.json."
+        },
+        {
+          "condition": "The dropdown in the top bar lists several APIs",
+          "recommendation": "The page uses urls. Each entry has its own spec URL; pick the one you need from the initializer or the Network tab.",
+          "alternative": null
+        },
+        {
+          "condition": "No spec request appears in the Network tab at all",
+          "recommendation": "The page uses the spec option or an embedded swaggerDoc. Copy the object from the page source, or let a tool extract it.",
+          "alternative": null
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Let APIForge find the spec for you",
+      "id": "apiforge"
+    },
+    {
+      "type": "paragraph",
+      "text": "You can paste the Swagger UI page URL itself into the [OpenAPI validator](/openapi-validator) or the [Swagger 2.0 validator](/swagger-validator). APIForge tries the URL you gave it, then works through the same steps described above: it reads an embedded swaggerDoc from swagger-ui-init.js, reads the url value from swagger-initializer.js, and for pages ending in /docs or index.html it tries common spec paths such as /swagger/v1/swagger.json, /openapi.json and /v3/api-docs. When it finds a document with operations, it loads every endpoint into the workspace."
+    },
+    {
+      "type": "paragraph",
+      "text": "The spec below is a small orders API of the kind you might pull from a staging server. APIForge scored it 78 out of 100. The reasons are concrete and fixable: /api/createOrder puts a verb in the path and uses camelCase, two operations document no 4xx or 5xx responses, the create operation has no summary, and no path carries a version prefix. The [API quality score](/api-score) lists each issue with an example fix, and the guide to [common OpenAPI errors](/guides/common-openapi-errors) explains the ones you are most likely to see in exported specs."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "filename": "openapi.yaml",
+      "code": "openapi: 3.0.3\ninfo:\n  title: Orders API\n  version: 1.0.0\npaths:\n  /api/orders:\n    get:\n      summary: List orders\n      responses:\n        \"200\":\n          description: A page of orders\n  /api/orders/{id}:\n    get:\n      summary: Get one order\n      parameters:\n        - name: id\n          in: path\n          required: true\n          schema:\n            type: string\n      responses:\n        \"200\":\n          description: The order\n        \"404\":\n          description: Order not found\n  /api/createOrder:\n    post:\n      responses:\n        \"200\":\n          description: Created",
+      "caption": "APIForge score: 78/100. Naming 17/20, HTTP 20/20, structure 15/15, consistency 15/15, versioning 1/10, error handling 3.3/10, documentation 6.7/10."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "What to check once you have the file",
+      "id": "next-steps"
+    },
+    {
+      "type": "list",
+      "ordered": true,
+      "items": [
+        "Confirm the version. A swagger: \"2.0\" file and an openapi: \"3.x\" file need different tools; [Swagger vs OpenAPI](/guides/swagger-vs-openapi) covers the differences.",
+        "Validate the structure before generating code. The steps are in [how to validate Swagger and OpenAPI specs](/guides/validate-swagger-openapi-spec).",
+        "Check that every $ref resolves. Exported specs sometimes reference schemas from a second file that the server never exposes.",
+        "Compare the servers list with the host you downloaded from. Specs copied between environments often still point at localhost.",
+        "Keep the file in version control. A spec you downloaded once goes stale; regenerate it from the source or download it again as part of your build."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "If you are new to the format, the [OpenAPI glossary entry](/glossary/openapi) explains the document structure in a few paragraphs, and the [good OpenAPI example](/examples/good-openapi-example) shows a complete spec you can compare yours against."
+    },
+    {
+      "type": "tool",
+      "tool": "openapi-validator",
+      "title": "Paste a Swagger UI link and get the spec",
+      "description": "APIForge extracts the OpenAPI document from Swagger UI pages, validates it, and scores its design.",
+      "buttonText": "Open the validator",
+      "href": "/openapi-validator"
+    },
+    {
+      "type": "relatedContent",
+      "slugs": ["swagger-vs-openapi", "validate-swagger-openapi-spec", "common-openapi-errors"]
+    },
+    {
+      "type": "externalReference",
+      "title": "Swagger UI configuration",
+      "url": "https://swagger.io/docs/open-source-tools/swagger-ui/usage/configuration/",
+      "source": "swagger.io"
+    },
+    {
+      "type": "externalReference",
+      "title": "FastAPI metadata and docs URLs",
+      "url": "https://fastapi.tiangolo.com/tutorial/metadata/",
+      "source": "FastAPI documentation"
+    },
+    {
+      "type": "externalReference",
+      "title": "NestJS OpenAPI introduction",
+      "url": "https://docs.nestjs.com/openapi/introduction",
+      "source": "NestJS documentation"
+    },
+    {
+      "type": "externalReference",
+      "title": "springdoc-openapi",
+      "url": "https://springdoc.org/",
+      "source": "springdoc.org"
+    },
+    {
+      "type": "externalReference",
+      "title": "Get started with Swashbuckle and ASP.NET Core",
+      "url": "https://learn.microsoft.com/en-us/aspnet/core/tutorials/getting-started-with-swashbuckle",
+      "source": "Microsoft Learn"
+    },
+    {
+      "type": "externalReference",
+      "title": "Generate OpenAPI documents in ASP.NET Core",
+      "url": "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/aspnetcore-openapi",
+      "source": "Microsoft Learn"
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Is swagger.json the same as openapi.json?",
+      "answer": "They hold the same kind of document, and the file name does not decide the version. Open the file and read the first field: \"swagger\": \"2.0\" means Swagger 2.0, and \"openapi\": \"3.0.x\" or \"3.1.x\" means OpenAPI 3. Swashbuckle, for example, serves OpenAPI 3 at a path named swagger.json."
+    },
+    {
+      "question": "Can I get the spec if the docs page needs a login?",
+      "answer": "Yes, if you can open the docs in your browser. Find the spec request in the Network tab and use Copy as cURL, which keeps your session cookie or token. Tools that fetch the URL from a server, including APIForge, cannot reuse your browser session, so download the file first and upload it."
+    },
+    {
+      "question": "Why does Swagger UI load but the spec URL returns 404?",
+      "answer": "The most common cause is a path prefix. The app runs under a virtual directory or behind a proxy, and the spec URL you typed is missing that prefix. Copy the exact URL from the Network tab instead of building it by hand."
+    }
+  ]
+}

@@ -5,11 +5,13 @@ import { createGlossaryMetadata } from "@/lib/seo/metadata";
 import { generateBreadcrumbJsonLd, generateFaqJsonLd } from "@/lib/seo/jsonld";
 import LandingHeader from "@/components/sections/LandingHeader/LandingHeader";
 import LandingFooter from "@/components/sections/LandingFooter/LandingFooter";
-import Breadcrumbs from "@/components/content/Breadcrumbs";
+import ArticleHero from "@/components/content/ArticleHero";
 import ArticleCodeBlock from "@/components/content/ArticleCodeBlock";
 import ArticleCTA from "@/components/content/ArticleCTA";
 import FAQSection from "@/components/content/FAQSection";
 import ShareButtons from "@/components/content/ShareButtons";
+import MetaRow from "@/components/content/MetaRow";
+import { formatDate, formatLabel } from "@/components/content/labels";
 import styles from "@/components/content/content.module.css";
 
 
@@ -58,26 +60,37 @@ export default function GlossaryDetailPage({
         />
       )}
       <LandingHeader minimal />
-      <main className={styles.container}>
-        <Breadcrumbs
-          items={[
+      <ArticleHero
+        breadcrumbs={[
             { label: "Glossary", href: "/glossary" },
             { label: entry.term, href: `/glossary/${entry.slug}` },
           ]}
-        />
-        <header className={styles.header}>
-          <span className={styles.categoryBadge}>{entry.category.toUpperCase()}</span>
-          <h1 className={styles.title}>What is {entry.term}?</h1>
-          <p className={styles.description}>{entry.definition}</p>
-        </header>
+        title={<>What is {entry.term}?</>}
+        description={<>{entry.definition}</>}
+        meta={
+          <MetaRow
+            items={[
+              "Glossary",
+              formatLabel(entry.category),
+              <>
+                {entry.updatedAt && entry.updatedAt !== entry.publishedAt ? "Updated " : "Published "}
+                <time dateTime={entry.updatedAt ?? entry.publishedAt}>
+                  {formatDate(entry.updatedAt ?? entry.publishedAt)}
+                </time>
+              </>,
+            ]}
+          />
+        }
+      />
+      <main className={`${styles.container} ${styles.containerAfterHero}`}>
 
         <section className={styles.articleBody}>
-          <h2 className={styles.heading2}>Detailed Explanation</h2>
+          <h2 className={styles.heading2}>How it works</h2>
           <p className={styles.paragraph}>{entry.detailedExplanation}</p>
 
           {entry.codeExample && (
             <>
-              <h2 className={styles.heading2}>Code Example</h2>
+              <h2 className={styles.heading2}>Example</h2>
               <ArticleCodeBlock
                 language={entry.codeExample.language}
                 code={entry.codeExample.code}
@@ -88,7 +101,7 @@ export default function GlossaryDetailPage({
 
           {entry.commonMistakes.length > 0 && (
             <>
-              <h2 className={styles.heading2}>Common Mistakes to Avoid</h2>
+              <h2 className={styles.heading2}>Common mistakes</h2>
               <ul className={styles.unorderedList}>
                 {entry.commonMistakes.map((m, i) => (
                   <li key={i}>{m}</li>
@@ -101,7 +114,7 @@ export default function GlossaryDetailPage({
         {entry.relatedToolHref && (
           <ArticleCTA
             title={entry.relatedToolTitle || "Check your API contract with APIForge"}
-            buttonText="Try Tool Now"
+            buttonText="Open the tool"
             href={entry.relatedToolHref}
           />
         )}

@@ -1,107 +1,279 @@
 {
   "slug": "api-security-best-practices",
-  "title": "API Security Best Practices: OWASP API Top 10 Mitigation Matrix (2026)",
-  "description": "Essential security guidelines to protect REST APIs against unauthorized access, BOLA/BFLA vulnerability exploits, credential leaks, and rate-limiting bypasses.",
-  "excerpt": "A deep dive into securing RESTful APIs with OAuth 2.0, mTLS, rate limiting, granular RBAC, and automated OpenAPI security scanning.",
+  "title": "API Security Best Practices Mapped to the OWASP Top 10",
+  "description": "API security best practices for each OWASP API Security Top 10 2023 risk, and how to declare auth, scopes and 401/403 responses in OpenAPI.",
+  "excerpt": "The ten OWASP API risks, the control for each, and which of those controls you can see in an OpenAPI spec.",
   "category": "api-security",
+  "cluster": "api-security",
+  "primaryKeyword": "api security best practices",
+  "keywords": [
+    "owasp api security top 10 2023",
+    "openapi securityschemes",
+    "bola prevention",
+    "oauth scopes per operation"
+  ],
   "tags": [
     "API Security",
     "OWASP API Top 10",
     "OAuth 2.0",
-    "JWT",
-    "Rate Limiting",
     "OpenAPI"
-  ],
-  "keywords": [
-    "api security best practices",
-    "owasp api top 10",
-    "bola mitigation",
-    "oauth 2.0 security",
-    "jwt validation guide"
   ],
   "author": "rishab",
   "publishedAt": "2026-09-26",
-  "updatedAt": "2026-09-26",
-  "readingTime": "11 min read",
+  "updatedAt": "2026-10-04",
   "featured": true,
   "content": [
     {
       "type": "paragraph",
-      "text": "APIs are the primary target for modern cyber threats. As microservices and public endpoints proliferate, enforcing defense-in-depth API security controls is paramount to protect sensitive business data and infrastructure."
+      "text": "The API security best practices that matter most follow the OWASP API Security Top 10 2023: check that the caller owns every object it asks for, validate tokens properly, return only the properties the caller may see, limit how much work one client can trigger, and check permissions per function, not only per login. Some of these controls are visible in an OpenAPI spec, through securitySchemes, per-operation scopes and 401 and 403 responses. The most common failures, object and property authorization, live in your handler code, so a spec can document them but never prove them. The table below maps each risk to its control and shows where, if anywhere, the spec reflects it."
     },
     {
       "type": "heading",
       "level": 2,
-      "text": "1. Mitigate Broken Object Level Authorization (BOLA / IDOR)",
-      "id": "bola-mitigation"
+      "text": "The OWASP API Top 10 2023, risk by risk",
+      "id": "owasp-map"
     },
     {
-      "type": "paragraph",
-      "text": "BOLA remains the #1 vulnerability on the OWASP API Security Top 10. It occurs when an API endpoint exposes an object identifier without verifying if the authenticated identity owns or is authorized to access that specific object."
-    },
-    {
-      "type": "callout",
-      "variant": "danger",
-      "title": "BOLA Attack Scenario",
-      "text": "Attacker logs in as User A (ID: 101) and sends a request GET /v1/invoices/102. If the API checks authentication but neglects tenant ownership matching (invoice.tenant_id == current_user.tenant_id), User A reads User B's private invoice data."
+      "type": "table",
+      "headers": [
+        "OWASP 2023 risk",
+        "Main control",
+        "Visible in OpenAPI?"
+      ],
+      "rows": [
+        [
+          "API1 Broken Object Level Authorization",
+          "Check ownership of every object ID in the data query",
+          "Partly: 403 or 404 responses, uuid IDs"
+        ],
+        [
+          "API2 Broken Authentication",
+          "Strict token validation, no credentials in URLs",
+          "Yes: securitySchemes and security"
+        ],
+        [
+          "API3 Broken Object Property Level Authorization",
+          "Explicit response schemas, readOnly fields, no mass assignment",
+          "Yes: schemas, readOnly, additionalProperties"
+        ],
+        [
+          "API4 Unrestricted Resource Consumption",
+          "Rate limits, page size caps, upload limits, timeouts",
+          "Partly: 429 responses, maximum on limit parameters"
+        ],
+        [
+          "API5 Broken Function Level Authorization",
+          "Per-operation permissions, deny by default",
+          "Yes: scopes per operation"
+        ],
+        [
+          "API6 Unrestricted Access to Sensitive Business Flows",
+          "Per-flow limits and abuse detection on purchases, sign-ups, messages",
+          "No"
+        ],
+        [
+          "API7 Server Side Request Forgery",
+          "Allowlist outbound hosts, block private ranges",
+          "Partly: format: uri on URL inputs"
+        ],
+        [
+          "API8 Security Misconfiguration",
+          "HTTPS only, tight CORS, generic error bodies",
+          "Partly: https server URLs"
+        ],
+        [
+          "API9 Improper Inventory Management",
+          "Every deployed host and version in the spec, old ones retired",
+          "Yes: servers and paths are the inventory"
+        ],
+        [
+          "API10 Unsafe Consumption of APIs",
+          "Validate third-party responses like user input",
+          "No, unless you keep specs for the APIs you call"
+        ]
+      ],
+      "caption": "Risk names from the OWASP API Security Top 10 2023."
     },
     {
       "type": "heading",
       "level": 2,
-      "text": "2. Secure JWT Token Verification & Rotation",
-      "id": "jwt-security"
+      "text": "Declare authentication with OpenAPI securitySchemes",
+      "id": "security-schemes"
     },
     {
       "type": "paragraph",
-      "text": "When using JSON Web Tokens (JWT) for stateless authorization, adhere strictly to security validation steps on every incoming request:"
+      "text": "An undeclared auth scheme is a security problem in its own right: client generators cannot add the header, testers guess, and reviewers cannot see which operations are public. OpenAPI 3.x defines five scheme types under components.securitySchemes: apiKey (with name and in, where in is query, header or cookie), http (with scheme such as bearer or basic, and an optional bearerFormat), oauth2 (with flows and scopes), openIdConnect (with openIdConnectUrl), and, from OpenAPI 3.1, mutualTLS."
+    },
+    {
+      "type": "paragraph",
+      "text": "The security requirement rules are easy to get wrong. A security array lists alternatives, and the client needs to satisfy only one of them. Several schemes inside one requirement object must all be satisfied. An empty object {} in the array makes auth optional. A security array on an operation overrides the top-level one, and an empty array security: [] removes auth for that operation. That last rule is how a health check becomes public, and also how an endpoint becomes public by accident, so search every spec change for security: [] during review."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "filename": "invoices-api.yaml",
+      "code": "openapi: 3.0.3\ninfo:\n  title: Invoices API\n  version: 1.0.0\nservers:\n  - url: https://api.example.com\nsecurity:\n  - OAuth2:\n      - invoices:read\npaths:\n  /v1/health:\n    get:\n      summary: Liveness check\n      security: []\n      responses:\n        \"200\":\n          description: Service is up\n  /v1/invoices/{id}:\n    get:\n      summary: Get one invoice owned by the caller\n      parameters:\n        - name: id\n          in: path\n          required: true\n          schema:\n            type: string\n            format: uuid\n      responses:\n        \"200\":\n          description: The invoice\n        \"401\":\n          description: Missing or invalid access token\n        \"403\":\n          description: Token lacks the invoices:read scope\n        \"404\":\n          description: No invoice with this id belongs to the caller\n  /v1/invoices/{id}/refunds:\n    post:\n      summary: Refund an invoice\n      security:\n        - OAuth2:\n            - invoices:write\n      parameters:\n        - name: id\n          in: path\n          required: true\n          schema:\n            type: string\n            format: uuid\n      responses:\n        \"201\":\n          description: Refund created\n        \"401\":\n          description: Missing or invalid access token\n        \"403\":\n          description: Token lacks the invoices:write scope\ncomponents:\n  securitySchemes:\n    OAuth2:\n      type: oauth2\n      flows:\n        authorizationCode:\n          authorizationUrl: https://auth.example.com/authorize\n          tokenUrl: https://auth.example.com/token\n          scopes:\n            invoices:read: Read invoices\n            invoices:write: Create refunds",
+      "caption": "Top-level security requires invoices:read; the refund operation overrides it with invoices:write; the health check opts out with security: []."
+    },
+    {
+      "type": "paragraph",
+      "text": "Three details in this spec carry the security design. The refund operation asks for its own scope, so a read-only token cannot move money (API5). Every protected operation documents 401 and 403, which tells client authors which failure means \"log in again\" and which means \"you are not allowed\". The ID is a uuid, which OWASP recommends for record IDs because sequential numbers are easy to guess, though an unguessable ID never replaces an ownership check. For a minimal bearer-token version of the same pattern, see the [OpenAPI authentication example](/examples/openapi-authentication-example)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "API1: check ownership in the query, not after it",
+      "id": "bola"
+    },
+    {
+      "type": "paragraph",
+      "text": "Broken object level authorization is first on the OWASP list because every endpoint that takes an ID from the client is a candidate. One of OWASP's scenarios is a store platform where /shops/{shopName}/revenue_data.json returned any shop's revenue to any logged-in user once the attacker learned the URL pattern. The fix is to make ownership part of the lookup itself, so a missing check cannot slip in later."
+    },
+    {
+      "type": "badExample",
+      "title": "Authenticated, but not authorized",
+      "language": "javascript",
+      "code": "app.get(\"/v1/invoices/:id\", requireAuth, async (req, res) => {\n  const invoice = await db.invoices.findById(req.params.id);\n  if (!invoice) return res.status(404).end();\n  res.json(invoice);\n});",
+      "explanation": "Any valid token can read any invoice by changing the ID."
+    },
+    {
+      "type": "goodExample",
+      "title": "Ownership is part of the lookup",
+      "language": "javascript",
+      "code": "app.get(\"/v1/invoices/:id\", requireAuth, async (req, res) => {\n  const invoice = await db.invoices.findOne({\n    id: req.params.id,\n    tenantId: req.auth.tenantId,\n  });\n  if (!invoice) return res.status(404).end();\n  res.json(toPublicInvoice(invoice));\n});",
+      "explanation": "Another tenant's invoice returns the same 404 as a missing one, so the response does not confirm that the ID exists. toPublicInvoice picks the fields this caller may see (API3)."
+    },
+    {
+      "type": "paragraph",
+      "text": "Returning 404 rather than 403 for someone else's object is a design choice: it hides whether the ID exists. Document it in the spec, as the 404 description above does, so client developers do not file it as a bug."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "API2: authentication and token handling",
+      "id": "authentication"
     },
     {
       "type": "list",
-      "ordered": true,
+      "ordered": false,
       "items": [
-        "Enforce strict cryptographic signature algorithms (RS256, ES256, or EdDSA). Explicitly reject alg: 'none'.",
-        "Verify token claims: iss (Issuer), aud (Audience), exp (Expiration time), and nbf (Not Before).",
-        "Store token signing keys in Key Management Services (KMS) and rotate public keys via JWKS URIs automatically.",
-        "Keep access token lifespans short (15 minutes or less) and use cryptographically bound refresh tokens."
+        "Send tokens in the Authorization header. RFC 6750 says [bearer tokens](/glossary/bearer-token) should not be passed in page URLs, because browsers, servers and proxies do not protect URLs in history and logs. The same reasoning applies to an apiKey scheme with in: query.",
+        "Validate every token on every request: signature with an allowlist of algorithms, issuer, audience, and expiry. Fetch signing keys from the issuer rather than hard-coding them, so key rotation does not need a deploy.",
+        "Use the RFC 6750 error codes: invalid_token with 401 for expired or malformed tokens, insufficient_scope with 403 when the token is valid but lacks a scope. RFC 9110 requires a WWW-Authenticate header on every 401.",
+        "Rate-limit login, token and password-reset endpoints separately and more strictly than the rest of the API."
       ]
     },
     {
       "type": "heading",
       "level": 2,
-      "text": "3. Enforce Rate Limiting & Resource Throttling",
-      "id": "rate-limiting"
+      "text": "API3 and API5: properties and functions",
+      "id": "property-function-authz"
     },
     {
       "type": "paragraph",
-      "text": "Prevent Denial of Service (DoS) and brute-force key attacks by implementing sliding-window rate limiters at the API Gateway level based on authenticated identity (IP, API Key, or User ID)."
+      "text": "API3 covers two mirror-image bugs. Excessive data exposure is a response that includes fields the caller should not see, usually because a handler serializes the whole database row. Mass assignment is a request that sets fields the caller should not control, such as role or balance, because the handler copies the whole body into the model. In the spec, give responses explicit properties, mark server-owned fields readOnly so they are not accepted on writes, and use separate request and response schemas when they differ. Then test that the server keeps the promise: [validating responses against the schema](/guides/validate-api-response-against-openapi-schema) with additionalProperties set to false catches a leaked field the first time it appears."
     },
     {
-      "type": "code",
-      "language": "yaml",
-      "filename": "openapi-security-schemes.yaml",
-      "code": "components:\n  securitySchemes:\n    BearerAuth:\n      type: http\n      scheme: bearer\n      bearerFormat: JWT\n      description: Enter RS256 signed bearer access token\n    ApiKeyAuth:\n      type: apiKey\n      in: header\n      name: X-API-Key\nsecurity:\n  - BearerAuth: []"
+      "type": "paragraph",
+      "text": "API5 is the same idea one level up: a regular user calling an admin function. Give each operation the narrowest [OAuth](/glossary/oauth) scope it needs, as the refund operation does, deny by default in the gateway or middleware, and do not rely on admin routes being unlisted. Listing them in an internal spec is better than hiding them, because an unlisted route is also an unreviewed one."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "API4 and API6: limit the work one client can cause",
+      "id": "resource-consumption"
+    },
+    {
+      "type": "paragraph",
+      "text": "OWASP lists the limits to set for API4: execution timeouts, memory, file descriptors, processes, upload size, operations per request, records per page, and spending limits on paid third-party services. Several of these belong in the spec: a maximum on page size parameters, a maxLength on strings, and a documented 429 response. The [API rate limiting guide](/guides/api-rate-limiting-best-practices) covers algorithms and the headers that tell clients their quota. API6 needs limits per business flow rather than per request, such as how many accounts one device can create in an hour. Those rules depend on your product, and no spec field expresses them."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "API7 to API10: outbound calls, configuration, inventory",
+      "id": "remaining-risks"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "API7 SSRF: when the API fetches a URL the client supplies, such as a webhook target or an image import, allowlist hosts and schemes, resolve the address, and reject private and loopback ranges before connecting.",
+        "API8 misconfiguration: list only https server URLs, set CORS to known origins, and keep stack traces out of error bodies.",
+        "API9 inventory: treat the spec as the list of what is deployed. Every host in servers and every version in paths should match production, and a retired version should be removed from both.",
+        "API10 unsafe consumption: validate responses from third-party APIs against their schema before you use them, with the same care as user input."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "What tools can and cannot check",
+      "id": "tooling"
+    },
+    {
+      "type": "paragraph",
+      "text": "A design score is the wrong instrument for security. The spec above scores 95.6 on APIForge's deterministic score, losing points for a health check with no error response and a 4-segment refund path. We then deleted every security block and the securitySchemes component, and the score stayed at 95.6, because none of its seven categories reads auth. Use the [OpenAPI validator](/openapi-validator) to catch structural errors in the spec, and review the security sections by hand."
+    },
+    {
+      "type": "paragraph",
+      "text": "For runtime checks, the [API testing workbench](/api-testing) reads the operation's security requirement, fills in the API key name and location from the matching scheme, and sends requests with bearer, basic or API key auth. That makes a manual BOLA test quick: sign in as user A, request an invoice ID that belongs to user B, and confirm the API returns 404. Repeat with a token that lacks invoices:write against the refund operation and confirm 403."
     },
     {
       "type": "tool",
-      "tool": "api-score",
-      "title": "Scan OpenAPI Spec for Security Holes",
-      "description": "Inspect your API specification for unauthenticated endpoints, exposed admin parameters, missing HTTPS schemes, and weak security definitions.",
-      "buttonText": "Run Security Audit",
-      "href": "/api-score"
+      "tool": "api-testing",
+      "title": "Test auth and object access against your API",
+      "description": "Send authenticated requests with bearer, basic or API key auth and check how each operation answers a token that should not have access.",
+      "buttonText": "Open the testing workbench",
+      "href": "/api-testing"
+    },
+    {
+      "type": "relatedContent",
+      "slugs": [
+        "api-rate-limiting-best-practices",
+        "validate-api-response-against-openapi-schema",
+        "openapi-best-practices"
+      ]
+    },
+    {
+      "type": "externalReference",
+      "title": "OWASP API Security Top 10 2023",
+      "url": "https://api-security.owasp.org/editions/2023/en/0x11-t10/",
+      "source": "OWASP"
+    },
+    {
+      "type": "externalReference",
+      "title": "OWASP API1:2023 Broken Object Level Authorization",
+      "url": "https://api-security.owasp.org/editions/2023/en/0xa1-broken-object-level-authorization/",
+      "source": "OWASP"
+    },
+    {
+      "type": "externalReference",
+      "title": "OpenAPI Specification 3.1.0: Security Scheme Object",
+      "url": "https://spec.openapis.org/oas/v3.1.0#security-scheme-object",
+      "source": "OpenAPI Initiative"
+    },
+    {
+      "type": "externalReference",
+      "title": "RFC 6750: OAuth 2.0 Bearer Token Usage",
+      "url": "https://www.rfc-editor.org/rfc/rfc6750.html",
+      "source": "IETF"
     }
   ],
   "faqs": [
     {
-      "question": "What is BOLA in API Security?",
-      "answer": "Broken Object Level Authorization (BOLA) happens when an API checks if a user is authenticated, but fails to check whether that authenticated user has access permissions for the specific resource ID requested in the URL path."
+      "question": "What is BOLA in API security?",
+      "answer": "Broken object level authorization is API1 in the OWASP API Security Top 10 2023. It happens when an API checks that the caller is logged in but not that the caller may access the specific object ID in the request. Fix it by including the owner or tenant in the database lookup."
     },
     {
-      "question": "Why should I use OAuth 2.0 scopes instead of simple role strings?",
-      "answer": "OAuth 2.0 scopes represent fine-grained action intents (e.g. read:reports, write:charges) attached directly to the access token. This allows API Gateways to perform instantaneous policy enforcement before invoking microservice logic."
+      "question": "Should an API return 401 or 403?",
+      "answer": "Return 401 when the token is missing, expired or invalid, with a WWW-Authenticate header as RFC 9110 requires. Return 403 when the token is valid but lacks permission, such as a missing scope. Some APIs return 404 for other users' objects so they do not confirm the ID exists."
     },
     {
-      "question": "How can I prevent sensitive keys from appearing in URLs?",
-      "answer": "Never pass API keys, tokens, or personal identifiers in URI query parameters (e.g., /api?key=xyz) because query strings are routinely logged in plaintext by proxies, firewalls, and server logs. Always use HTTP Authorization headers."
+      "question": "How do I make one endpoint public when the API requires auth globally?",
+      "answer": "Set security: [] on that operation. An operation-level security array overrides the top-level one, and an empty array removes the requirement. Review every security: [] in a spec change, because the same line can make an endpoint public by mistake."
+    },
+    {
+      "question": "Can I put API keys in query parameters?",
+      "answer": "Avoid it. RFC 6750 says bearer tokens should not go in page URLs because URLs end up in browser history and server logs, and API keys have the same exposure. Use a header, and declare it as an apiKey scheme with in: header."
     }
   ]
 }

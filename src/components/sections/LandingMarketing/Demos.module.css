@@ -1,0 +1,528 @@
+/* Static workspace panel recreations: editor chrome, mono micro-labels, method chips. */
+.frame {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-container-lowest);
+  box-shadow: var(--shadow-float);
+  text-align: left;
+}
+
+.chrome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  height: 34px;
+  padding: 0 var(--space-4);
+  border-bottom: 1px solid var(--color-border-default);
+  background: var(--color-editor-chrome-bg);
+}
+
+.chromeLabel,
+.example,
+.modesLabel,
+.fixLabel,
+.endpointsLabel,
+.scoreNote {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: var(--label-weight);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+}
+
+.chromeLabel {
+  color: var(--color-on-surface-variant);
+}
+
+.example {
+  padding: 2px 6px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-xs);
+  color: var(--color-on-surface-subtle);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4);
+}
+
+/* —— Method chip (the original tint + tinted border) —— */
+.method {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 20px;
+  padding: 0 6px;
+  border: 1px solid;
+  border-radius: var(--radius-xs);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.methodGet {
+  border-color: color-mix(in srgb, var(--color-method-get) 28%, transparent);
+  background: color-mix(in srgb, var(--color-method-get) 12%, transparent);
+  color: var(--color-method-get);
+}
+
+.methodPost {
+  border-color: color-mix(in srgb, var(--color-method-post) 28%, transparent);
+  background: color-mix(in srgb, var(--color-method-post) 12%, transparent);
+  color: var(--color-method-post);
+}
+
+.methodDelete {
+  border-color: color-mix(in srgb, var(--color-method-delete) 28%, transparent);
+  background: color-mix(in srgb, var(--color-method-delete) 12%, transparent);
+  color: var(--color-method-delete);
+}
+
+/* —— Run —— */
+.urlBar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 40px;
+  padding: 0 4px 0 var(--space-2);
+  border: 1px solid var(--color-field-border);
+  border-radius: var(--radius-md);
+  background: var(--color-field-bg);
+}
+
+.url {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-on-surface);
+}
+
+/* Drawn tonal on purpose: the page keeps one gradient action per region. */
+.send {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-accent);
+}
+
+.modes {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.modesLabel {
+  color: var(--color-on-surface-subtle);
+}
+
+.segment {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--color-segmented-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-segmented-track-bg);
+}
+
+.segment > span {
+  padding: 3px 10px;
+  border-radius: var(--radius-xs);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-on-surface-subtle);
+}
+
+.segment > .segmentOn {
+  background: var(--color-surface-container-high);
+  color: var(--color-on-surface);
+}
+
+.response {
+  overflow: hidden;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-code-editor-bg);
+}
+
+.responseHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.statusOk {
+  padding: 1px 6px;
+  border: 1px solid var(--color-pill-success-border);
+  border-radius: var(--radius-xs);
+  background: var(--color-pill-success-bg);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-pill-success-fg);
+}
+
+.responseMeta {
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-on-surface-subtle);
+}
+
+.code {
+  margin: 0;
+  padding: var(--space-3);
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--color-on-surface);
+  background: var(--color-code-editor-bg);
+}
+
+.body > .code {
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+}
+
+.codeKey {
+  color: var(--color-text-accent);
+}
+
+.codeNum {
+  color: var(--color-method-post);
+}
+
+.codeStr {
+  color: var(--color-method-get);
+}
+
+.codeKw {
+  color: var(--color-method-patch);
+}
+
+.codeType {
+  color: var(--color-method-put);
+}
+
+.codeMuted {
+  color: var(--color-on-surface-subtle);
+}
+
+.codeFlag {
+  color: var(--color-error);
+  text-decoration: underline wavy var(--color-error);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.issue {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--color-error-surface-border);
+  background: var(--color-error-surface-bg);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--color-on-surface);
+}
+
+.issue > :first-child {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--color-error);
+}
+
+.issue code,
+.tests code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
+/* —— Score —— */
+.scoreHead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.scoreValue {
+  font-family: var(--font-display);
+  font-size: 3rem;
+  font-weight: 800;
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-on-surface);
+}
+
+.scoreValue span {
+  margin-left: 2px;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--color-on-surface-subtle);
+}
+
+.scoreNote {
+  color: var(--color-on-surface-subtle);
+}
+
+.pillars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pillars li {
+  display: grid;
+  grid-template-columns: minmax(0, 9.5rem) minmax(0, 1fr) 2.5ch;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.pillarName {
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-on-surface-variant);
+}
+
+.pillarTrack {
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--radius-xs);
+  background: var(--color-surface-container-high);
+}
+
+.pillarFill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-primary);
+}
+
+.pillarWarn {
+  background: var(--color-method-put-patch);
+}
+
+.pillarValue {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--color-on-surface);
+}
+
+.fixRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-divider-subtle);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.fixLabel {
+  flex-basis: 100%;
+  color: var(--color-on-surface-subtle);
+}
+
+.fixFrom {
+  color: var(--color-on-surface-subtle);
+  text-decoration: line-through;
+  text-decoration-color: var(--color-error);
+}
+
+.fixArrow {
+  color: var(--color-on-surface-subtle);
+}
+
+.fixTo {
+  color: var(--color-method-get);
+}
+
+/* —— Generate —— */
+.tabs {
+  display: flex;
+  gap: var(--space-4);
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.tabs > span {
+  margin-bottom: -1px;
+  padding: 0 0 var(--space-2);
+  border-bottom: 2px solid transparent;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: var(--label-weight);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  color: var(--color-on-surface-subtle);
+}
+
+.tabs > .tabOn {
+  border-bottom-color: var(--color-primary);
+  color: var(--color-on-surface);
+}
+
+.tests {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  color: var(--color-on-surface-variant);
+}
+
+.tests li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.testKind {
+  flex-shrink: 0;
+  width: 58px;
+  padding: 1px 0;
+  border: 1px solid var(--color-pill-success-border);
+  border-radius: var(--radius-xs);
+  background: var(--color-pill-success-bg);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: var(--label-tracking);
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--color-pill-success-fg);
+}
+
+.testInvalid {
+  border-color: var(--color-error-surface-border);
+  background: var(--color-error-surface-bg);
+  color: var(--color-error);
+}
+
+.testEdge {
+  border-color: var(--color-status-dot-warn-border);
+  background: var(--color-status-dot-warn-fill);
+  color: var(--color-method-put-patch);
+}
+
+/* —— Validate —— */
+.log {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-code-editor-bg);
+  list-style: none;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.log li {
+  display: grid;
+  grid-template-columns: auto 7ch minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.logIcon {
+  color: var(--color-pill-success-fg);
+}
+
+.logVerb {
+  display: inline-block;
+  min-width: 76px;
+  margin-right: var(--space-2);
+  color: var(--color-on-surface-subtle);
+}
+
+.logDetail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-on-surface);
+}
+
+.endpoints {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.endpointsLabel {
+  margin-bottom: 2px;
+  color: var(--color-on-surface-subtle);
+}
+
+.endpoint {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: 6px var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-container-low);
+}
+
+.path {
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-on-surface);
+}
+
+@media (max-width: 520px) {
+  .body {
+    padding: var(--space-3);
+  }
+
+  .pillars li {
+    grid-template-columns: minmax(0, 7.5rem) minmax(0, 1fr) 2.5ch;
+  }
+
+  .responseMeta {
+    flex-basis: 100%;
+  }
+}

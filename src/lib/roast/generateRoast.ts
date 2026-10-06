@@ -6,10 +6,17 @@ import {
 } from "./aggregateFindings";
 import { classifyPersonality, type RoastPersonality } from "./personality";
 import {
+  CLEAN_LINES,
+  CREDIT_LINES,
+  NITPICK_LEADS,
+  GENERIC_LINES,
   getVerdictByScore,
-  OPENINGS_BY_INTENSITY,
-  ROAST_STRUCTURE_POOL,
-  RULE_SPECIFIC_ROASTS,
+  hashSeed,
+  intensityForScore,
+  OPENINGS,
+  pick,
+  RULE_LINES,
+  type RoastLineContext,
 } from "./roastTemplates";
 import type { RoastStatusTier, RoastSummary, RoastTone } from "./types";
 
@@ -23,50 +30,82 @@ function deriveStatusTier(score: number): RoastStatusTier {
   return "NUCLEAR";
 }
 
-function deriveIntensityLevel(score: number): number {
-  if (score >= 85) return 1;
-  if (score >= 70) return 2;
-  if (score >= 55) return 3;
-  if (score >= 40) return 4;
-  return 5;
+type RoastTextInput = Pick<
+  RoastSummary,
+  "score" | "topPatterns" | "personality" | "strengths" | "totalEndpoints" | "totalFindings"
+>;
+
+/** Stable per-spec seed: same API → same roast; different APIs → different picks. */
+export function roastSeed(summary: RoastTextInput, title = ""): number {
+  const top = summary.topPatterns[0];
+  return hashSeed(
+    [
+      title,
+      summary.score,
+      summary.totalEndpoints,
+      summary.totalFindings,
+      top?.ruleId ?? "",
+      top?.representativeEndpoints.join("|") ?? "",
+    ].join("::"),
+  );
 }
 
-export function getRoastTextVariant(
-  summary: Pick<RoastSummary, "score" | "topPatterns" | "personality" | "strengths" | "totalEndpoints" | "totalFindings">,
-  variantIndex = 0
-): string {
-  const intensity = deriveIntensityLevel(summary.score);
-  const openings = OPENINGS_BY_INTENSITY[intensity] || OPENINGS_BY_INTENSITY[3]!;
-  const openingText = openings[variantIndex % openings.length] || openings[0]!;
+function lineContext(summary: RoastTextInput, title: string, patternIndex = 0): RoastLineContext {
+  const pattern = summary.topPatterns[patternIndex];
+  return {
+    title: title.trim() || "This API",
+    path: pattern?.representativeEndpoints[0] ?? "the first endpoint we opened",
+    count: pattern?.count ?? summary.totalFindings,
+    pct: pattern ? Math.min(100, pattern.percentage) : 0,
+    total: summary.totalEndpoints,
+    issues: summary.totalFindings,
+    score: summary.score,
+    strength: summary.strengths[0]?.title,
+  };
+}
 
-  let mainBody = "";
-  const mainPattern = summary.topPatterns[0];
-  if (mainPattern && RULE_SPECIFIC_ROASTS[mainPattern.ruleId]) {
-    const pool = RULE_SPECIFIC_ROASTS[mainPattern.ruleId]!;
-    mainBody = pool[variantIndex % pool.length] || pool[0]!;
+/**
+ * Build the roast paragraph: opening (by score) + punchline about the top real finding
+ * + an optional second finding or a credit line. `variantIndex` walks every pool at once.
+ */
+export function getRoastTextVariant(
+  summary: RoastTextInput,
+  variantIndex = 0,
+  options: { title?: string } = {},
+): string {
+  const title = options.title ?? "";
+  const seed = roastSeed(summary, title);
+  const intensity = intensityForScore(summary.score);
+  const ctx = lineContext(summary, title);
+
+  const opening = pick(OPENINGS[intensity]!, seed, variantIndex)(ctx);
+
+  const top = summary.topPatterns[0];
+  let body: string;
+  if (!top) {
+    body = pick(CLEAN_LINES, seed >>> 3, variantIndex)(ctx);
+  } else if (intensity === 1) {
+    const line = pick(RULE_LINES[top.ruleId] ?? GENERIC_LINES, seed >>> 5, variantIndex)(ctx);
+    body = `${pick(NITPICK_LEADS, seed >>> 3, variantIndex)} ${line.charAt(0).toLowerCase()}${line.slice(1)}`;
   } else {
-    const eligibleStructures = ROAST_STRUCTURE_POOL.filter(
-      (s) =>
-        (!s.minScore || summary.score >= s.minScore) &&
-        (!s.maxScore || summary.score <= s.maxScore),
-    );
-    const struct = eligibleStructures[variantIndex % eligibleStructures.length] || ROAST_STRUCTURE_POOL[0]!;
-    mainBody = struct.format({
-      score: summary.score,
-      personality: summary.personality || "CONFUSED",
-      topFindingText: mainPattern?.technicalExplanation,
-      secondaryFindingText: summary.topPatterns[1]?.technicalExplanation,
-      strengthText: summary.strengths[0]?.title,
-      endpointCount: summary.totalEndpoints,
-      issueCount: summary.totalFindings,
-    });
+    const pool = RULE_LINES[top.ruleId] ?? GENERIC_LINES;
+    body = pick(pool, seed >>> 5, variantIndex)(ctx);
   }
 
-  const parts = [openingText, mainBody];
-  let roastText = parts.filter(Boolean).join(" ");
+  const parts = [opening, body];
+  const second = summary.topPatterns[1];
+  if (intensity >= 3 && second && RULE_LINES[second.ruleId] && second.ruleId !== top?.ruleId) {
+    const secondLine = pick(RULE_LINES[second.ruleId]!, seed >>> 7, variantIndex)(
+      lineContext(summary, title, 1),
+    );
+    parts.push(`Also: ${secondLine.charAt(0).toLowerCase()}${secondLine.slice(1)}`);
+  } else if (ctx.strength && intensity >= 2 && intensity <= 3) {
+    parts.push(pick(CREDIT_LINES, seed >>> 9, variantIndex)(ctx));
+  }
 
-  if (roastText.length > 440) {
-    roastText = roastText.slice(0, 430).trim() + "...";
+  let roastText = parts.join(" ");
+  if (roastText.length > 520) {
+    roastText = parts.slice(0, 2).join(" ");
   }
   return roastText;
 }
@@ -76,6 +115,7 @@ export function generateRoastSummary(
   scoreResult: ApiScoreResult,
   tone: RoastTone = "brutal",
   variantIndex = 0,
+  title = "",
 ): RoastSummary {
   const findings = normalizeFindings(scoreResult.issues);
   const patterns = groupAndRankPatterns(findings, endpoints.length);
@@ -100,7 +140,6 @@ export function generateRoastSummary(
   }));
 
   const topPatterns = patterns.slice(0, 5);
-  const verdict = getVerdictByScore(score);
 
   const partialSummary = {
     score,
@@ -111,7 +150,8 @@ export function generateRoastSummary(
     totalFindings,
   };
 
-  const roastText = getRoastTextVariant(partialSummary, variantIndex);
+  const roastText = getRoastTextVariant(partialSummary, variantIndex, { title });
+  const verdict = getVerdictByScore(score, roastSeed(partialSummary, title));
 
   const tempSummary: RoastSummary = {
     score,

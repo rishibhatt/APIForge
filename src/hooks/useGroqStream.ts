@@ -14,6 +14,12 @@ import {
   setGenerationCache,
 } from "@/lib/generation-cache";
 import { parseAIMetadataFromHeaders } from "@/lib/groq-token-usage";
+import { reportAiHeaders } from "@/hooks/useAiUsage";
+import {
+  AiRequestError,
+  handleAiErrorResponse,
+  handleAiNetworkError,
+} from "@/components/ai/aiRequest";
 import { useWorkspaceStore } from "@/store/workspaceStore";
 
 export type GenerateOptions = {
@@ -32,6 +38,9 @@ export function useGroqStream() {
   const [lastLatencyMs, setLastLatencyMs] = useState<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const genIdRef = useRef(0);
+  const generateRef = useRef<
+    ((e: Endpoint[], s: GenerationScope, t: GroqStreamTab, o?: GenerateOptions) => Promise<void>) | null
+  >(null);
   const setLastGlobal = useWorkspaceStore((s) => s.setLastGenerationMs);
   const setLastGroqUsage = useWorkspaceStore((s) => s.setLastGroqUsage);
   const setLastAiMeta = useWorkspaceStore((s) => s.setLastAiMeta);
@@ -111,6 +120,10 @@ export function useGroqStream() {
         if (type === "prompt" && opts?.idePrompt) {
           payload.idePrompt = opts.idePrompt;
         }
+        const meta0 = useWorkspaceStore.getState();
+        if (meta0.specTitle) payload.specTitle = meta0.specTitle;
+        if (meta0.specServerUrls.length) payload.serverUrls = meta0.specServerUrls;
+        if (meta0.specSecuritySchemes) payload.securitySchemes = meta0.specSecuritySchemes;
         if (opts?.allEndpoints?.length) {
           payload.allEndpoints = opts.allEndpoints;
         }
@@ -122,16 +135,13 @@ export function useGroqStream() {
           signal: ac.signal,
         });
 
+        reportAiHeaders(res.headers);
+
         if (!res.ok) {
-          let msg = `HTTP ${res.status}`;
-          try {
-            const j = (await res.json()) as { error?: string };
-            if (j.error) msg = j.error;
-          } catch {
-            const t = await res.text();
-            if (t) msg = t.slice(0, 200);
-          }
-          throw new Error(msg);
+          throw await handleAiErrorResponse(res, {
+            onRetry: () =>
+              void generateRef.current?.(scopedEndpoints, generationScope, type, { ...opts, force: true }),
+          });
         }
 
         const meta = parseAIMetadataFromHeaders(res.headers);
@@ -162,7 +172,15 @@ export function useGroqStream() {
       } catch (e) {
         if ((e as Error).name === "AbortError") return;
         if (genIdRef.current !== myId) return;
-        setError(e instanceof Error ? e.message : "Generation failed");
+        // Toast already shown for typed AI errors; a bare fetch rejection is a network failure.
+        const failure =
+          e instanceof AiRequestError
+            ? e
+            : handleAiNetworkError({
+                onRetry: () =>
+                  void generateRef.current?.(scopedEndpoints, generationScope, type, { ...opts, force: true }),
+              });
+        setError(failure.message);
         setResult("");
         setLastGlobal(null);
         setLastGroqUsage(null);
@@ -175,7 +193,18 @@ export function useGroqStream() {
     [setLastGlobal, setLastGroqUsage, setLastAiMeta],
   );
 
+  useEffect(() => {
+    generateRef.current = generate;
+  }, [generate]);
+
+  /** Cancel the request in flight; whatever streamed so far stays on screen. */
+  const stop = useCallback(() => {
+    abortRef.current?.abort();
+    setLoading(false);
+  }, []);
+
   return {
+    stop,
     result,
     loading,
     statusMessage,

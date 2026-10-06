@@ -1,7 +1,6 @@
-"use client";
-
-import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
+import shared from "./RoastSection.module.css";
 import styles from "./AutoFixVerdict.module.css";
 
 export interface AutoFixVerdictProps {
@@ -10,135 +9,67 @@ export interface AutoFixVerdictProps {
   onOpenWorkspace?: () => void;
 }
 
-export default function AutoFixVerdict({
-  score,
-  onReset,
-  onOpenWorkspace,
-}: AutoFixVerdictProps) {
-  const targetPotentialScore = Math.min(98, Math.max(score + 35, 82));
-  const [animatedPotential, setAnimatedPotential] = useState(score);
-  const containerRef = useRef<HTMLDivElement | null>(null);
+export default function AutoFixVerdict({ score, onReset, onOpenWorkspace }: AutoFixVerdictProps) {
+  const projected = Math.max(score, Math.min(98, Math.max(score + 35, 82)));
+  const gain = projected - score;
 
-  useEffect(() => {
-    let animationStarted = false;
-
-    const startAnimation = () => {
-      if (animationStarted) return;
-      animationStarted = true;
-
-      const duration = 1400; // ms
-      const startTime = performance.now();
-
-      const step = (now: number) => {
-        const elapsed = now - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const eased = 1 - Math.pow(1 - progress, 3);
-        const currentVal = Math.round(score + (targetPotentialScore - score) * eased);
-
-        setAnimatedPotential(currentVal);
-
-        if (progress < 1) {
-          requestAnimationFrame(step);
-        }
-      };
-
-      requestAnimationFrame(step);
-    };
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) {
-          startAnimation();
-        }
-      },
-      { threshold: 0.3 },
-    );
-
-    if (containerRef.current) {
-      observer.observe(containerRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, [score, targetPotentialScore]);
-
-  const currentPct = Math.min(100, Math.max(0, score));
-  const potentialPct = Math.min(100, Math.max(0, animatedPotential));
+  const lede =
+    score >= 85
+      ? "Already in decent shape. Auto-fix mops up what's left."
+      : score >= 55
+        ? "Your API isn't doomed. It needs some adult supervision and a few rule-based fixes."
+        : "It's bad, but it's fixable. Most of these findings have a mechanical fix.";
 
   return (
-    <section ref={containerRef} className={styles.container}>
-      <div className={styles.contentInner}>
-        <span className={styles.kicker}>THERE IS HOPE.</span>
+    <section id="autofix" className={`${shared.section} ${styles.root}`} aria-labelledby="autofix-title">
+      <div className={shared.head} data-reveal>
+        <h2 id="autofix-title" className={shared.title}>
+          Auto-fix verdict
+        </h2>
+        <p className={shared.lede}>{lede}</p>
+      </div>
 
-        <h3 className={styles.title}>YOUR API ISN&apos;T DOOMED.</h3>
-        <p className={styles.subtitle}>
-          It just needs some adult supervision and a few deterministic fixes.
+      <div className={styles.panel} data-reveal>
+        <div className={styles.rows}>
+          <div className={styles.row}>
+            <span className={styles.label}>Today</span>
+            <div className={shared.meter} aria-hidden>
+              <div className={`${shared.meterFill} ${styles.nowFill}`} data-grow={score / 100} style={{ transform: `scaleX(${score / 100})` }} />
+            </div>
+            <span className={styles.value}>{score}</span>
+          </div>
+          <div className={styles.row}>
+            <span className={styles.label}>After auto-fix</span>
+            <div className={shared.meter} aria-hidden>
+              <div className={`${shared.meterFill} ${shared.accent}`} data-grow={projected / 100} style={{ transform: `scaleX(${projected / 100})` }} />
+            </div>
+            <span className={styles.value}>
+              {projected}
+              {gain > 0 ? <span className={styles.gain}>+{gain}</span> : null}
+            </span>
+          </div>
+        </div>
+        <p className={styles.note}>
+          Projected score, an estimate. The auto-fix page previews each change before you apply anything.
         </p>
 
-        {/* Score Transformation Card */}
-        <div className={styles.transformBox}>
-          <div className={styles.scoreCompareRow}>
-            <div className={styles.scoreCol}>
-              <span className={styles.scoreNumCurrent}>{score}</span>
-              <span className={styles.scoreColLabel}>CURRENT</span>
-            </div>
-
-            <div className={styles.arrowCol}>
-              <MaterialIcon name="arrow_forward" className={styles.arrowIcon} />
-            </div>
-
-            <div className={styles.scoreCol}>
-              <span className={styles.scoreNumPotential}>{animatedPotential}</span>
-              <span className={styles.scoreColLabel}>POTENTIAL</span>
-            </div>
-          </div>
-
-          {/* Progress Bar Leap */}
-          <div className={styles.progressWrap}>
-            <div className={styles.barTrack}>
-              <div
-                className={styles.barFillCurrent}
-                style={{ width: `${currentPct}%` }}
-              />
-              <div
-                className={styles.barFillPotential}
-                style={{ width: `${potentialPct}%` }}
-              />
-            </div>
-            <div className={styles.barLegend}>
-              <span>APIForge Auto-Fix Projection</span>
-              <span>+{animatedPotential - score} PTS</span>
-            </div>
-          </div>
-        </div>
-
-        {/* CTA Row */}
-        <div className={styles.buttonRow}>
+        <div className={styles.actions}>
           {onOpenWorkspace ? (
-            <button
-              type="button"
-              className={styles.primaryBtn}
-              onClick={onOpenWorkspace}
-            >
-              <MaterialIcon name="build" size="sm" />
-              <span>OPEN IN APIFORGE WORKSPACE</span>
+            <button type="button" className={shared.btn} onClick={onOpenWorkspace}>
+              Preview the fixes
+              <MaterialIcon name="arrow_forward" size="xs" />
             </button>
           ) : (
-            <a href="/" className={styles.primaryBtn}>
-              <MaterialIcon name="build" size="sm" />
-              <span>OPEN IN APIFORGE WORKSPACE</span>
-            </a>
+            <Link href="/roast-my-api" className={shared.btn}>
+              Roast your own API
+              <MaterialIcon name="arrow_forward" size="xs" />
+            </Link>
           )}
-
           {onReset ? (
-            <button type="button" className={styles.secondaryBtn} onClick={onReset}>
-              <MaterialIcon name="refresh" size="sm" />
-              <span>ROAST ANOTHER API</span>
+            <button type="button" className={shared.btnSecondary} onClick={onReset}>
+              Roast another API
             </button>
           ) : null}
-        </div>
-
-        <div className={styles.brandFooter}>
-          Powered by APIForge • Deterministic OpenAPI rules &amp; instant workspace fixes.
         </div>
       </div>
     </section>

@@ -1,0 +1,290 @@
+{
+  "slug": "validate-api-response-against-openapi-schema",
+  "title": "Validate API Responses Against Your OpenAPI Schema",
+  "description": "Check live API responses against the OpenAPI response schema: find the right schema, catch missing fields and type drift, and run checks with Ajv in CI.",
+  "excerpt": "A valid spec does not mean the API follows it. Here is how to check real responses against the schema, with a worked example.",
+  "category": "api-testing",
+  "cluster": "api-testing",
+  "primaryKeyword": "validate api response against openapi schema",
+  "keywords": [
+    "openapi response validation",
+    "api contract drift",
+    "api response testing",
+    "ajv openapi"
+  ],
+  "tags": [
+    "OpenAPI",
+    "JSON Schema",
+    "Contract Testing",
+    "Ajv"
+  ],
+  "author": "rishab",
+  "publishedAt": "2026-10-03",
+  "updatedAt": "2026-10-03",
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "To validate an API response against your OpenAPI schema, take the operation's responses object, pick the entry for the status code you received, read the schema under content and application/json, and run the response body through a JSON Schema validator. Fail the check when a required property is missing, a value has the wrong type, an enum value is not in the list, or the body contains properties the schema forbids. This is a different job from validating the spec file. A spec can be perfectly valid while the server returns something else entirely."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Why a valid spec is not enough",
+      "id": "why"
+    },
+    {
+      "type": "paragraph",
+      "text": "Linting a spec checks that the document follows the OpenAPI rules: paths are well formed, $ref pointers resolve, schemas use known keywords. It says nothing about the running service. The gap between the two is called contract drift, and it opens quietly. A backend developer renames a field during a refactor, an ORM starts serializing integers as strings, or a new column leaks into a response because the serializer returns the whole database row. Clients generated from the spec then break at runtime, usually in production, because nothing compared the response to the [API contract](/glossary/api-contract)."
+    },
+    {
+      "type": "paragraph",
+      "text": "Response validation closes that gap. It is a form of [schema validation](/glossary/schema-validation) applied to real traffic: the spec says what the body must look like, and the check confirms that it does."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Match the status code to its response entry",
+      "id": "find-schema"
+    },
+    {
+      "type": "paragraph",
+      "text": "An operation can declare a different schema for every status code, so picking the right one is the first step. The OpenAPI Specification defines the lookup order. Use the exact code if the spec lists it, such as \"200\" or \"404\". If not, use a range key such as \"2XX\" or \"4XX\" (the spec writes ranges with an uppercase X). If neither exists, fall back to \"default\". If none of these match, the response is undocumented, which is a finding in itself: the API returned a status the contract never mentioned."
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Read content, then the media type. Most JSON APIs use application/json; some use vendor types such as application/problem+json for errors.",
+        "Resolve every $ref before validating, so the validator sees the full schema instead of a pointer into components.",
+        "Know your OpenAPI version. OpenAPI 3.1 schemas are JSON Schema 2020-12. OpenAPI 3.0 uses an extended subset with its own nullable keyword, which some validators need to be told about."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "A worked example: one response, four problems",
+      "id": "example"
+    },
+    {
+      "type": "paragraph",
+      "text": "Here is a small users API. The 200 response for GET /v1/users/{userId} requires id, email, createdAt and plan, restricts plan to three values, types seats as an integer, and sets additionalProperties to false so nothing undeclared may appear. APIForge's design score for this spec is 91 out of 100, so the document itself is in good shape."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "filename": "openapi.yaml",
+      "code": "openapi: 3.0.3\ninfo:\n  title: Users API\n  version: 1.0.0\npaths:\n  /v1/users/{userId}:\n    get:\n      summary: Get a user by ID\n      description: Returns one user account.\n      parameters:\n        - name: userId\n          in: path\n          required: true\n          schema:\n            type: string\n      responses:\n        \"200\":\n          description: The user\n          content:\n            application/json:\n              schema:\n                type: object\n                additionalProperties: false\n                required: [id, email, createdAt, plan]\n                properties:\n                  id:\n                    type: string\n                  email:\n                    type: string\n                  createdAt:\n                    type: string\n                  plan:\n                    type: string\n                    enum: [free, pro, team]\n                  seats:\n                    type: integer\n        \"404\":\n          description: User not found"
+    },
+    {
+      "type": "paragraph",
+      "text": "Now the server returns this body after a refactor. It looks reasonable at a glance, which is how drift gets past code review."
+    },
+    {
+      "type": "code",
+      "language": "json",
+      "code": "{\n  \"id\": \"usr_8f2k\",\n  \"email\": \"dana@example.com\",\n  \"created_at\": \"2026-09-14T10:22:00Z\",\n  \"plan\": \"enterprise\",\n  \"seats\": \"5\",\n  \"lastLoginIp\": \"203.0.113.7\"\n}",
+      "caption": "The response body under test."
+    },
+    {
+      "type": "paragraph",
+      "text": "We ran this body through APIForge's response validator. It reported four distinct problems:"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Path",
+        "Finding",
+        "Likely cause"
+      ],
+      "rows": [
+        [
+          "$.createdAt",
+          "Missing required property",
+          "The serializer switched to snake_case"
+        ],
+        [
+          "$.created_at",
+          "Property not declared in the schema",
+          "Same rename, seen from the other side"
+        ],
+        [
+          "$.seats",
+          "Expected integer, got string",
+          "A database driver or a format helper turned the number into text"
+        ],
+        [
+          "$.lastLoginIp",
+          "Property not declared in the schema",
+          "The whole user row is being returned, including a personal data field"
+        ]
+      ],
+      "caption": "Output of the APIForge response check, grouped by property."
+    },
+    {
+      "type": "paragraph",
+      "text": "The last finding is the serious one. An IP address in a public response is a data exposure, and additionalProperties: false is what made it visible. There is also a fifth problem the quick check did not flag: \"enterprise\" is not one of the allowed plan values. APIForge's in-browser check covers types, required fields, undeclared properties and casing drift; it does not evaluate enum, format, pattern, or combinators such as oneOf and allOf. A full JSON Schema validator such as Ajv reports the enum violation, as the next section shows."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Validate responses in code with Ajv",
+      "id": "ajv"
+    },
+    {
+      "type": "paragraph",
+      "text": "For automated checks, dereference the spec, pull out the schema, compile it once with Ajv, and validate each response body. The script below fails the process when the body does not match, so it works as a CI step against a staging environment."
+    },
+    {
+      "type": "code",
+      "language": "javascript",
+      "filename": "check-user-response.mjs",
+      "code": "import SwaggerParser from \"@apidevtools/swagger-parser\";\nimport Ajv from \"ajv\";\nimport addFormats from \"ajv-formats\";\n\nconst api = await SwaggerParser.dereference(\"./openapi.yaml\");\nconst schema =\n  api.paths[\"/v1/users/{userId}\"].get.responses[\"200\"].content[\"application/json\"].schema;\n\nconst ajv = new Ajv({ allErrors: true, strict: false });\naddFormats(ajv);\nconst validate = ajv.compile(schema);\n\nconst res = await fetch(\"https://staging.example.com/v1/users/usr_8f2k\");\nconst body = await res.json();\n\nif (res.status !== 200 || !validate(body)) {\n  console.error(res.status, validate.errors);\n  process.exitCode = 1;\n}",
+      "caption": "allErrors reports every problem instead of stopping at the first. For OpenAPI 3.1 specs, import Ajv from \"ajv/dist/2020\" so it uses JSON Schema 2020-12."
+    },
+    {
+      "type": "paragraph",
+      "text": "Set strict: false so Ajv does not reject OpenAPI-only keywords such as example or xml. Ajv supports the OpenAPI 3.0 nullable keyword without extra options, but nullable does not add null to an enum list; include null in the enum itself if it is allowed. Also remember that in JSON Schema, format is an annotation by default. Without ajv-formats, a string like \"not-an-email\" passes format: email."
+    },
+    {
+      "type": "paragraph",
+      "text": "Ajv reports each failure as an object with instancePath, keyword and message. For the body above it reports instancePath \"/seats\" with keyword \"type\" and the message \"must be integer\", and instancePath \"/plan\" with keyword \"enum\". A failing required check has an empty instancePath and names the missing property in params.missingProperty. Print instancePath and message side by side in your CI log, and a reviewer can see which field broke without opening the schema."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Where to run response validation",
+      "id": "where"
+    },
+    {
+      "type": "steps",
+      "title": "Three places, three different jobs",
+      "steps": [
+        {
+          "title": "Contract tests in CI",
+          "description": "Run requests against a staging deploy and fail the build on any mismatch. This catches drift before release. Cover every documented status code, not only 200, including the error schemas described in [REST API error handling](/guides/rest-api-error-handling)."
+        },
+        {
+          "title": "During development",
+          "description": "Validate responses while you build the endpoint, so the spec and the code change together. This is where a quick browser check is fastest."
+        },
+        {
+          "title": "Sampled production monitoring",
+          "description": "Validate a small sample of real responses and log mismatches without blocking traffic. Production data finds the edge cases test fixtures never contain, such as null values in old rows."
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Choose how strict to be",
+      "id": "strictness"
+    },
+    {
+      "type": "paragraph",
+      "text": "Not every mismatch should break a build. A sensible split is strict checks on the server side, where you own the contract, and tolerant parsing on the client side, where an extra field should never crash an app. The table shows one way to set the rules."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Rule",
+        "CI contract test",
+        "Production monitoring"
+      ],
+      "rows": [
+        [
+          "Missing required property",
+          "Fail",
+          "Alert"
+        ],
+        [
+          "Wrong type",
+          "Fail",
+          "Alert"
+        ],
+        [
+          "Enum value not in list",
+          "Fail",
+          "Alert"
+        ],
+        [
+          "Undeclared property",
+          "Fail if additionalProperties is false, otherwise warn",
+          "Log"
+        ],
+        [
+          "Undocumented status code",
+          "Fail",
+          "Log"
+        ]
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Whether to set additionalProperties: false is a design choice. It turns any new response field into a contract change, which some teams find too rigid; the [API versioning guide](/guides/api-versioning-best-practices) explains why adding a field is normally non-breaking. A middle ground is to keep additionalProperties open in the published spec but validate against a strict copy in your own tests, so leaks like lastLoginIp still fail the build. The [response schema best practices](/guides/openapi-response-schema-best-practices) cover how to model these schemas, and the [RFC 7807 error response example](/examples/openapi-error-response-example) shows a strict error schema."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Check a response in APIForge",
+      "id": "apiforge"
+    },
+    {
+      "type": "paragraph",
+      "text": "In the [API testing workbench](/api-testing), load your spec, pick an operation, and send the request. APIForge tries the request from your browser first and falls back to its server proxy when CORS blocks it. After the response arrives, run Validate response: it finds the schema for the returned status code, lists missing fields, type mismatches, undeclared properties and casing drift with their JSON paths, and can explain each issue in plain language. Use it while you build and debug; use Ajv or a similar full validator for the CI gate."
+    },
+    {
+      "type": "tool",
+      "tool": "api-testing",
+      "title": "Send a request and validate the response",
+      "description": "Run a live request against your API and compare the body to the OpenAPI response schema.",
+      "buttonText": "Open the testing workbench",
+      "href": "/api-testing"
+    },
+    {
+      "type": "relatedContent",
+      "slugs": [
+        "openapi-response-schema-best-practices",
+        "api-testing-best-practices",
+        "rest-api-error-handling"
+      ]
+    },
+    {
+      "type": "externalReference",
+      "title": "OpenAPI Specification 3.1.0: Responses Object",
+      "url": "https://spec.openapis.org/oas/v3.1.0#responses-object",
+      "source": "OpenAPI Initiative"
+    },
+    {
+      "type": "externalReference",
+      "title": "Validating OpenAPI and JSON Schema",
+      "url": "https://json-schema.org/blog/posts/validating-openapi-and-json-schema",
+      "source": "json-schema.org"
+    },
+    {
+      "type": "externalReference",
+      "title": "Ajv: JSON Schema drafts and the nullable keyword",
+      "url": "https://ajv.js.org/json-schema.html",
+      "source": "Ajv documentation"
+    },
+    {
+      "type": "externalReference",
+      "title": "JSON Schema type reference (format as annotation)",
+      "url": "https://json-schema.org/understanding-json-schema/reference/type",
+      "source": "json-schema.org"
+    }
+  ],
+  "faqs": [
+    {
+      "question": "What is the difference between validating a spec and validating a response?",
+      "answer": "Spec validation checks the OpenAPI document against the OpenAPI rules. Response validation checks what the running API returns against the schemas in that document. You need both: the first proves the contract is well formed, the second proves the server keeps it."
+    },
+    {
+      "question": "Should I validate error responses too?",
+      "answer": "Yes. Error bodies drift as often as success bodies, and clients parse them to show messages. Pick the schema for the returned 4xx or 5xx code, or the default response, and validate it the same way."
+    },
+    {
+      "question": "Does additionalProperties: false make my API harder to evolve?",
+      "answer": "It can, because every new field becomes a contract change. Many teams leave it open in the public spec and validate against a stricter copy in their own tests, which still catches leaked fields without blocking normal additions."
+    }
+  ]
+}

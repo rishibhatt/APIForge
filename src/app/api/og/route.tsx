@@ -1,134 +1,53 @@
 import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
-import { getAppLogoBase64 } from "@/lib/seo/brandLogo";
+import { OgCard, RoastOgCard, OG_DEFAULT_TITLE, ogImageOptions } from "@/lib/seo/ogCard";
 
 export const runtime = "edge";
+
+const DEFAULT_TITLE = OG_DEFAULT_TITLE;
+
+/** Accepts `?title=...&type=Guide`. Legacy lowercase `type` values are mapped to labels. */
+const LABELS: Record<string, string> = {
+  guide: "Guide",
+  glossary: "Glossary",
+  example: "Example",
+  comparison: "Comparison",
+  checklist: "Checklist",
+  reference: "Reference",
+  tool: "Tool",
+  report: "Report",
+  roast: "Roast",
+};
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const title = searchParams.get("title") || "APIForge — The Intelligent OpenAPI & Swagger Workspace";
-    const category = searchParams.get("category") || searchParams.get("type") || "DEVELOPER TOOL";
-    const name = searchParams.get("name") || "";
-    const versus = searchParams.get("versus") || "";
+    const title = (searchParams.get("title")?.trim() || DEFAULT_TITLE).slice(0, 140);
+    const rawType = (searchParams.get("type") || searchParams.get("category") || "").trim().slice(0, 40);
+    const label = rawType ? LABELS[rawType.toLowerCase()] ?? rawType.slice(0, 24) : undefined;
 
-    const subtitleText = name
-      ? `Developer Utility & Interactive Sandbox for ${name}`
-      : versus
-      ? `Factual Technical & Feature Breakdown vs ${versus}`
-      : "Automated API Quality, OpenAPI Linting & AI Audit";
+    const options = await ogImageOptions({
+      headers: { "Cache-Control": "public, max-age=86400, s-maxage=604800" },
+    });
 
-    const logoBase64 = getAppLogoBase64();
+    // Shared roast reports: the page (node runtime, in-memory store) passes the data in the URL.
+    if (rawType.toLowerCase() === "roast") {
+      const score = Number(searchParams.get("score"));
+      const verdict = searchParams.get("verdict")?.trim().slice(0, 80);
+      const apiTitle = searchParams.get("api")?.trim().slice(0, 80);
+      const hasReport = Number.isFinite(score) && searchParams.has("score") && verdict && apiTitle;
+      return new ImageResponse(
+        hasReport ? (
+          <RoastOgCard score={Math.round(score)} verdict={verdict} apiTitle={apiTitle} />
+        ) : (
+          <RoastOgCard />
+        ),
+        options,
+      );
+    }
 
-    return new ImageResponse(
-      (
-        <div
-          style={{
-            height: "100%",
-            width: "100%",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-            backgroundColor: "#0c0814",
-            padding: "60px 70px",
-            fontFamily: "system-ui, sans-serif",
-            backgroundImage: "radial-gradient(circle at 15% 15%, #2a144e 0%, transparent 45%), radial-gradient(circle at 85% 85%, #1a2542 0%, transparent 45%)",
-          }}
-        >
-          {/* Header Badge */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-              {logoBase64 ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={logoBase64}
-                  alt="APIForge Logo"
-                  width="50"
-                  height="50"
-                  style={{
-                    objectFit: "contain",
-                    filter: "drop-shadow(0 2px 14px rgba(160, 120, 255, 0.45))",
-                  }}
-                />
-              ) : null}
-              <span
-                style={{
-                  fontSize: "32px",
-                  fontWeight: 900,
-                  letterSpacing: "-0.035em",
-                  backgroundImage: "linear-gradient(135deg, #ffffff 10%, #d0bcff 55%, #a078ff 100%)",
-                  backgroundClip: "text",
-                  color: "transparent",
-                }}
-              >
-                APIForge
-              </span>
-            </div>
-            <div
-              style={{
-                backgroundColor: "rgba(208, 188, 255, 0.12)",
-                border: "1px solid rgba(208, 188, 255, 0.3)",
-                color: "#d0bcff",
-                padding: "8px 18px",
-                borderRadius: "30px",
-                fontSize: "14px",
-                fontWeight: "700",
-                textTransform: "uppercase",
-                letterSpacing: "1.2px",
-              }}
-            >
-              {category}
-            </div>
-          </div>
-
-          {/* Main Title */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginTop: "20px", marginBottom: "20px" }}>
-            <h1
-              style={{
-                fontSize: title.length > 55 ? "42px" : "54px",
-                fontWeight: "800",
-                color: "#f5f3f8",
-                lineHeight: 1.15,
-                margin: 0,
-                letterSpacing: "-1px",
-              }}
-            >
-              {title}
-            </h1>
-            <p style={{ fontSize: "22px", color: "rgba(229, 225, 228, 0.72)", margin: 0, lineHeight: 1.4 }}>
-              {subtitleText}
-            </p>
-          </div>
-
-          {/* Footer Metadata */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              borderTop: "1px solid rgba(255, 255, 255, 0.1)",
-              paddingTop: "24px",
-            }}
-          >
-            <span style={{ fontSize: "18px", color: "#a078ff", fontWeight: "600" }}>
-              https://apiforge.info
-            </span>
-            <div style={{ display: "flex", gap: "20px", fontSize: "16px", color: "rgba(255, 255, 255, 0.5)" }}>
-              <span>OpenAPI 3.0 & Swagger 2.0</span>
-              <span>•</span>
-              <span>Zero CORS Proxy</span>
-              <span>•</span>
-              <span>TypeScript SDK</span>
-            </div>
-          </div>
-        </div>
-      ),
-      {
-        width: 1200,
-        height: 630,
-      }
-    );
+    return new ImageResponse(<OgCard title={title} label={label} />, options);
   } catch {
-    return new Response("Failed to generate OG Image", { status: 500 });
+    return new Response("Failed to generate OG image", { status: 500 });
   }
 }

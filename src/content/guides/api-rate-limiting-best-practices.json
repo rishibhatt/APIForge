@@ -1,74 +1,318 @@
 {
   "slug": "api-rate-limiting-best-practices",
-  "title": "API Rate Limiting Best Practices: Algorithms & Headers (2026)",
-  "description": "Architect robust rate limiting with Token Bucket, Leaky Bucket, and Sliding Window Counter algorithms. Implement standard HTTP headers.",
-  "excerpt": "A deep dive into rate limiting algorithms, HTTP headers, and 429 response structures for REST APIs.",
+  "title": "API Rate Limiting Algorithms, 429 Responses and Headers",
+  "description": "Compare API rate limiting algorithms, return 429 the way RFC 6585 describes, and advertise quotas with the IETF RateLimit headers in OpenAPI.",
+  "excerpt": "How token bucket, fixed window, sliding window and leaky bucket behave, and how to tell clients they hit the limit.",
   "category": "api-security",
-  "tags": [
-    "Rate Limiting",
-    "API Security",
-    "Redis",
-    "API Gateway",
-    "HTTP Headers"
-  ],
+  "cluster": "api-performance",
+  "primaryKeyword": "api rate limiting algorithms",
   "keywords": [
-    "api rate limiting algorithms",
     "token bucket vs sliding window",
     "http 429 too many requests",
-    "rate limit headers ietf standard"
+    "ratelimit header ietf draft",
+    "retry-after header"
+  ],
+  "tags": [
+    "Rate Limiting",
+    "HTTP Headers",
+    "429",
+    "OpenAPI"
   ],
   "author": "rishab",
   "publishedAt": "2026-09-26",
-  "updatedAt": "2026-09-26",
-  "readingTime": "9 min read",
-  "featured": false,
+  "updatedAt": "2026-10-04",
   "content": [
     {
       "type": "paragraph",
-      "text": "Rate limiting protects infrastructure from traffic surges, malicious scraper bots, and denial of service attacks while ensuring fair usage across API tenants."
+      "text": "The four common API rate limiting algorithms are fixed window, sliding window (log or counter), token bucket and leaky bucket. Token bucket suits most public APIs because it allows short bursts while holding an average rate. Sliding window counter gives smoother limits than fixed window for almost the same storage. Whichever you pick, reject excess requests with 429 Too Many Requests from RFC 6585, include a Retry-After header, and tell clients their quota up front with the RateLimit and RateLimit-Policy fields from the IETF draft. Then document all of it in your OpenAPI spec so client authors can plan for it."
     },
     {
       "type": "heading",
       "level": 2,
-      "text": "1. Comparing Rate Limiting Algorithms",
+      "text": "How each algorithm counts requests",
       "id": "algorithms"
     },
     {
+      "type": "paragraph",
+      "text": "Every [rate limiter](/glossary/rate-limiting) answers one question per request: has this client used up its allowance? The algorithms differ in how they define \"allowance\" over time, what state they store per client, and how they behave at the edges."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Fixed window",
+      "id": "fixed-window"
+    },
+    {
+      "type": "paragraph",
+      "text": "Keep one counter per client per clock window, such as 100 requests per minute, and reset it when the minute rolls over. It needs one integer and one expiry per client, and it is easy to explain to customers. Its weakness is the boundary. A client can send 100 requests at 12:00:59 and another 100 at 12:01:00, so the server sees 200 requests in two seconds while the client never broke the stated limit. If your backend cannot absorb twice the limit in a burst, fixed window is the wrong choice."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Sliding window log and sliding window counter",
+      "id": "sliding-window"
+    },
+    {
+      "type": "paragraph",
+      "text": "A sliding window log stores a timestamp for every accepted request and counts the ones inside the last 60 seconds. It is exact, and it costs memory in proportion to the limit: a 10,000-per-hour plan means up to 10,000 timestamps per client. The sliding window counter approximates the same result with two counters. It weights the previous window's count by how much of that window still overlaps the last 60 seconds, then adds the current count."
+    },
+    {
+      "type": "paragraph",
+      "text": "With a limit of 100 per minute, 80 requests in the previous minute, 30 so far in the current one, and 15 seconds into the current minute, 45 of the previous 60 seconds still count. The estimate is 80 x 0.75 + 30 = 90, so the client has 10 requests left. The estimate assumes the previous window's requests were spread evenly, which is the trade you make for constant storage."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Token bucket",
+      "id": "token-bucket"
+    },
+    {
+      "type": "paragraph",
+      "text": "A bucket holds up to a fixed number of tokens and refills at a steady rate. Each request removes one token, or more for expensive operations; when the bucket is empty, the request is rejected. Capacity sets the largest burst and the refill rate sets the long-run average, so you can allow a client that has been idle to send 50 requests at once while still capping it at 10 per second over time. State per client is a token count and a timestamp."
+    },
+    {
+      "type": "code",
+      "language": "javascript",
+      "filename": "token-bucket.mjs",
+      "code": "export class TokenBucket {\n  constructor(capacity, refillPerSecond) {\n    this.capacity = capacity;\n    this.refillPerSecond = refillPerSecond;\n    this.tokens = capacity;\n    this.updatedAt = Date.now();\n  }\n\n  take(cost = 1) {\n    const now = Date.now();\n    const elapsed = (now - this.updatedAt) / 1000;\n    this.tokens = Math.min(this.capacity, this.tokens + elapsed * this.refillPerSecond);\n    this.updatedAt = now;\n\n    if (this.tokens >= cost) {\n      this.tokens -= cost;\n      return { allowed: true, remaining: Math.floor(this.tokens) };\n    }\n    const retryAfter = Math.ceil((cost - this.tokens) / this.refillPerSecond);\n    return { allowed: false, remaining: 0, retryAfter };\n  }\n}\n\n// 50-request burst, 10 requests per second on average\nconst bucket = new TokenBucket(50, 10);\nconsole.log(bucket.take()); // { allowed: true, remaining: 49 }",
+      "caption": "In-memory, one process. With several API instances, keep the count and timestamp in a shared store and update them atomically, or each instance enforces its own separate limit."
+    },
+    {
+      "type": "paragraph",
+      "text": "Charging by cost matters for batched requests. OWASP's API4:2023 entry on unrestricted resource consumption describes an attacker who sends many upload operations in one batched GraphQL request to get around a per-request limit. Charging tokens by work done, rather than by HTTP request, closes that gap."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Leaky bucket",
+      "id": "leaky-bucket"
+    },
+    {
+      "type": "paragraph",
+      "text": "Requests enter a queue that drains at a fixed rate; when the queue is full, new requests are dropped. The output is perfectly smooth, which protects a downstream service that cannot take bursts at all, such as a legacy system or a third-party API with its own strict limit. The cost is latency: a request at the back of the queue waits, and clients see slow responses before they see rejections."
+    },
+    {
       "type": "table",
-      "headers": ["Algorithm", "Burst Capacity", "Memory Footprint", "Best Suited Use Case"],
-      "rows": [
-        ["Token Bucket", "Supports bursts up to bucket size", "Low (tokens count + timestamp)", "General public API rate limiting"],
-        ["Leaky Bucket", "Smooths out bursts into steady queue", "Medium (FIFO queue buffer)", "Traffic shaping for downstream microservices"],
-        ["Sliding Window Log", "Zero burst boundary window bugs", "High (Stores timestamp per request)", "High-security financial transaction endpoints"],
-        ["Sliding Window Counter", "High accuracy with fast computation", "Low (Current + previous window counters)", "High-scale API Gateways (Envoy, Kong, Cloudflare)"]
+      "headers": [
+        "Algorithm",
+        "State per client",
+        "Bursts",
+        "Main failure mode"
       ],
-      "caption": "Rate Limiting Algorithm Comparison"
+      "rows": [
+        [
+          "Fixed window",
+          "1 counter",
+          "Up to 2x the limit across a window boundary",
+          "Boundary spikes"
+        ],
+        [
+          "Sliding window log",
+          "1 timestamp per request",
+          "None beyond the limit",
+          "Memory grows with the limit"
+        ],
+        [
+          "Sliding window counter",
+          "2 counters",
+          "Close to none",
+          "Approximation when traffic is uneven"
+        ],
+        [
+          "Token bucket",
+          "Token count and timestamp",
+          "Up to bucket capacity",
+          "Large capacity lets an idle client spike"
+        ],
+        [
+          "Leaky bucket",
+          "A queue",
+          "Absorbed by queueing",
+          "Added latency, then drops"
+        ]
+      ]
+    },
+    {
+      "type": "decisionTree",
+      "title": "Picking an algorithm",
+      "nodes": [
+        {
+          "condition": "Clients send bursts (page loads, batch jobs) and your backend can absorb them",
+          "recommendation": "Token bucket, with capacity set to the largest burst you accept",
+          "alternative": "Sliding window counter if you prefer a hard per-window number"
+        },
+        {
+          "condition": "You publish a simple \"N per minute\" plan and need predictable enforcement",
+          "recommendation": "Sliding window counter",
+          "alternative": "Fixed window only if 2x boundary bursts are harmless"
+        },
+        {
+          "condition": "A downstream dependency cannot handle any burst",
+          "recommendation": "Leaky bucket in front of that dependency",
+          "alternative": "Token bucket with a small capacity"
+        },
+        {
+          "condition": "Each request needs exact accounting, such as paid metered calls",
+          "recommendation": "Sliding window log, if the memory per client is acceptable"
+        }
+      ]
     },
     {
       "type": "heading",
       "level": 2,
-      "text": "2. Standard Rate Limiting HTTP Headers (IETF Draft)",
-      "id": "rate-limit-headers"
+      "text": "What to count against: key and cost",
+      "id": "partition"
+    },
+    {
+      "type": "paragraph",
+      "text": "RFC 6585 leaves this open: it does not define how the server identifies the client or how it counts requests. Pick the key that matches who pays for the traffic. An API key or OAuth client ID fits partner APIs. A user ID fits first-party apps where one customer runs many devices. An IP address is a fallback for unauthenticated routes, and a poor one, because many users can share one address behind a corporate NAT. Most APIs need more than one limit: a per-key quota for fairness and a stricter per-route limit on expensive or abusable operations. OWASP's API4:2023 scenario of an attacker triggering a paid SMS on a forgot-password endpoint again and again is a case for a per-route limit keyed on the target phone number, not only on the caller."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The 429 response",
+      "id": "429-response"
+    },
+    {
+      "type": "paragraph",
+      "text": "RFC 6585 defines 429 Too Many Requests for exactly this case. The response should include details explaining the condition and may include Retry-After; caches must not store it. RFC 9110 defines Retry-After as either an HTTP-date or a number of seconds. Seconds are easier for clients and avoid clock skew. Use 503 Service Unavailable instead when the whole service is overloaded, not one client; the [HTTP status codes reference](/reference/http-status-codes-reference) lists both. For the body, a problem details object keeps rate-limit errors in the same shape as the rest of your errors, as the [error handling guide](/guides/rest-api-error-handling) recommends."
     },
     {
       "type": "code",
       "language": "http",
-      "filename": "ratelimit-headers.http",
-      "code": "HTTP/1.1 429 Too Many Requests\nContent-Type: application/problem+json\nRateLimit-Limit: 100\nRateLimit-Remaining: 0\nRateLimit-Reset: 1798761600\nRetry-After: 30"
+      "filename": "429-response.http",
+      "code": "HTTP/1.1 429 Too Many Requests\nContent-Type: application/problem+json\nRetry-After: 41\nRateLimit-Policy: \"burst\";q=100;w=60\nRateLimit: \"burst\";r=0;t=41\n\n{\n  \"type\": \"https://api.example.com/problems/rate-limited\",\n  \"title\": \"Too many requests\",\n  \"status\": 429,\n  \"detail\": \"The burst policy allows 100 requests per 60 seconds. Try again in 41 seconds.\"\n}"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The IETF RateLimit and RateLimit-Policy headers",
+      "id": "ratelimit-headers"
+    },
+    {
+      "type": "paragraph",
+      "text": "Retry-After only arrives after the client is already blocked. The IETF HTTPAPI working group's draft, draft-ietf-httpapi-ratelimit-headers (version 11, May 2026), adds two fields that let clients slow down before that. RateLimit-Policy describes a quota: q is the quota in units, w the window in seconds, qu the unit type (requests by default, or content-bytes or concurrent-requests), and pk an optional partition key. RateLimit reports the current state of a named policy: r is the remaining quota and t the seconds until it resets. In the example above, the burst policy allows 100 requests per 60 seconds and the client has 0 left for 41 more seconds."
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Send both fields on successful responses too, not only on 429, so clients can pace themselves.",
+        "The draft says that when a response has both RateLimit and Retry-After, Retry-After takes precedence, and Retry-After should not point to a time earlier than the end of the effective window.",
+        "It is still an Internet-Draft, not an RFC. Earlier versions used separate RateLimit-Limit, RateLimit-Remaining and RateLimit-Reset fields, and many APIs still send vendor X-RateLimit-* headers. Document exactly which fields you send and keep the policy names stable."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Document limits in your OpenAPI spec",
+      "id": "openapi"
+    },
+    {
+      "type": "paragraph",
+      "text": "Define the headers once under components.headers, put the 429 response under components.responses, and reference both from each operation. Generated clients and docs then show the limit next to the operation instead of in a separate wiki page."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "filename": "reports-api.yaml",
+      "code": "openapi: 3.0.3\ninfo:\n  title: Reports API\n  version: 1.0.0\npaths:\n  /v1/reports:\n    get:\n      summary: List reports\n      responses:\n        \"200\":\n          description: A page of reports\n          headers:\n            RateLimit-Policy:\n              $ref: \"#/components/headers/RateLimit-Policy\"\n            RateLimit:\n              $ref: \"#/components/headers/RateLimit\"\n        \"429\":\n          $ref: \"#/components/responses/TooManyRequests\"\n  /v1/report-exports:\n    post:\n      summary: Start a report export job\n      responses:\n        \"202\":\n          description: Export accepted\n          headers:\n            RateLimit-Policy:\n              $ref: \"#/components/headers/RateLimit-Policy\"\n            RateLimit:\n              $ref: \"#/components/headers/RateLimit\"\n        \"429\":\n          $ref: \"#/components/responses/TooManyRequests\"\ncomponents:\n  headers:\n    RateLimit-Policy:\n      description: Quota policies for this client, for example \"burst\";q=100;w=60\n      schema:\n        type: string\n    RateLimit:\n      description: Remaining quota and seconds until it resets, for example \"burst\";r=12;t=41\n      schema:\n        type: string\n    Retry-After:\n      description: Seconds to wait before retrying\n      schema:\n        type: integer\n        minimum: 0\n  responses:\n    TooManyRequests:\n      description: Rate limit exceeded\n      headers:\n        Retry-After:\n          $ref: \"#/components/headers/Retry-After\"\n        RateLimit:\n          $ref: \"#/components/headers/RateLimit\"\n      content:\n        application/problem+json:\n          schema:\n            type: object\n            required: [type, title, status]\n            properties:\n              type:\n                type: string\n              title:\n                type: string\n              status:\n                type: integer\n              detail:\n                type: string"
+    },
+    {
+      "type": "paragraph",
+      "text": "This spec scores 100 on APIForge's design score, and so does a copy with every 429 response and rate-limit header removed and a plain 400 response in their place. The score checks that error responses exist, not which ones, so a missing 429 is a review item for a human. Put \"every operation declares 429 with Retry-After\" on your review list, next to the checks in the [API quality checklist](/guides/api-quality-checklist)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "What clients should do with these signals",
+      "id": "client-behaviour"
+    },
+    {
+      "type": "steps",
+      "title": "A well-behaved client",
+      "steps": [
+        {
+          "title": "Read RateLimit on every response",
+          "description": "When r gets low, spread the remaining requests over the t seconds left instead of spending them at once."
+        },
+        {
+          "title": "On 429, wait for Retry-After",
+          "description": "Retry-After wins over any other signal. If it is missing, back off exponentially with random jitter so a fleet of clients does not retry in lockstep."
+        },
+        {
+          "title": "Retry only what is safe to repeat",
+          "description": "GET, PUT and DELETE are [idempotent](/glossary/idempotency) by definition. Retry a POST only if the API supports an idempotency key, or you risk creating the same order twice."
+        },
+        {
+          "title": "Cap the retries",
+          "description": "Give up after a fixed number of attempts and surface the error. An infinite retry loop against a 429 is how a client turns a rate limit into an outage."
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Check your limits from the browser",
+      "id": "check-limits"
+    },
+    {
+      "type": "paragraph",
+      "text": "Load your spec in the [API testing workbench](/api-testing), send a request to a limited operation, and open the response Headers tab to confirm RateLimit, RateLimit-Policy and Retry-After arrive with the values you documented. The workbench sends single requests, so it is for checking headers and the 429 body, not for load testing. One caveat: when CORS blocks the browser request and APIForge falls back to its server proxy, your API sees the proxy's IP address, so an IP-keyed limit counts those requests against the proxy rather than your machine. Test with an API key if your limits are keyed on credentials."
     },
     {
       "type": "tool",
-      "tool": "api-score",
-      "title": "Check Rate Limit Declarations in OpenAPI",
-      "description": "Inspect your OpenAPI specification for 429 response declarations and standard RateLimit headers using APIForge.",
-      "buttonText": "Run Security Audit",
-      "href": "/api-score"
+      "tool": "api-testing",
+      "title": "Send a request and inspect rate-limit headers",
+      "description": "Run a live request against your API and read the RateLimit, RateLimit-Policy and Retry-After headers in the response.",
+      "buttonText": "Open the testing workbench",
+      "href": "/api-testing"
+    },
+    {
+      "type": "relatedContent",
+      "slugs": [
+        "rest-api-error-handling",
+        "api-security-best-practices",
+        "api-quality-checklist"
+      ]
+    },
+    {
+      "type": "externalReference",
+      "title": "RFC 6585: Additional HTTP Status Codes, section 4 (429 Too Many Requests)",
+      "url": "https://www.rfc-editor.org/rfc/rfc6585.html#section-4",
+      "source": "IETF"
+    },
+    {
+      "type": "externalReference",
+      "title": "draft-ietf-httpapi-ratelimit-headers: RateLimit header fields for HTTP",
+      "url": "https://datatracker.ietf.org/doc/draft-ietf-httpapi-ratelimit-headers/",
+      "source": "IETF HTTPAPI Working Group"
+    },
+    {
+      "type": "externalReference",
+      "title": "RFC 9110: HTTP Semantics, Retry-After",
+      "url": "https://www.rfc-editor.org/rfc/rfc9110.html#name-retry-after",
+      "source": "IETF"
+    },
+    {
+      "type": "externalReference",
+      "title": "OWASP API4:2023 Unrestricted Resource Consumption",
+      "url": "https://api-security.owasp.org/editions/2023/en/0xa4-unrestricted-resource-consumption/",
+      "source": "OWASP"
     }
   ],
   "faqs": [
     {
-      "question": "What HTTP status code should be returned when a rate limit is exceeded?",
-      "answer": "Always return HTTP status code 429 Too Many Requests along with a Retry-After header indicating how many seconds the client must wait."
+      "question": "What status code should an API return when a client hits its rate limit?",
+      "answer": "Return 429 Too Many Requests, defined in RFC 6585. Include a Retry-After header with the number of seconds to wait and a body that explains which limit was hit. Use 503 only when the whole service is overloaded."
+    },
+    {
+      "question": "Is token bucket better than sliding window?",
+      "answer": "They solve different problems. Token bucket allows bursts up to its capacity while holding an average rate, which suits interactive clients. Sliding window counter enforces a steadier per-window number with two counters per client."
+    },
+    {
+      "question": "Are the RateLimit headers a standard yet?",
+      "answer": "Not yet. draft-ietf-httpapi-ratelimit-headers is an active Internet-Draft in the IETF HTTPAPI working group, and field names changed between versions. Document the exact fields you send, and keep Retry-After on 429 responses because RFC 9110 defines it today."
     }
   ]
 }

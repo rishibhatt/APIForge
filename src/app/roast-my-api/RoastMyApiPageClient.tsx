@@ -1,117 +1,241 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import LandingHeader from "@/components/sections/LandingHeader/LandingHeader";
 import LandingFooter from "@/components/sections/LandingFooter/LandingFooter";
-import FloatingSupportButton from "@/components/atomic/atoms/FloatingSupportButton/FloatingSupportButton";
-import SupportModal from "@/components/atomic/organisms/SupportModal/SupportModal";
 import RoastHero from "@/components/roast/RoastHero";
-import RoastInput from "@/components/roast/RoastInput";
+import RoastInput, { explainRoastError } from "@/components/roast/RoastInput";
+import ChallengeBanner from "@/components/roast/ChallengeBanner";
+import ChallengeResult from "@/components/roast/ChallengeResult";
+import { toast } from "@/components/providers/Toaster/toast";
 import RoastProgress from "@/components/roast/RoastProgress";
-import RoastScore from "@/components/roast/RoastScore";
-import RoastCard from "@/components/roast/RoastCard";
-import DamageSnapshot from "@/components/roast/DamageSnapshot";
-import RoastOffences from "@/components/roast/RoastOffences";
-import RoastTechnicalDetails from "@/components/roast/RoastTechnicalDetails";
-import RoastStrengths from "@/components/roast/RoastStrengths";
-import AutoFixVerdict from "@/components/roast/AutoFixVerdict";
+import RoastReport from "@/components/roast/RoastReport";
 import RoastFinalCTA from "@/components/roast/RoastFinalCTA";
-import RoastMemeVideo from "@/components/roast/RoastMemeVideo";
-import RoastShare from "@/components/roast/RoastShare";
+import RoastPreview from "@/components/roast/RoastPreview";
+import { useRoastMotion } from "@/components/roast/useRoastMotion";
+import shared from "@/components/roast/RoastSection.module.css";
 import type { SanitizedRoastReport } from "@/lib/roast/types";
 import { getRoastTextVariant } from "@/lib/roast/generateRoast";
-import { adaptRoastSummaryToPresentation } from "@/lib/roast/presentationAdapter";
 import { persistAnalysisPayload } from "@/lib/analysis-session";
 import { useLanguage } from "@/hooks/useLanguage";
+import { useWorkspaceStore } from "@/store/workspaceStore";
 import styles from "./RoastPage.module.css";
 
 type ViewState = "idle" | "analyzing" | "complete" | "error";
+
+const PETSTORE_URL = "https://petstore.swagger.io/";
+
+const REPORT_PARTS = [
+  {
+    title: "A score out of 100",
+    body: "Seven rule-based categories: naming, HTTP semantics, structure, consistency, versioning, error handling and documentation.",
+  },
+  {
+    title: "The worst offences",
+    body: "Each one with the routes that commit it, why it matters and how to fix it.",
+  },
+  {
+    title: "An auto-fix preview",
+    body: "A projected score, then every proposed change in APIForge before you apply it.",
+  },
+  {
+    title: "A roast, a meme, a card",
+    body: "A roast written about your actual endpoints, a reaction clip, and a share card built for X and LinkedIn.",
+  },
+];
+
+/** `beat` from a challenge link: an integer clamped to 0-100, or null when absent or not a number. */
+function parseBeat(raw: string | null): number | null {
+  if (raw === null) return null;
+  const value = raw.trim();
+  if (!/^\d{1,6}$/.test(value)) return null;
+  return Math.min(100, Math.max(0, parseInt(value, 10)));
+}
+
+/** `from` from a challenge link: plain text, control characters dropped, trimmed, at most 60 chars. */
+function parseFrom(raw: string | null): string {
+  if (!raw) return "";
+  // eslint-disable-next-line no-control-regex
+  return raw.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, 60);
+}
+
+function isHttpUrl(input: string): boolean {
+  try {
+    const u = new URL(input);
+    return (u.protocol === "http:" || u.protocol === "https:") && Boolean(u.hostname);
+  } catch {
+    return false;
+  }
+}
+
+function targetLabel(input: string): string {
+  try {
+    return new URL(input).host;
+  } catch {
+    return input;
+  }
+}
+
+/** Below-the-fold content of the entry page. Its own component so the reveal hook re-binds each time it mounts. */
+function IdleExplainer({ onRoastPetstore, onSupport }: { onRoastPetstore: () => void; onSupport: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useRoastMotion(ref);
+
+  return (
+    <div ref={ref}>
+      <section className={styles.explainer} aria-labelledby="report-parts-title">
+        <div className={styles.parts}>
+          <h2 id="report-parts-title" className={styles.partsTitle} data-reveal>
+            What comes back
+          </h2>
+          <dl className={styles.partsList} data-reveal-group>
+            {REPORT_PARTS.map((part) => (
+              <div key={part.title} className={styles.part} data-reveal-item>
+                <dt>{part.title}</dt>
+                <dd>{part.body}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+
+        <div className={styles.sample} data-reveal>
+          <RoastPreview />
+          <button type="button" className={shared.btnSecondary} onClick={onRoastPetstore}>
+            Roast Petstore yourself
+          </button>
+        </div>
+      </section>
+
+      <RoastFinalCTA onSupport={onSupport} />
+    </div>
+  );
+}
 
 export default function RoastMyApiPageClient() {
   const { t } = useLanguage();
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialSpecUrl = searchParams.get("specUrl") || searchParams.get("url") || "";
+  const beat = useMemo(() => parseBeat(searchParams.get("beat")), [searchParams]);
+  const fromTitle = useMemo(() => parseFrom(searchParams.get("from")), [searchParams]);
+  const toggleSupportModal = useWorkspaceStore((s) => s.toggleSupportModal);
 
-  const [viewState, setViewState] = useState<ViewState>("idle");
+  const [viewState, setViewState] = useState<ViewState>(initialSpecUrl ? "analyzing" : "idle");
   const [error, setError] = useState<string | null>(null);
+  const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const [report, setReport] = useState<SanitizedRoastReport | null>(null);
   const [endpointsState, setEndpointsState] = useState<{ path: string; method: string }[]>([]);
-  const [shareOpen, setShareOpen] = useState(false);
   const [activeUrl, setActiveUrl] = useState(initialSpecUrl);
+  const [target, setTarget] = useState(initialSpecUrl ? targetLabel(initialSpecUrl) : "");
   const [variantIndex, setVariantIndex] = useState(0);
+  const [isRoasting, setIsRoasting] = useState(false);
+  const autoStarted = useRef(false);
 
-  const startRoastUrl = useCallback(async (url: string) => {
+  const runAnalysis = useCallback(async (init: RequestInit, fallbackError: string) => {
     setViewState("analyzing");
     setError(null);
-    setActiveUrl(url);
+    setErrorStatus(null);
+    setReport(null);
     setVariantIndex(0);
+    window.scrollTo({ top: 0 });
+
+    const fail = (message: string, status: number | null) => {
+      setError(message);
+      setErrorStatus(status);
+      setViewState("error");
+      const info = explainRoastError(message, status);
+      toast.error(info.title, { description: info.hint, id: "roast-analyze-error" });
+    };
+
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      fail("You are offline", 0);
+      return;
+    }
+
+    let res: Response;
+    try {
+      res = await fetch("/api/roast/analyze", { method: "POST", ...init });
+    } catch {
+      // The request never got a response: offline, DNS, or the server is down.
+      fail("Network request failed", 0);
+      return;
+    }
 
     try {
-      const res = await fetch("/api/roast/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, tone: "brutal" }),
-      });
-
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "Failed to analyze API specification");
+        const message = typeof data.error === "string" && data.error ? data.error : fallbackError;
+        fail(message, res.status);
+        return;
       }
-
       setReport(data.report);
-      if (Array.isArray(data.endpoints)) {
-        setEndpointsState(data.endpoints);
-      }
+      setEndpointsState(Array.isArray(data.endpoints) ? data.endpoints : []);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Roast failed";
-      setError(msg);
-      setViewState("error");
+      fail(e instanceof Error ? e.message : fallbackError, res.status);
     }
   }, []);
 
-  const startRoastFile = useCallback(async (file: File) => {
-    setViewState("analyzing");
-    setError(null);
-    setVariantIndex(0);
+  const startRoastUrl = useCallback(
+    (url: string) => {
+      if (!isHttpUrl(url)) {
+        setActiveUrl(url);
+        setError("Invalid URL");
+        setErrorStatus(null);
+        setViewState("error");
+        toast.error("That doesn't look like a valid URL", {
+          description: "Start with https:// and use the full address of the spec.",
+          id: "roast-analyze-error",
+        });
+        return;
+      }
+      setActiveUrl(url);
+      setTarget(targetLabel(url));
+      void runAnalysis(
+        {
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url, tone: "brutal" }),
+        },
+        "Failed to analyze API specification",
+      );
+    },
+    [runAnalysis],
+  );
 
-    try {
+  const startRoastFile = useCallback(
+    (file: File) => {
+      setTarget(file.name);
       const form = new FormData();
       form.append("file", file);
       form.append("tone", "brutal");
+      void runAnalysis({ body: form }, "Failed to analyze uploaded spec file");
+    },
+    [runAnalysis],
+  );
 
-      const res = await fetch("/api/roast/analyze", {
-        method: "POST",
-        body: form,
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "Failed to analyze uploaded spec file");
-      }
-
-      setReport(data.report);
-      if (Array.isArray(data.endpoints)) {
-        setEndpointsState(data.endpoints);
-      }
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Roast failed";
-      setError(msg);
-      setViewState("error");
+  useEffect(() => {
+    if (initialSpecUrl && !autoStarted.current) {
+      autoStarted.current = true;
+      startRoastUrl(initialSpecUrl);
     }
+  }, [initialSpecUrl, startRoastUrl]);
+
+  const handleProgressComplete = useCallback(() => {
+    setViewState("complete");
+    window.scrollTo({ top: 0 });
   }, []);
 
   const handleRoastAgain = useCallback(async () => {
     if (!report) return;
     const nextVariant = variantIndex + 1;
     setVariantIndex(nextVariant);
+    setIsRoasting(true);
 
     try {
       const res = await fetch("/api/roast/variant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ summary: report.summary, variantIndex: nextVariant }),
+        body: JSON.stringify({ summary: report.summary, variantIndex: nextVariant, title: report.title }),
       });
       const data = await res.json();
       if (res.ok && data.success && data.roastText) {
@@ -121,26 +245,23 @@ export default function RoastMyApiPageClient() {
             ...report.summary,
             roast: data.roastText,
             characterCount: data.characterCount,
-            meme: report.summary.meme ? {
-              ...report.summary.meme,
-              caption: data.caption || report.summary.meme.caption,
-            } : undefined,
+            meme: report.summary.meme
+              ? { ...report.summary.meme, caption: data.caption || report.summary.meme.caption }
+              : undefined,
           },
         });
         return;
       }
     } catch {
-      // fallback to structural generator
+      // Fall through to the local, rule-based variant.
+    } finally {
+      setIsRoasting(false);
     }
 
-    const newRoastText = getRoastTextVariant(report.summary, nextVariant);
+    const newRoastText = getRoastTextVariant(report.summary, nextVariant, { title: report.title });
     setReport({
       ...report,
-      summary: {
-        ...report.summary,
-        roast: newRoastText,
-        characterCount: newRoastText.length,
-      },
+      summary: { ...report.summary, roast: newRoastText, characterCount: newRoastText.length },
     });
   }, [report, variantIndex]);
 
@@ -168,125 +289,68 @@ export default function RoastMyApiPageClient() {
     router.push(`/auto-fix/${payloadId}`);
   }, [report, endpointsState, router]);
 
-  useEffect(() => {
-    if (initialSpecUrl && viewState === "idle") {
-      void startRoastUrl(initialSpecUrl);
-    }
-  }, [initialSpecUrl, viewState, startRoastUrl]);
-
-  const handleAnimationComplete = () => {
-    if (report) {
-      setViewState("complete");
-    }
-  };
-
   const handleReset = () => {
     setViewState("idle");
     setReport(null);
     setError(null);
+    setErrorStatus(null);
     setActiveUrl("");
     setVariantIndex(0);
+    window.scrollTo({ top: 0 });
   };
 
   return (
-    <div className={styles.pageShell}>
+    <div className={`${styles.pageShell} roastZone`}>
       <LandingHeader t={t} minimal />
 
       <main className={styles.mainContent}>
-        {viewState === "idle" || viewState === "error" ? (
-          <>
-            <RoastHero onSelectDemo={(url) => void startRoastUrl(url)} />
-            <RoastInput
-              initialUrl={activeUrl}
-              isLoading={false}
-              error={error}
-              onSubmitUrl={(url) => void startRoastUrl(url)}
-              onFileUpload={(file) => void startRoastFile(file)}
-            />
-          </>
+        {viewState !== "complete" ? (
+          <div hidden={viewState === "analyzing"}>
+            <section className={styles.intro}>
+              <RoastHero />
+              {beat !== null ? <ChallengeBanner from={fromTitle} beat={beat} /> : null}
+              <RoastInput
+                initialUrl={activeUrl}
+                error={error}
+                errorStatus={errorStatus}
+                onSubmitUrl={startRoastUrl}
+                onFileUpload={startRoastFile}
+              />
+            </section>
+
+            <IdleExplainer onRoastPetstore={() => startRoastUrl(PETSTORE_URL)} onSupport={toggleSupportModal} />
+          </div>
         ) : null}
 
         {viewState === "analyzing" ? (
           <div className={styles.progressWrap}>
-            <RoastProgress
-              endpointsCount={report?.endpointsCount}
-              onComplete={handleAnimationComplete}
-            />
+            <RoastProgress target={target} done={report !== null} onComplete={handleProgressComplete} />
           </div>
         ) : null}
 
-        {viewState === "complete" && report ? (() => {
-          const presentation = adaptRoastSummaryToPresentation(report.summary);
-          return (
-            <div className={styles.resultContainer}>
-              {/* 01 - JUDGEMENT */}
-              <RoastScore
-                score={report.summary.score}
-                statusTier={report.summary.statusTier}
-                verdict={report.summary.verdict}
-                totalEndpoints={report.summary.totalEndpoints}
-                totalFindings={report.summary.totalFindings}
-                patternsCount={report.summary.topPatterns.length}
-              />
+        {viewState === "complete" && report && beat !== null ? (
+          <ChallengeResult
+            score={report.score}
+            beat={beat}
+            from={fromTitle}
+            title={report.title}
+            onRoastAnother={handleReset}
+          />
+        ) : null}
 
-              {/* 02 - MEME MOMENT */}
-              <RoastMemeVideo summary={report.summary} />
-
-              {/* 03 - ROAST STATEMENT */}
-              <RoastCard
-                roastText={report.summary.roast}
-                characterCount={report.summary.characterCount}
-                variantNumber={variantIndex + 1}
-                onRoastAgain={handleRoastAgain}
-                onOpenShare={() => setShareOpen(true)}
-              />
-
-              {/* 04 - DAMAGE SNAPSHOT */}
-              <DamageSnapshot
-                metrics={presentation.metrics}
-                heatmap={presentation.heatmap}
-              />
-
-              {/* 05 - BIGGEST OFFENCES */}
-              <RoastOffences offences={presentation.offences} />
-
-              {/* 06 - DEEP DIVE */}
-              <RoastTechnicalDetails
-                summary={report.summary}
-                breakdown={report.breakdown}
-                suggestions={report.suggestions}
-              />
-
-              {/* 07 - WHAT YOU ACTUALLY DID RIGHT */}
-              <RoastStrengths
-                strengths={report.summary.strengths}
-                totalFindings={report.summary.totalFindings}
-              />
-
-              {/* 08 - THERE IS HOPE */}
-              <AutoFixVerdict
-                score={report.summary.score}
-                onReset={handleReset}
-                onOpenWorkspace={handleOpenWorkspace}
-              />
-
-              {/* 09 - FINAL CTA */}
-              <RoastFinalCTA
-                onReset={handleReset}
-                onOpenWorkspace={handleOpenWorkspace}
-              />
-
-            </div>
-          );
-        })() : null}
-
-        {shareOpen && report ? (
-          <RoastShare report={report} onClose={() => setShareOpen(false)} />
+        {viewState === "complete" && report ? (
+          <RoastReport
+            report={report}
+            variantNumber={variantIndex + 1}
+            isRoasting={isRoasting}
+            onRoastAgain={handleRoastAgain}
+            onReset={handleReset}
+            onOpenWorkspace={handleOpenWorkspace}
+            onSupport={toggleSupportModal}
+          />
         ) : null}
       </main>
 
-      <FloatingSupportButton t={t} />
-      <SupportModal t={t} />
       <LandingFooter t={t} />
     </div>
   );

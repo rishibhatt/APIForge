@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { getAllGuides } from "@/lib/content/loader";
 import { createBaseMetadata } from "@/lib/seo/metadata";
 import { generateBreadcrumbJsonLd } from "@/lib/seo/jsonld";
 import LandingHeader from "@/components/sections/LandingHeader/LandingHeader";
 import LandingFooter from "@/components/sections/LandingFooter/LandingFooter";
-import Breadcrumbs from "@/components/content/Breadcrumbs";
 import styles from "@/components/content/content.module.css";
+import ArticleHero from "@/components/content/ArticleHero";
+import GuideIndex from "@/components/content/GuideIndex";
+import { byNewest, formatDate, formatLabel } from "@/components/content/labels";
 export const metadata: Metadata = createBaseMetadata({
-  title: "OpenAPI & REST API Guides for Engineering Teams | APIForge",
-  description: "Comprehensive technical guides on OpenAPI best practices, REST API design, Swagger validation, error handling, security, and versioning.",
+  title: "OpenAPI & REST API Design Guides",
+  description: "Practical guides on OpenAPI, REST API design, Swagger validation, error handling, security, and versioning, each with a scored example spec.",
   path: "/guides",
   keywords: ["openapi guides", "rest api best practices", "swagger tutorials", "api design patterns"],
 });
@@ -29,25 +30,26 @@ export default function GuidesPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
       <LandingHeader minimal />
-      <main className={styles.container}>
-        <Breadcrumbs items={[{ label: "Guides", href: "/guides" }]} />
-        <header className={styles.header}>
-          <span className={styles.categoryBadge}>KNOWLEDGE BASE</span>
-          <h1 className={styles.title}>APIForge Developer Guides</h1>
-          <p className={styles.description}>
-            In-depth technical articles, design patterns, and best practices for building, scoring, and validating OpenAPI & REST specifications.
-          </p>
-        </header>
-
-        <div className={styles.relatedGrid}>
-          {guides.map((g) => (
-            <Link key={g.slug} href={`/guides/${g.slug}`} className={styles.relatedCard}>
-              <span className={styles.relatedTag}>{g.category.toUpperCase()}</span>
-              <h2 className={styles.relatedTitle}>{g.title}</h2>
-              <p className={styles.relatedExcerpt}>{g.excerpt}</p>
-            </Link>
-          ))}
-        </div>
+      <ArticleHero
+        backdrop
+        wide
+        breadcrumbs={[{ label: "Guides", href: "/guides" }]}
+        title="Guides"
+        description="Practical articles on designing, documenting, validating, and testing OpenAPI and REST APIs. Each one works through a real spec and links to the APIForge tool that checks it."
+      />
+      <main className={`${styles.container} ${styles.containerWide} ${styles.containerAfterHero}`}>
+        <GuideIndex
+          items={[...guides].sort(byNewest).map((g) => ({
+            href: `/guides/${g.slug}`,
+            title: g.title,
+            description: g.excerpt || g.description,
+            topic: g.cluster,
+            topicLabel: formatLabel(g.cluster),
+            readingTime: g.readingTime,
+            date: g.updatedAt ?? g.publishedAt,
+            dateLabel: formatDate(g.updatedAt ?? g.publishedAt),
+          }))}
+        />
       </main>
       <LandingFooter />
     </div>

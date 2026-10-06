@@ -14,10 +14,11 @@ export async function generateMetadata({
   params: { slug: string };
 }): Promise<Metadata> {
   return createBaseMetadata({
-    title: `API Quality Report — ${params.slug} | APIForge`,
-    description: `Public shareable API quality audit and OpenAPI assessment report for ${params.slug}.`,
+    title: `API Quality Report: ${params.slug}`,
+    description: `Shareable API quality report for ${params.slug}: a deterministic 0–100 OpenAPI score with design-rule findings and suggested fixes.`,
     path: `/reports/${params.slug}`,
-    ogType: "article",
+    ogLabel: "Report",
+    noindex: true,
   });
 }
 
@@ -28,7 +29,7 @@ export default function PublicReportPage({
 }) {
   const breadcrumbJsonLd = generateBreadcrumbJsonLd([
     { name: "Home", url: "/" },
-    { name: "Reports", url: "/reports" },
+    { name: "API quality score", url: "/api-score" },
     { name: params.slug, url: `/reports/${params.slug}` },
   ]);
 
@@ -42,27 +43,27 @@ export default function PublicReportPage({
       <main className={styles.container}>
         <Breadcrumbs
           items={[
-            { label: "Reports", href: "/guides" },
+            { label: "API quality score", href: "/api-score" },
             { label: params.slug, href: `/reports/${params.slug}` },
           ]}
         />
         <header className={styles.header}>
-          <span className={styles.categoryBadge}>PUBLIC REPORT</span>
-          <h1 className={styles.title}>API Quality Score Report</h1>
+          <h1 className={styles.title}>API quality score report</h1>
           <p className={styles.description}>
-            Automated quality audit report generated for specification identifier: {params.slug}
+            Shared reports are not stored on the server yet. Load the spec in the
+            workspace to see its current score and findings.
           </p>
         </header>
 
         <section className={styles.ctaCard}>
           <div className={styles.ctaContent}>
-            <h2 className={styles.ctaTitle}>Analyze Your Own API Spec</h2>
+            <h2 className={styles.ctaTitle}>Score your own API spec</h2>
             <p className={styles.ctaDescription}>
               Run your OpenAPI or Swagger contract through APIForge to get an instant 0–100 quality score.
             </p>
           </div>
-          <Link href="/?action=report" className={styles.ctaButton}>
-            Analyze Your API →
+          <Link href="/#parse-api" className={styles.ctaButton}>
+            Open workspace
           </Link>
         </section>
       </main>

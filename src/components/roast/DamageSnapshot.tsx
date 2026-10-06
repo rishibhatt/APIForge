@@ -1,91 +1,47 @@
-"use client";
-
-import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
-import type { CategoryHeatmapItem, DamageMetrics } from "@/lib/roast/presentationAdapter";
+import type { CategoryHeatmapItem } from "@/lib/roast/presentationAdapter";
+import { categoryLabel } from "./labels";
+import shared from "./RoastSection.module.css";
 import styles from "./DamageSnapshot.module.css";
 
 export interface DamageSnapshotProps {
-  metrics: DamageMetrics;
   heatmap: CategoryHeatmapItem[];
+  totalIssues: number;
 }
 
-export default function DamageSnapshot({ metrics, heatmap }: DamageSnapshotProps) {
+export default function DamageSnapshot({ heatmap, totalIssues }: DamageSnapshotProps) {
+  if (heatmap.length === 0) return null;
+  const max = Math.max(...heatmap.map((h) => h.count), 1);
+
   return (
-    <section className={styles.section}>
-      <div className={styles.sectionHeader}>
-        <div className={styles.headerTitleRow}>
-          <MaterialIcon name="local_fire_department" className={styles.fireIcon} />
-          <h3 className={styles.sectionTitle}>THE DAMAGE REPORT</h3>
-        </div>
-        <p className={styles.sectionSub}>&quot;Okay... here&apos;s where things got interesting.&quot;</p>
+    <section id="categories" className={shared.section} aria-labelledby="categories-title">
+      <div className={shared.head} data-reveal>
+        <h2 id="categories-title" className={shared.title}>
+          Where the issues are
+        </h2>
+        <p className={shared.lede}>
+          {totalIssues} {totalIssues === 1 ? "issue" : "issues"} across {heatmap.length}{" "}
+          {heatmap.length === 1 ? "category" : "categories"}
+        </p>
       </div>
 
-      {/* 4-Metric Grid */}
-      <div className={styles.metricsGrid}>
-        <div className={styles.metricCard}>
-          <div className={styles.metricTop}>
-            <MaterialIcon name="error_outline" className={styles.metricIconFire} />
-            <span className={styles.metricVal}>{metrics.totalIssues}</span>
-          </div>
-          <span className={styles.metricLabel}>Total Issues</span>
-        </div>
-
-        <div className={styles.metricCard}>
-          <div className={styles.metricTop}>
-            <MaterialIcon name="warning" className={styles.metricIconWarn} />
-            <span className={styles.metricVal}>{metrics.problemTypesCount}</span>
-          </div>
-          <span className={styles.metricLabel}>Problem Types</span>
-        </div>
-
-        <div className={styles.metricCard}>
-          <div className={styles.metricTop}>
-            <MaterialIcon name="alt_route" className={styles.metricIconRoute} />
-            <span className={styles.metricVal}>{metrics.affectedEndpointsCount}</span>
-          </div>
-          <span className={styles.metricLabel}>Affected Routes</span>
-        </div>
-
-        <div className={styles.metricCard}>
-          <div className={styles.metricTop}>
-            <MaterialIcon name="pie_chart" className={styles.metricIconRate} />
-            <span className={styles.metricVal}>{metrics.affectedPercentage}%</span>
-          </div>
-          <span className={styles.metricLabel}>Coverage Impact</span>
-        </div>
-      </div>
-
-      {/* Heatmap Distribution Bar */}
-      {heatmap.length > 0 ? (
-        <div className={styles.heatmapCard}>
-          <h4 className={styles.heatmapTitle}>WHERE THE PAIN IS</h4>
-
-          <div className={styles.heatmapList}>
-            {heatmap.slice(0, 5).map((item) => {
-              const isSevere = item.count >= 5;
-              const barClass = isSevere ? styles.barRed : styles.barOrange;
-
-              return (
-                <div key={item.category} className={styles.heatmapRow}>
-                  <div className={styles.heatmapLabelGroup}>
-                    <span className={styles.heatmapCategoryName}>
-                      {item.category.toUpperCase().replace("-", " ")}
-                    </span>
-                    <span className={styles.heatmapCount}>{item.count}</span>
-                  </div>
-
-                  <div className={styles.barTrack}>
-                    <div
-                      className={`${styles.barFill} ${barClass}`}
-                      style={{ width: `${Math.max(8, item.percentage)}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ) : null}
+      <ul className={styles.list} data-reveal-group>
+        {heatmap.map((item) => (
+          <li key={item.category} className={styles.row} data-reveal-item>
+            <span className={styles.label}>{categoryLabel(item.category)}</span>
+            <div className={shared.meter} aria-hidden>
+              <div
+                className={`${shared.meterFill} ${shared.accent}`}
+                data-grow={item.count / max}
+                style={{ transform: `scaleX(${item.count / max})` }}
+              />
+            </div>
+            <span className={styles.count}>
+              {item.count}
+              <span className={styles.pct}>{item.percentage}%</span>
+            </span>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

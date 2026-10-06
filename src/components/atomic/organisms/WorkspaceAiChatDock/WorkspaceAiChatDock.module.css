@@ -1,41 +1,63 @@
-.fab {
+.fabWrap {
   position: fixed;
   z-index: 70;
   right: max(16px, env(safe-area-inset-right, 0px));
-  bottom: max(calc(var(--footer-h, 32px) + 16px), env(safe-area-inset-bottom, 0px));
+  bottom: calc(var(--footer-h, 28px) + 16px);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.fab {
   display: inline-flex;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  height: 56px;
-  border: 1px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
-  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 40%, var(--color-border-strong));
+  border-radius: var(--radius-lg);
   padding: 0;
-  color: var(--color-on-primary);
-  background: var(--color-cta-fill);
-  box-shadow:
-    0 8px 28px color-mix(in srgb, var(--color-primary) 28%, transparent),
-    0 0 0 1px color-mix(in srgb, var(--color-on-surface) 8%, transparent);
+  color: var(--color-text-accent);
+  background: var(--color-surface-container-high);
+  box-shadow: var(--shadow-float);
   cursor: pointer;
-  transition:
-    transform 0.15s ease,
-    filter 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .fab:hover {
-  filter: brightness(1.06);
+  border-color: var(--color-primary);
+  background: var(--color-surface-container-highest);
 }
 
 .fab:active {
-  transform: scale(0.96);
+  transform: translateY(1px);
+}
+
+/* One-time label beside the button on the first visit */
+.hint {
+  order: -1;
+  max-width: 11.5rem;
+  margin: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-on-surface);
+  background: var(--color-surface-container-high);
+  box-shadow: var(--shadow-ambient);
+  animation: dockHintIn 0.3s var(--ease-out);
 }
 
 @media (max-width: 767px) {
+  .fabWrap {
+    bottom: calc(56px + var(--footer-h, 28px) + 12px + env(safe-area-inset-bottom, 0px));
+  }
+
   .fab {
-    bottom: max(
-      calc(68px + var(--footer-h, 32px) + 12px),
-      env(safe-area-inset-bottom, 0px)
-    );
+    width: 48px;
+    height: 48px;
   }
 }
 
@@ -48,24 +70,24 @@
   margin: 0;
   background: var(--color-overlay-scrim);
   cursor: pointer;
-  animation: dockFadeIn 0.2s ease;
+  animation: dockFadeIn 0.15s ease;
 }
 
 .sheet {
   position: fixed;
   z-index: 66;
-  right: max(12px, env(safe-area-inset-right, 0px));
-  bottom: max(calc(var(--footer-h, 32px) + 12px), env(safe-area-inset-bottom, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: calc(var(--footer-h, 28px) + 16px);
   display: flex;
-  width: min(420px, calc(100vw - 24px));
-  max-height: min(640px, calc(100dvh - var(--header-h, 56px) - var(--footer-h, 32px) - 96px));
+  width: min(440px, calc(100vw - 32px));
+  height: min(680px, calc(100dvh - 60px - var(--footer-h, 28px) - 40px));
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid var(--color-panel-border);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
   background: var(--color-surface-container-lowest);
   box-shadow: var(--shadow-float);
-  animation: dockSlideUp 0.22s ease;
+  animation: dockSlideUp 0.18s var(--ease-out);
 }
 
 @media (max-width: 767px) {
@@ -73,21 +95,36 @@
     right: max(8px, env(safe-area-inset-right, 0px));
     left: max(8px, env(safe-area-inset-left, 0px));
     width: auto;
-    bottom: max(
-      calc(68px + var(--footer-h, 32px) + 8px),
-      env(safe-area-inset-bottom, 0px)
-    );
-    max-height: min(72dvh, calc(100dvh - 120px));
+    bottom: calc(56px + var(--footer-h, 28px) + 8px + env(safe-area-inset-bottom, 0px));
+    height: min(76dvh, calc(100dvh - 120px));
+  }
+}
+
+/* Phones: full-width bottom sheet that stays above the keyboard */
+@media (max-width: 639px) {
+  .sheet {
+    right: 0;
+    left: 0;
+    bottom: var(--dock-kb, 0px);
+    width: 100%;
+    height: min(92dvh, calc(var(--dock-vh, 100dvh) - 8px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    border-right: none;
+    border-bottom: none;
+    border-left: none;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    animation: dockSheetUp 0.24s var(--ease-out);
   }
 }
 
 .sheetHeader {
   display: flex;
+  min-height: 56px;
   flex-shrink: 0;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
   border-bottom: 1px solid var(--color-divider-subtle);
   background: var(--color-surface-container-low);
 }
@@ -96,38 +133,70 @@
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-3);
 }
 
-.sheetTitleIcon {
+.avatar {
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
   flex-shrink: 0;
-  color: var(--color-assistant-accent);
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 32%, transparent);
+  border-radius: var(--radius-md);
+  color: var(--color-text-accent);
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+
+.titleStack {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px var(--space-2);
 }
 
 .sheetTitle {
   margin: 0;
-  font-family: var(--font-body);
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: -0.01em;
   color: var(--color-on-surface);
 }
 
-.sheetClose {
-  flex-shrink: 0;
+.modelChip {
   display: inline-flex;
+  height: 20px;
+  align-items: center;
+  padding: 0 8px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--color-on-surface-variant);
+  text-decoration: none;
+}
+
+.modelChip:hover {
+  border-color: var(--color-primary);
+  color: var(--color-text-accent);
+}
+
+.sheetClose {
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
   border: none;
   border-radius: var(--radius-sm);
-  padding: 8px;
+  padding: 0;
   color: var(--color-on-surface-variant);
   background: transparent;
   cursor: pointer;
-  transition:
-    background 0.15s ease,
-    color 0.15s ease;
 }
 
 .sheetClose:hover {
@@ -135,11 +204,19 @@
   color: var(--color-on-surface);
 }
 
+@media (max-width: 767px) {
+  .sheetClose {
+    width: 44px;
+    height: 44px;
+  }
+}
+
 .sheetBody {
+  display: flex;
   flex: 1;
   min-height: 0;
-  overflow: auto;
-  overscroll-behavior: contain;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 @keyframes dockFadeIn {
@@ -154,10 +231,40 @@
 @keyframes dockSlideUp {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes dockSheetUp {
+  from {
+    transform: translateY(24px);
+    opacity: 0.6;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes dockHintIn {
+  from {
+    opacity: 0;
+    transform: translateX(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet,
+  .backdrop,
+  .hint {
+    animation: none;
   }
 }

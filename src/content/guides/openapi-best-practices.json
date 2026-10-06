@@ -1,151 +1,289 @@
 {
   "slug": "openapi-best-practices",
-  "title": "OpenAPI Best Practices: Comprehensive Guide for Enterprise API Teams (2026)",
-  "description": "Master OpenAPI 3.0 and 3.1 specification design. Discover enterprise patterns for schema reusability, RFC 7807 error modeling, polymorphism with oneOf/anyOf, and automated contract testing.",
-  "excerpt": "A comprehensive, practical guide to structuring OpenAPI specifications for optimal documentation, automated SDK generation, and deterministic schema validation.",
+  "title": "OpenAPI Best Practices for Writing the Spec File",
+  "description": "OpenAPI best practices for the spec document itself: stable operationIds, tags, reusable components, named examples, servers, security schemes, and linting.",
+  "excerpt": "How to write an OpenAPI document that code generators, docs portals, and linters can use, with a before and after example.",
   "category": "openapi",
+  "cluster": "openapi",
+  "primaryKeyword": "openapi best practices",
+  "keywords": [
+    "openapi operationid naming",
+    "openapi components reuse",
+    "openapi securityschemes",
+    "openapi servers object",
+    "openapi spec linting"
+  ],
   "tags": [
     "OpenAPI",
-    "Swagger",
-    "API Design",
-    "JSON Schema",
-    "Developer Tools",
-    "API Quality",
-    "REST API"
-  ],
-  "keywords": [
-    "openapi best practices",
-    "swagger best practices",
-    "openapi specification guide",
-    "api design patterns",
-    "openapi 3.1 tutorial",
-    "api schema validation",
-    "rfc 7807 error handling"
+    "Spec Authoring",
+    "Code Generation",
+    "Linting"
   ],
   "author": "rishab",
   "publishedAt": "2026-09-26",
-  "updatedAt": "2026-09-26",
-  "readingTime": "14 min read",
+  "updatedAt": "2026-10-04",
   "featured": true,
   "content": [
     {
       "type": "paragraph",
-      "text": "The OpenAPI Specification (OAS 3.0 & 3.1) serves as the definitive single source of truth for modern software architectures. When crafted with strict design principles, an OpenAPI specification powers interactive API portals, automated client SDK generation, mock servers, security scanners, and runtime contract enforcement."
+      "text": "OpenAPI best practices are mostly about the document, not the API behind it. Give every operation a unique, readable operationId, because code generators turn it into a method name. Declare tags at the top level so docs group operations in a sensible order. Move anything used twice into components and point to it with $ref. Add named examples that match their schemas. List real servers, declare authentication once in securitySchemes, and run a linter on every pull request so these rules hold after the first author moves on. This guide covers each of those with the OpenAPI 3.1 rules behind them and a worked before and after example."
     },
     {
-      "type": "callout",
-      "variant": "info",
-      "title": "OpenAPI 3.0 vs 3.1 Alignment",
-      "text": "OpenAPI 3.1 introduces full 100% compatibility with JSON Schema Draft 2020-12, allowing native keywords like $defs, type arrays (e.g. type: ['string', 'null']), and prefixItems. Ensure your tooling stack supports OAS 3.1 before adopting 3.1-exclusive keywords."
+      "type": "paragraph",
+      "text": "Resource naming, HTTP methods, and status codes are design questions with their own guide, [REST API design best practices](/guides/rest-api-design-best-practices). Everything here assumes the design is settled and asks how to write it down well."
     },
     {
       "type": "heading",
       "level": 2,
-      "text": "1. Standardize Resource Paths with Lower Kebab-Case Nouns",
-      "id": "resource-paths"
+      "text": "Fill in info and servers first",
+      "id": "info-servers"
     },
     {
       "type": "paragraph",
-      "text": "URIs represent resources, not operations. Always use plural nouns and lower kebab-case for resource collections (e.g., /v1/user-accounts instead of /v1/getUserAccounts or /v1/userAccounts). HTTP verbs specify the execution intent."
+      "text": "The info object needs only title and version, and version trips people up. The OpenAPI Specification defines it as the version of the OpenAPI document, distinct from both the OpenAPI Specification version and the API implementation version. Bump it whenever the document changes, so a client team can see that the spec they generated from is stale. It does not have to match the /v1 in your paths; the [API versioning guide](/guides/api-versioning-best-practices) covers how to version the API itself."
+    },
+    {
+      "type": "paragraph",
+      "text": "If servers is missing or empty, the specification says the default is a single server with the URL /. Interactive docs then send try-it requests to whatever host serves the docs page, which is rarely your API. List each environment a reader may call, with a description, and put the sandbox before production if you want readers to experiment safely. Server variables can template the URL, for example a region or tenant subdomain, and each variable must have a default. Path items and operations can override servers, which is useful when one endpoint, such as file upload, lives on a different host."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "filename": "servers.yaml",
+      "code": "servers:\n  - url: https://sandbox.api.example.com\n    description: Sandbox with test data\n  - url: https://{region}.api.example.com\n    description: Production\n    variables:\n      region:\n        enum: [eu, us]\n        default: eu"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Give every operation a stable operationId",
+      "id": "operation-id"
+    },
+    {
+      "type": "paragraph",
+      "text": "The specification requires operationId to be unique among all operations, treats it as case-sensitive, and recommends common programming naming conventions because tools may use it to identify the operation. Generators for TypeScript, Python, Go, and other languages take it as the function name. Without it, each generator invents a name from the method and path, and you get names like getV1InvoicesId that change when the path changes."
     },
     {
       "type": "table",
-      "headers": ["HTTP Verb", "URI Pattern", "Action Intent", "Idempotent"],
-      "rows": [
-        ["GET", "/v1/payment-intents", "List payment intents with filtering", "Yes"],
-        ["POST", "/v1/payment-intents", "Create a new payment intent", "No"],
-        ["GET", "/v1/payment-intents/{id}", "Retrieve specific payment intent", "Yes"],
-        ["PUT", "/v1/payment-intents/{id}", "Full replacement of payment intent", "Yes"],
-        ["PATCH", "/v1/payment-intents/{id}", "Partial mutation of payment intent", "No"],
-        ["DELETE", "/v1/payment-intents/{id}", "Soft or hard deletion of resource", "Yes"]
+      "headers": [
+        "operationId",
+        "Problem",
+        "Better"
       ],
-      "caption": "RESTful HTTP Verb and Path Matrix"
+      "rows": [
+        [
+          "(missing)",
+          "Generated name depends on the tool and the path",
+          "listInvoices"
+        ],
+        [
+          "get_v1_invoices_id",
+          "Encodes the path and version, so it changes when they change",
+          "getInvoice"
+        ],
+        [
+          "invoice",
+          "Says nothing about the action",
+          "getInvoice or updateInvoice"
+        ],
+        [
+          "GetInvoice and getInvoice in one file",
+          "Unique by case only, so easy to misread, and a generator that changes casing can collide them",
+          "Pick one casing for the whole document"
+        ],
+        [
+          "handleRequest2",
+          "Meaningless to a reader of the SDK",
+          "voidInvoice"
+        ]
+      ],
+      "caption": "One convention that works: lowerCamelCase verb plus singular or plural noun, such as listInvoices, getInvoice, createInvoice."
+    },
+    {
+      "type": "paragraph",
+      "text": "Treat operationIds as public names. Renaming one renames a method in every generated SDK, which breaks client code even though no HTTP request changed. If a name is wrong, add the new operation, mark the old one deprecated: true, and remove it in the next major version. Links and some tools also refer to operations by operationId, so a rename can break references inside the document too."
     },
     {
       "type": "heading",
       "level": 2,
-      "text": "2. Structure Component Schemas for Maximum Reusability",
-      "id": "reusable-components"
+      "text": "Group operations with declared tags",
+      "id": "tags"
     },
     {
       "type": "paragraph",
-      "text": "Avoid duplicate inline object declarations. Extract core domain entities into the components/schemas block and reference them using canonical $ref pointers. This reduces specification file size, eliminates maintenance drift, and guarantees model consistency."
+      "text": "Docs renderers commonly group operations by tag in the navigation, and some code generators use the tag to split the client into classes such as InvoicesApi and CustomersApi. Declare every tag in the top-level tags array with a description. The specification says tools can use the order of that array, and that tags used by operations but not declared there may be ordered randomly or by the tool's own logic. Give each operation one primary tag. An operation with three tags can appear under each of them in the sidebar and in each generated class."
     },
     {
-      "type": "code",
+      "type": "heading",
+      "level": 2,
+      "text": "Reuse definitions through components",
+      "id": "components"
+    },
+    {
+      "type": "paragraph",
+      "text": "The components object holds reusable schemas, responses, parameters, examples, request bodies, headers, security schemes, links, callbacks, and, in 3.1, path items. Keys must match the pattern ^[a-zA-Z0-9\\.\\-_]+$, so a schema named Invoice Line fails and InvoiceLine works. The reason to reuse is drift. Two inline copies of the same object are edited at different times by different people, and they stop agreeing. In the before example below, one invoice schema types total as an integer and the other as a number, which is exactly that drift."
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Extract an object into components/schemas as soon as two operations use it. Generators produce one named type per component, so Invoice becomes one class instead of InvoicesGet200ResponseItem and InvoicesIdGet200Response.",
+        "Put shared parameters, such as a page size limit or a path ID, in components/parameters. A parameter used by every operation on a path can sit at the path item level instead of being repeated under each method.",
+        "Keep shared response definitions in components/responses. The [error handling guide](/guides/rest-api-error-handling) shows this for problem details bodies.",
+        "Leave one-off request bodies inline. A component used once adds a jump for the reader and no consistency benefit.",
+        "Split very large documents into several files with relative $ref paths only when your tooling resolves them. Some tools accept only a single bundled file."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Write examples readers and tools can use",
+      "id": "examples"
+    },
+    {
+      "type": "paragraph",
+      "text": "Examples are what most readers look at first, and mock servers and docs tools render them directly. In a media type or parameter, example and examples are mutually exclusive. Prefer examples, the map of named Example objects, when a response has more than one interesting state, such as a paid invoice and a draft with no total. Each named example gets a summary that docs tools show in a dropdown."
+    },
+    {
+      "type": "paragraph",
+      "text": "In OpenAPI 3.1 the example keyword inside a Schema Object is deprecated in favor of the JSON Schema examples keyword, which takes an array. Whichever you use, the values should validate against the schema. The specification says media type examples SHOULD match the schema, and JSON Schema says the same for examples, but neither is enforced, so stale examples are common. An example with totalCents as \"129.00\" when the schema says integer teaches every reader the wrong type."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Declare security once with securitySchemes",
+      "id": "security"
+    },
+    {
+      "type": "paragraph",
+      "text": "Define each authentication method under components/securitySchemes. The allowed types in 3.1 are apiKey, http, mutualTLS, oauth2, and openIdConnect. For bearer tokens use type: http with scheme: bearer; bearerFormat: JWT is a documentation hint and changes nothing at runtime. Then apply security in one of three ways."
+    },
+    {
+      "type": "list",
+      "ordered": true,
+      "items": [
+        "Top-level security applies to every operation. Use it when almost every endpoint needs the same credentials.",
+        "Operation-level security overrides the top-level value. An empty array, security: [], removes authentication from that one operation, which is how you mark a public health check or login endpoint.",
+        "An empty object inside the array, security: [{}, {bearerAuth: []}], makes authentication optional, for endpoints that return more data to signed-in callers."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Entries in the security array are alternatives: a request needs to satisfy only one of them. Two schemes inside a single entry are both required. Mixing those up is how a spec ends up saying that an API key alone is enough for an admin endpoint. For OAuth2, list the scopes each operation needs in its security requirement so readers and gateways can see them per endpoint. The [authentication example](/examples/openapi-authentication-example) shows a full securitySchemes block."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Before and after: one small spec",
+      "id": "worked-example"
+    },
+    {
+      "type": "badExample",
+      "title": "Before: valid OpenAPI, hard to use",
       "language": "yaml",
-      "filename": "openapi-components.yaml",
-      "code": "components:\n  schemas:\n    UserAccount:\n      type: object\n      required:\n        - id\n        - email\n        - status\n        - createdAt\n      properties:\n        id:\n          type: string\n          format: uuid\n          example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d\n        email:\n          type: string\n          format: email\n          example: user@example.com\n        status:\n          type: string\n          enum: [active, suspended, pending_verification]\n          example: active\n        createdAt:\n          type: string\n          format: date-time\n          example: '2026-09-26T12:00:00Z'\n    UserAccountListResponse:\n      type: object\n      required:\n        - data\n        - pagination\n      properties:\n        data:\n          type: array\n          items:\n            $ref: '#/components/schemas/UserAccount'\n        pagination:\n          $ref: '#/components/schemas/PaginationMetadata'"
+      "code": "openapi: 3.1.0\ninfo:\n  title: Invoices API\n  version: \"1\"\npaths:\n  /v1/invoices:\n    get:\n      responses:\n        \"200\":\n          description: OK\n          content:\n            application/json:\n              schema:\n                type: array\n                items:\n                  type: object\n                  properties:\n                    id: { type: string }\n                    total: { type: integer }\n                    status: { type: string }\n  /v1/invoices/{id}:\n    get:\n      summary: Get invoice\n      parameters:\n        - name: id\n          in: path\n          required: true\n          schema: { type: string }\n      responses:\n        \"200\":\n          description: OK\n          content:\n            application/json:\n              schema:\n                type: object\n                properties:\n                  id: { type: string }\n                  total: { type: number }\n                  status: { type: string }\n        \"404\":\n          description: Not found",
+      "explanation": "No servers, so try-it calls go to /. No operationIds, tags, security, or examples. The invoice object is written twice and the copies disagree on the type of total. The list operation has no summary."
     },
     {
-      "type": "heading",
-      "level": 2,
-      "text": "3. Enforce RFC 7807 Problem Details for Error Handling",
-      "id": "error-handling"
-    },
-    {
-      "type": "paragraph",
-      "text": "Never leave 4xx and 5xx responses unmodeled or represented as plain strings. Adopt RFC 7807 (Problem Details for HTTP APIs) to provide structured machine-readable error responses across all endpoints."
-    },
-    {
-      "type": "code",
+      "type": "goodExample",
+      "title": "After: the same two operations, written for tools",
       "language": "yaml",
-      "filename": "rfc7807-error-schema.yaml",
-      "code": "components:\n  schemas:\n    ProblemDetails:\n      type: object\n      required:\n        - type\n        - title\n        - status\n        - detail\n        - instance\n      properties:\n        type:\n          type: string\n          format: uri\n          example: https://api.example.com/errors/invalid-parameter\n        title:\n          type: string\n          example: Invalid Input Parameter\n        status:\n          type: integer\n          example: 400\n        detail:\n          type: string\n          example: The provided email parameter does not comply with RFC 5322.\n        instance:\n          type: string\n          example: /v1/users/req_92384729384"
+      "code": "openapi: 3.1.0\ninfo:\n  title: Invoices API\n  version: 1.4.0\n  description: Create, list, and void customer invoices.\nservers:\n  - url: https://api.example.com\n    description: Production\n  - url: https://sandbox.api.example.com\n    description: Sandbox with test data\ntags:\n  - name: Invoices\n    description: Billing documents sent to customers\nsecurity:\n  - bearerAuth: []\npaths:\n  /v1/invoices:\n    get:\n      tags: [Invoices]\n      operationId: listInvoices\n      summary: List invoices\n      parameters:\n        - $ref: \"#/components/parameters/Limit\"\n      responses:\n        \"200\":\n          description: A page of invoices\n          content:\n            application/json:\n              schema:\n                type: array\n                items:\n                  $ref: \"#/components/schemas/Invoice\"\n        \"401\":\n          $ref: \"#/components/responses/Problem\"\n  /v1/invoices/{id}:\n    parameters:\n      - $ref: \"#/components/parameters/InvoiceId\"\n    get:\n      tags: [Invoices]\n      operationId: getInvoice\n      summary: Get one invoice\n      responses:\n        \"200\":\n          description: The invoice\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/Invoice\"\n              examples:\n                paid:\n                  summary: A paid invoice\n                  value:\n                    id: inv_1042\n                    totalCents: 12900\n                    currency: EUR\n                    status: paid\n                draft:\n                  summary: A draft with no total yet\n                  value:\n                    id: inv_1043\n                    totalCents: 0\n                    currency: EUR\n                    status: draft\n        \"404\":\n          $ref: \"#/components/responses/Problem\"\ncomponents:\n  securitySchemes:\n    bearerAuth:\n      type: http\n      scheme: bearer\n      bearerFormat: JWT\n  parameters:\n    InvoiceId:\n      name: id\n      in: path\n      required: true\n      description: Invoice identifier, for example inv_1042\n      schema:\n        type: string\n    Limit:\n      name: limit\n      in: query\n      description: Page size\n      schema:\n        type: integer\n        minimum: 1\n        maximum: 100\n        default: 20\n  schemas:\n    Invoice:\n      type: object\n      required: [id, totalCents, currency, status]\n      properties:\n        id:\n          type: string\n        totalCents:\n          type: integer\n          description: Amount in the smallest currency unit\n        currency:\n          type: string\n          pattern: \"^[A-Z]{3}$\"\n        status:\n          type: string\n          enum: [draft, open, paid, void]\n  responses:\n    Problem:\n      description: Error in problem details format\n      content:\n        application/problem+json:\n          schema:\n            type: object\n            properties:\n              title:\n                type: string\n              status:\n                type: integer",
+      "explanation": "Servers list both environments. Each operation has a tag, an operationId, and a summary. Invoice is defined once, the ID parameter sits at the path level, two named examples show different states, and bearer auth applies to every operation."
+    },
+    {
+      "type": "paragraph",
+      "text": "We ran both files through APIForge's design score. The before version scored 90 out of 100, losing 5 points for documentation because the list operation has no summary and 5 for error handling because the list operation declares no 4xx or default response. The after version scored 100. Adding operationIds, tags, servers, security, examples, and the shared Invoice schema did not change the number. The score grades API design from paths, methods, response codes, and operation descriptions. It does not read authoring details, so a spec can score 100 and still generate an SDK full of getV1InvoicesId methods."
     },
     {
       "type": "heading",
       "level": 2,
-      "text": "4. Model Polymorphism with oneOf, anyOf, and Discriminators",
-      "id": "polymorphism"
+      "text": "Lint the spec on every pull request",
+      "id": "linting"
     },
     {
       "type": "paragraph",
-      "text": "When an endpoint accepts or returns varying payload types (e.g. CreditCardPayment vs BankTransferPayment), use oneOf coupled with an explicit discriminator object. This enables code generators to produce strongly-typed class hierarchies."
+      "text": "Rules that live only in a style guide stop being followed. Put them in CI so a pull request that breaks one fails before review. A useful first rule set checks things a reviewer misses when reading a diff."
     },
     {
-      "type": "code",
-      "language": "yaml",
-      "filename": "polymorphic-schema.yaml",
-      "code": "PaymentMethod:\n  type: object\n  required:\n    - methodType\n  discriminator:\n    propertyName: methodType\n    mapping:\n      credit_card: '#/components/schemas/CreditCardPayment'\n      bank_transfer: '#/components/schemas/BankTransferPayment'\n  oneOf:\n    - $ref: '#/components/schemas/CreditCardPayment'\n    - $ref: '#/components/schemas/BankTransferPayment'"
-    },
-    {
-      "type": "heading",
-      "level": 2,
-      "text": "5. Secure Specifications with Explicit Security Requirement Objects",
-      "id": "security-schemes"
+      "type": "steps",
+      "title": "A lint pipeline for an OpenAPI repository",
+      "steps": [
+        {
+          "title": "Parse and resolve every $ref",
+          "description": "Fail on YAML syntax errors and on any $ref that points to nothing. A broken reference often renders as an empty schema in docs instead of an error."
+        },
+        {
+          "title": "Check authoring rules",
+          "description": "Every operation has an operationId, a summary, and exactly one tag; operationIds are unique; every tag is declared at the top level; servers is not empty; every operation is covered by a security requirement or an explicit security: []."
+        },
+        {
+          "title": "Validate examples against their schemas",
+          "description": "Run each example value through a JSON Schema validator so stale examples fail the build instead of misleading readers."
+        },
+        {
+          "title": "Score the design",
+          "description": "Run a design check for naming, methods, versioning, and documented responses, and fail the build if the score drops below the value on the main branch."
+        }
+      ]
     },
     {
       "type": "paragraph",
-      "text": "Define global security requirements in securitySchemes and specify OAuth 2.0 scopes, Bearer JWT tokens, or API Keys per endpoint. Explicit security definitions allow automated gateway enforcement and security linting."
-    },
-    {
-      "type": "callout",
-      "variant": "warning",
-      "title": "Avoid Wildcard Security Scopes",
-      "text": "Never use generic admin or wildcard scopes across public endpoints. Bind granular scopes (e.g. read:users, write:orders) to individual operation objects."
+      "text": "APIForge covers the first and last steps in the browser. The [OpenAPI validator](/openapi-validator) parses YAML or JSON, resolves $ref pointers, and lists the operations it found, and the [API quality score](/api-score) grades the design across seven categories. The middle steps need a rule-based linter you can configure; the [APIForge vs Spectral comparison](/compare/apiforge-vs-spectral) explains where each fits. Before a release, walk through the [OpenAPI production checklist](/checklists/openapi-production-checklist), and if the validator rejects your file, [common OpenAPI errors](/guides/common-openapi-errors) lists the usual causes."
     },
     {
       "type": "tool",
-      "tool": "api-score",
-      "title": "Validate Your OpenAPI Spec for Enterprise Quality",
-      "description": "Run your OpenAPI 2.0, 3.0, or 3.1 file through APIForge's deterministic quality analyzer to highlight missing descriptions, invalid operationIds, and security flaws.",
-      "buttonText": "Analyze API Quality Score",
-      "href": "/api-score"
+      "tool": "openapi-validator",
+      "title": "Parse and check your OpenAPI file",
+      "description": "Paste an OpenAPI 3.x document to check that it parses, resolve its $ref pointers, and browse every operation.",
+      "buttonText": "Open the OpenAPI validator",
+      "href": "/openapi-validator"
+    },
+    {
+      "type": "relatedContent",
+      "slugs": [
+        "common-openapi-errors",
+        "validate-swagger-openapi-spec",
+        "openapi-response-schema-best-practices",
+        "generate-test-cases-from-openapi"
+      ]
+    },
+    {
+      "type": "externalReference",
+      "title": "OpenAPI Specification 3.1.0: Operation Object (operationId, tags, security)",
+      "url": "https://spec.openapis.org/oas/v3.1.0#operation-object",
+      "source": "OpenAPI Initiative"
+    },
+    {
+      "type": "externalReference",
+      "title": "OpenAPI Specification 3.1.0: Components Object",
+      "url": "https://spec.openapis.org/oas/v3.1.0#components-object",
+      "source": "OpenAPI Initiative"
+    },
+    {
+      "type": "externalReference",
+      "title": "OpenAPI Specification 3.1.0: Security Scheme Object",
+      "url": "https://spec.openapis.org/oas/v3.1.0#security-scheme-object",
+      "source": "OpenAPI Initiative"
+    },
+    {
+      "type": "externalReference",
+      "title": "JSON Schema annotations: examples and deprecated",
+      "url": "https://json-schema.org/understanding-json-schema/reference/annotations",
+      "source": "json-schema.org"
     }
   ],
   "faqs": [
     {
-      "question": "What is the difference between OpenAPI 3.0 and OpenAPI 3.1?",
-      "answer": "OpenAPI 3.1 brings 100% dialect alignment with JSON Schema Draft 2020-12, supports Webhooks at the root spec level, allows type array declarations (e.g. type: ['string', 'null']), and replaces requestBody 'example' with 'examples'."
+      "question": "Is operationId required in OpenAPI?",
+      "answer": "No, the specification makes it optional, but when present it must be unique across the document and it is case-sensitive. Code generators use it as the method name, so leaving it out gives you generated names that change whenever a path changes. Add one to every operation."
     },
     {
-      "question": "Why are unique operationIds mandatory in OpenAPI specifications?",
-      "answer": "OperationIds act as unique function names when generating client SDK libraries (TypeScript, Go, Python, Java). Non-unique operationIds lead to code generation collisions and build failures."
+      "question": "Should I use example or examples?",
+      "answer": "In a media type or parameter, use examples when you want several named cases and example for a single value; you cannot use both on the same object. Inside a schema in OpenAPI 3.1, the example keyword is deprecated, so use the JSON Schema examples array instead."
     },
     {
-      "question": "How does APIForge inspect and grade OpenAPI files?",
-      "answer": "APIForge parses JSON/YAML specifications, validating structural correctness, path hierarchy depth, RFC 7807 error schema presence, security declarations, and parameter formatting to compute a deterministic 0-100 API Quality Score."
+      "question": "How do I make one endpoint public when the API requires auth?",
+      "answer": "Declare the default security at the top level, then set security: [] on the public operation. The empty array removes the top-level requirement for that operation only. Use security: [{}, {bearerAuth: []}] if authentication should be optional rather than absent."
     }
   ]
 }
