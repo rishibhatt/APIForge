@@ -1,0 +1,286 @@
+{
+  "slug": "swagger-ui-authorize-bearer-token-not-working",
+  "title": "Swagger UI Authorize Not Sending the Bearer Token",
+  "description": "In 5 of 9 spec setups we tested, Swagger UI sent no Authorization header after Authorize. See the spec mistake behind each case and how to fix it.",
+  "excerpt": "Authorize stores a token. The spec decides whether a request carries it. Nine setups show which mistakes drop the header.",
+  "category": "swagger",
+  "cluster": "api-security",
+  "primaryKeyword": "swagger ui authorize bearer token not working",
+  "keywords": [
+    "swagger ui authorization header not sent",
+    "openapi bearer security scheme",
+    "swagger authorize button no token",
+    "securitySchemes security requirement"
+  ],
+  "tags": [
+    "Swagger UI",
+    "OpenAPI",
+    "Authentication",
+    "Bearer Token"
+  ],
+  "author": "rishab",
+  "publishedAt": "2026-10-07",
+  "updatedAt": "2026-10-07",
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "Swagger UI adds an Authorization header only when a security requirement in the spec applies to the operation you execute. Clicking Authorize and entering a token stores the token, but if the operation does not reference the security scheme, the request goes out without it. We tested nine spec setups in Swagger UI 5.33.1 and recorded the header the server received. Five of them sent no header. In three of those the spec never asked for one, and in the other two a mistake in the spec broke the connection."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "What we tested",
+      "id": "what-we-tested"
+    },
+    {
+      "type": "paragraph",
+      "text": "Each setup was a one-operation OpenAPI 3.0.3 spec that called a local server. We stored the token the way the Authorize dialog does, through Swagger UI's preauthorizeApiKey method, then clicked Try it out and Execute in the page and logged the headers on the server. The server allowed the Authorization header in its CORS settings, so a missing header here is never a CORS side effect. Swagger UI 5.33.1, Chrome 152."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Setup",
+        "Authorize button",
+        "Padlock icons",
+        "Authorization header the server received"
+      ],
+      "rows": [
+        [
+          "A. http bearer scheme + global security",
+          "Yes",
+          "2",
+          "Bearer abc123"
+        ],
+        [
+          "B. Scheme defined, no security requirement anywhere",
+          "Yes",
+          "0",
+          "None"
+        ],
+        [
+          "C. Security only on /star, we executed /full",
+          "Yes",
+          "1",
+          "None"
+        ],
+        [
+          "D. Global security, but the operation sets security: []",
+          "Yes",
+          "1",
+          "None"
+        ],
+        [
+          "E. Global security names bearer, but the scheme is called bearerAuth",
+          "Yes",
+          "2",
+          "None"
+        ],
+        [
+          "F. apiKey scheme in the Authorization header, token typed as abc123",
+          "Yes",
+          "2",
+          "abc123"
+        ],
+        [
+          "G. Same apiKey scheme, token typed as Bearer abc123",
+          "Yes",
+          "2",
+          "Bearer abc123"
+        ],
+        [
+          "H. http scheme written as scheme: Bearer (capital B)",
+          "Yes",
+          "2",
+          "Bearer abc123"
+        ],
+        [
+          "I. Swagger 2.0 securityDefinitions inside an OpenAPI 3 file",
+          "No",
+          "2",
+          "None"
+        ]
+      ],
+      "caption": "Swagger UI 5.33.1, Chrome 152. The token was abc123 in every case."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "What each result means",
+      "id": "results"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "A scheme that is defined is not a scheme that is applied",
+      "id": "defined-not-applied"
+    },
+    {
+      "type": "paragraph",
+      "text": "Setups B and C both declare the bearer scheme and show an Authorize button, and both sent nothing. In OpenAPI, components.securitySchemes only describes the available schemes. A request carries credentials when a security requirement references a scheme, either in a top-level security list that covers every operation or in the security list of one operation. Setup C shows the second case: only /star had a requirement, so executing /full sent no header, which is correct. The Swagger bearer documentation shows both forms:"
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "code": "components:\n  securitySchemes:\n    bearerAuth:\n      type: http\n      scheme: bearer\n      bearerFormat: JWT\n\n# Applies to every operation\nsecurity:\n  - bearerAuth: []\n\n# Or applies to one operation\npaths:\n  /orders:\n    get:\n      security:\n        - bearerAuth: []",
+      "filename": "openapi.yaml"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "An empty security array makes an operation public",
+      "id": "empty-array"
+    },
+    {
+      "type": "paragraph",
+      "text": "In setup D the document had global security, yet the operation sent no header. The operation set security: [], which is the documented way to remove a top-level requirement. The OpenAPI 3.0.3 specification says: To remove a top-level security declaration, an empty array can be used. If an endpoint you expect to be protected sends no token, search the operation for an empty security list before you suspect Swagger UI."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "The requirement must name the scheme exactly",
+      "id": "exact-name"
+    },
+    {
+      "type": "paragraph",
+      "text": "In setup E, both operations showed padlock icons, which suggests they are protected, yet the server received no header. The global requirement named bearer, while the scheme was defined as bearerAuth. The OpenAPI Specification requires every name in a security requirement to correspond to a scheme declared under components. Swagger UI still showed the padlocks and attached no header. A padlock tells you a requirement exists. It does not prove a header will be sent."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Bearer scheme or apiKey scheme decides what you type",
+      "id": "what-you-type"
+    },
+    {
+      "type": "paragraph",
+      "text": "With type: http and scheme: bearer (setup A), we entered abc123 and Swagger UI built Authorization: Bearer abc123 on its own, so enter the raw token. With type: apiKey in the Authorization header (setups F and G), the header carries exactly what you type: abc123 produced Authorization: abc123, and Bearer abc123 produced Authorization: Bearer abc123. An API that expects Bearer rejects the first form. If your API expects Bearer, prefer the http scheme so the prefix is added for you. Setup H shows that scheme: Bearer with a capital B also worked in 5.33.1. The specification points to the HTTP authentication scheme registry for this value and the Swagger examples use lowercase, so use lowercase to stay consistent."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Swagger 2.0 keys do nothing in an OpenAPI 3 file",
+      "id": "swagger-2-keys"
+    },
+    {
+      "type": "paragraph",
+      "text": "Setup I put securityDefinitions, the Swagger 2.0 key, in an OpenAPI 3.0.3 file. Swagger UI showed no Authorize button and sent no header. OpenAPI 3 reads schemes from components.securitySchemes. This is easy to do when you convert a Swagger 2.0 file by hand and change only the version line. [Swagger vs OpenAPI](/guides/swagger-vs-openapi) shows the old and new security syntax side by side."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Confirm the header leaves the browser",
+      "id": "confirm-header"
+    },
+    {
+      "type": "steps",
+      "title": "Three checks, fastest first",
+      "steps": [
+        {
+          "title": "Read the Curl line under the response",
+          "description": "After Execute, Swagger UI prints the request as a curl command. In setup A it showed -H 'Authorization: Bearer abc123'. If that line has no Authorization header, the problem is in the spec, and the table above tells you which case."
+        },
+        {
+          "title": "Check the Network tab",
+          "description": "Open DevTools, select the request and read the request headers. This catches a proxy or browser extension that removes the header after Swagger UI sends it."
+        },
+        {
+          "title": "Test the token outside Swagger UI",
+          "description": "If the header is present and you still get 401 or 403, the spec is not the cause. Send the same request with curl and read the response."
+        }
+      ]
+    },
+    {
+      "type": "code",
+      "language": "bash",
+      "code": "curl -i https://api.example.com/orders \\\n  -H \"Authorization: Bearer $TOKEN\"",
+      "caption": "A 401 here means the token or the server rejects it, whatever Swagger UI does."
+    },
+    {
+      "type": "paragraph",
+      "text": "Common reasons for a 401 with a header present are an expired token, a token issued for a different audience, and an API that expects another scheme such as Token or Basic. The [bearer token glossary entry](/glossary/bearer-token) and the [OpenAPI authentication example](/examples/openapi-authentication-example) show how the pieces fit together."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "When the Authorization header makes the request fail",
+      "id": "cors-side"
+    },
+    {
+      "type": "paragraph",
+      "text": "Adding an Authorization header turns a plain GET into a preflighted request. If the server does not list authorization in Access-Control-Allow-Headers, Chrome blocks the call and Swagger UI shows Failed to fetch, even though you set the token correctly. In our separate CORS test, a server with Access-Control-Allow-Origin: * blocked every request that carried an Authorization header. If your symptom is an error and not a missing header, read [Swagger UI Failed to Fetch: causes and fixes](/guides/swagger-ui-failed-to-fetch)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Check your token and spec in APIForge",
+      "id": "apiforge"
+    },
+    {
+      "type": "paragraph",
+      "text": "APIForge reads security the way the specification defines it. For each operation it uses that operation's own security list when one exists, including an empty list, and otherwise the top-level list. In the [API testing workbench](/api-testing), the Run API panel then shows either \"The spec asks for:\" with the scheme, or \"The spec declares no security for this operation.\" That message corresponds to setups B, C and D above, and to setup E, where the requirement names a scheme that does not exist."
+    },
+    {
+      "type": "paragraph",
+      "text": "You can still send a token to any operation. Enter a workspace default token, which APIForge sends as a Bearer token on every request that has no other auth and no Authorization header, or set auth on a single request. We sent a bearer token through APIForge's proxy to our test server and it arrived as Authorization: Bearer abc123. That separates a spec problem from a server problem: if the call succeeds in APIForge, the API accepts the token, and the fix belongs in the spec. For the larger picture, see [API security best practices](/guides/api-security-best-practices)."
+    },
+    {
+      "type": "tool",
+      "tool": "api-testing",
+      "title": "Send the request with your token",
+      "description": "Load your spec, add a bearer token, and see exactly what the API returns.",
+      "buttonText": "Open the testing workbench",
+      "href": "/api-testing"
+    },
+    {
+      "type": "relatedContent",
+      "slugs": [
+        "swagger-ui-failed-to-fetch",
+        "api-security-best-practices",
+        "swagger-vs-openapi"
+      ]
+    },
+    {
+      "type": "externalReference",
+      "title": "Bearer Authentication (OpenAPI 3.0)",
+      "url": "https://swagger.io/docs/specification/v3_0/authentication/bearer-authentication/",
+      "source": "swagger.io"
+    },
+    {
+      "type": "externalReference",
+      "title": "API Keys (OpenAPI 3.0)",
+      "url": "https://swagger.io/docs/specification/v3_0/authentication/api-keys/",
+      "source": "swagger.io"
+    },
+    {
+      "type": "externalReference",
+      "title": "OpenAPI Specification 3.0.3",
+      "url": "https://spec.openapis.org/oas/v3.0.3.html",
+      "source": "OpenAPI Initiative"
+    },
+    {
+      "type": "externalReference",
+      "title": "OpenAPI Specification 3.1.0: Security Requirement Object",
+      "url": "https://spec.openapis.org/oas/v3.1.0.html#security-requirement-object",
+      "source": "OpenAPI Initiative"
+    },
+    {
+      "type": "externalReference",
+      "title": "Cross-Origin Resource Sharing (CORS)",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS",
+      "source": "MDN"
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Why does Swagger UI show a padlock but send no token?",
+      "answer": "Padlock icons appear when an operation has a security requirement, whether or not the requirement points to a scheme that exists. In our test, a requirement that named a missing scheme still showed padlocks on both operations, and the server received no Authorization header. Check that the name under security matches a key under components.securitySchemes exactly."
+    },
+    {
+      "question": "Do I type Bearer in the Authorize box?",
+      "answer": "For a scheme with type http and scheme bearer, enter the raw token. Swagger UI built the header Authorization: Bearer abc123 from the value abc123 in our test. For an apiKey scheme in the Authorization header, the header is exactly what you enter, so include Bearer yourself."
+    },
+    {
+      "question": "Why does the token work in curl but not in Swagger UI?",
+      "answer": "Either the spec does not apply the security scheme to that operation, so Swagger UI never attaches the header, or the browser blocks the request. Read the Curl line under the response to see whether the header was sent, then check the console for a CORS message."
+    }
+  ]
+}

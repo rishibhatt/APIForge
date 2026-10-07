@@ -1,10 +1,8 @@
 /*
- * Full-bleed violet band, one row (after the GSAP Showcase ticker).
- * Each keyword is a dark chip with a ✦ between them. Hover slows the row and flips the chip light.
+ * Full-bleed violet band, one row.
+ * Each keyword is a chip with a ✦ between them. Continuous ticker with direct hyperlinks on click.
  */
 .wrap {
-  --chip-hover-bg: #ffffff;
-  --chip-hover-ink: #1c1028;
   width: 100%;
   min-width: 0;
   padding: 20px 0;
@@ -50,7 +48,6 @@
 .tag {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
   height: 44px;
   padding: 0 20px;
   border: 1px solid transparent;
@@ -62,42 +59,15 @@
   letter-spacing: -0.005em;
   white-space: nowrap;
   text-decoration: none;
-  transition:
-    background-color 180ms ease,
-    color 180ms ease,
-    transform 220ms var(--ease-out),
-    box-shadow 220ms ease;
+  cursor: pointer;
 }
 
 .name {
   display: inline-block;
 }
 
-.arrow {
-  width: 0;
-  overflow: hidden;
-  opacity: 0;
-  margin-left: -8px;
-  transition: width 220ms var(--ease-out), opacity 160ms ease, margin 220ms var(--ease-out);
-}
-
-.tag:hover,
 .tag:focus-visible {
-  background: var(--chip-hover-bg);
-  color: var(--chip-hover-ink);
-  transform: translateY(-2px);
-  box-shadow: 0 10px 22px -10px rgba(28, 16, 40, 0.55);
-}
-
-.tag:hover .arrow,
-.tag:focus-visible .arrow {
-  width: 18px;
-  margin-left: 0;
-  opacity: 1;
-}
-
-.tag:focus-visible {
-  outline: 2px solid var(--chip-hover-ink);
+  outline: 2px solid var(--color-cta-foreground);
   outline-offset: 2px;
 }
 

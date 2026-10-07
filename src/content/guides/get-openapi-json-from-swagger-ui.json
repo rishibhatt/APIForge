@@ -6,11 +6,23 @@
   "category": "swagger",
   "cluster": "openapi",
   "primaryKeyword": "get openapi json from swagger ui",
-  "keywords": ["download swagger json", "swagger ui openapi url", "export openapi spec", "swagger.json url"],
-  "tags": ["Swagger UI", "OpenAPI", "FastAPI", "NestJS", "Spring Boot", "ASP.NET Core"],
+  "keywords": [
+    "download swagger json",
+    "swagger ui openapi url",
+    "export openapi spec",
+    "swagger.json url"
+  ],
+  "tags": [
+    "Swagger UI",
+    "OpenAPI",
+    "FastAPI",
+    "NestJS",
+    "Spring Boot",
+    "ASP.NET Core"
+  ],
   "author": "rishab",
   "publishedAt": "2026-10-03",
-  "updatedAt": "2026-10-03",
+  "updatedAt": "2026-10-07",
   "content": [
     {
       "type": "paragraph",
@@ -28,13 +40,43 @@
     },
     {
       "type": "table",
-      "headers": ["Framework", "Swagger UI page", "Spec URL", "Setting that changes it"],
+      "headers": [
+        "Framework",
+        "Swagger UI page",
+        "Spec URL",
+        "Setting that changes it"
+      ],
       "rows": [
-        ["FastAPI", "/docs", "/openapi.json", "openapi_url (set to None to disable the spec and the docs)"],
-        ["NestJS (@nestjs/swagger)", "/api (the path passed to SwaggerModule.setup)", "/api-json and /api-yaml", "jsonDocumentUrl and yamlDocumentUrl"],
-        ["Spring Boot (springdoc-openapi)", "/swagger-ui.html", "/v3/api-docs and /v3/api-docs.yaml", "springdoc.api-docs.path"],
-        ["ASP.NET Core with Swashbuckle", "/swagger", "/swagger/v1/swagger.json", "SwaggerEndpoint in UseSwaggerUI options"],
-        ["ASP.NET Core 9+ built-in OpenAPI", "none by default", "/openapi/v1.json", "the route passed to MapOpenApi"]
+        [
+          "FastAPI",
+          "/docs",
+          "/openapi.json",
+          "openapi_url (set to None to disable the spec and the docs)"
+        ],
+        [
+          "NestJS (@nestjs/swagger)",
+          "/api (the path passed to SwaggerModule.setup)",
+          "/api-json and /api-yaml",
+          "jsonDocumentUrl and yamlDocumentUrl"
+        ],
+        [
+          "Spring Boot (springdoc-openapi)",
+          "/swagger-ui.html",
+          "/v3/api-docs and /v3/api-docs.yaml",
+          "springdoc.api-docs.path"
+        ],
+        [
+          "ASP.NET Core with Swashbuckle",
+          "/swagger",
+          "/swagger/v1/swagger.json",
+          "SwaggerEndpoint in UseSwaggerUI options"
+        ],
+        [
+          "ASP.NET Core 9+ built-in OpenAPI",
+          "none by default",
+          "/openapi/v1.json",
+          "the route passed to MapOpenApi"
+        ]
       ],
       "caption": "Default spec locations, taken from each framework's documentation (sources at the end of this guide)."
     },
@@ -190,7 +232,8 @@
         "Validate the structure before generating code. The steps are in [how to validate Swagger and OpenAPI specs](/guides/validate-swagger-openapi-spec).",
         "Check that every $ref resolves. Exported specs sometimes reference schemas from a second file that the server never exposes.",
         "Compare the servers list with the host you downloaded from. Specs copied between environments often still point at localhost.",
-        "Keep the file in version control. A spec you downloaded once goes stale; regenerate it from the source or download it again as part of your build."
+        "Keep the file in version control. A spec you downloaded once goes stale; regenerate it from the source or download it again as part of your build.",
+        "If Swagger UI will not render the file, check the version line first. [Swagger UI unable to render this definition](/guides/swagger-ui-unable-to-render-definition) shows which values it accepts. If \"Try it out\" fails once it renders, see [Swagger UI Failed to Fetch](/guides/swagger-ui-failed-to-fetch)."
       ]
     },
     {
@@ -207,7 +250,12 @@
     },
     {
       "type": "relatedContent",
-      "slugs": ["swagger-vs-openapi", "validate-swagger-openapi-spec", "common-openapi-errors"]
+      "slugs": [
+        "swagger-vs-openapi",
+        "swagger-ui-unable-to-render-definition",
+        "swagger-ui-failed-to-fetch",
+        "validate-swagger-openapi-spec"
+      ]
     },
     {
       "type": "externalReference",

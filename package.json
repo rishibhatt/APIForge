@@ -14,7 +14,11 @@
     "content:pairs": "npx tsx scripts/content-ops.ts pairs",
     "content:overlap": "npx tsx scripts/content-ops.ts overlap",
     "content:score": "npx tsx scripts/content-ops.ts score",
-    "icons:sync": "node scripts/sync-icon-font.mjs"
+    "icons:sync": "node scripts/sync-icon-font.mjs",
+    "seo:audit": "npx tsx scripts/seo-audit.ts",
+    "content:links": "npx tsx scripts/content-ops.ts links",
+    "content:suggest-links": "npx tsx scripts/content-ops.ts suggest-links",
+    "content:export": "npx tsx scripts/export-article-markdown.ts"
   },
   "dependencies": {
     "@apidevtools/swagger-parser": "^12.1.0",

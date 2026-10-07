@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import Link from "next/link";
-import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
 import styles from "./ExploreMarquee.module.css";
 
 type Tag = { label: string; note: string; href: string };
@@ -28,57 +26,13 @@ function TagLink({ tag, tabIndex }: { tag: Tag; tabIndex?: number }) {
   return (
     <Link href={tag.href} className={styles.tag} title={tag.note} tabIndex={tabIndex}>
       <span className={styles.name}>{tag.label}</span>
-      <MaterialIcon name="arrow_forward" size="xs" className={styles.arrow} />
     </Link>
   );
 }
 
 function Row({ tags, label }: { tags: Tag[]; label: string }) {
-  const rowRef = useRef<HTMLDivElement>(null);
-
-  // The CSS animation is the baseline; GSAP only eases its speed on hover so slowing down is smooth.
-  useEffect(() => {
-    const row = rowRef.current;
-    if (!row) return;
-    let off: (() => void) | undefined;
-    let cancelled = false;
-    (async () => {
-      const { gsap } = await import("gsap");
-      if (cancelled) return;
-      const track = row.querySelector<HTMLElement>("[data-track]");
-      const anim = track?.getAnimations()[0];
-      if (!anim) return;
-      const rate = { v: 1 };
-      const to = (v: number, d: number) =>
-        gsap.to(rate, {
-          v,
-          duration: d,
-          ease: "power2.out",
-          overwrite: true,
-          onUpdate: () => anim.updatePlaybackRate(rate.v),
-        });
-      const slow = () => to(0.12, 0.6);
-      const fast = () => to(1, 0.8);
-      row.addEventListener("pointerenter", slow);
-      row.addEventListener("pointerleave", fast);
-      row.addEventListener("focusin", slow);
-      row.addEventListener("focusout", fast);
-      off = () => {
-        row.removeEventListener("pointerenter", slow);
-        row.removeEventListener("pointerleave", fast);
-        row.removeEventListener("focusin", slow);
-        row.removeEventListener("focusout", fast);
-        gsap.killTweensOf(rate);
-      };
-    })();
-    return () => {
-      cancelled = true;
-      off?.();
-    };
-  }, []);
-
   return (
-    <div ref={rowRef} className={styles.row} role="group" aria-label={label}>
+    <div className={styles.row} role="group" aria-label={label}>
       <div className={styles.track} data-track>
         <ul className={styles.group}>
           {tags.map((t) => (

@@ -1,0 +1,425 @@
+{
+  "slug": "swagger-ui-failed-to-fetch",
+  "title": "Swagger UI \"Failed to Fetch\": Causes and Fixes",
+  "description": "Swagger UI says Failed to fetch when the browser blocks a response. We tested 9 CORS server setups in Chrome 152 and list the exact header each one needs.",
+  "excerpt": "Swagger UI shows one message for several causes. The browser console names the one that applies, and each cause has a specific server fix.",
+  "category": "swagger",
+  "cluster": "api-testing",
+  "primaryKeyword": "swagger ui failed to fetch",
+  "keywords": [
+    "swagger ui cors error",
+    "swagger try it out failed to fetch",
+    "access-control-allow-origin swagger",
+    "cors preflight authorization header"
+  ],
+  "tags": [
+    "Swagger UI",
+    "CORS",
+    "Troubleshooting",
+    "API Testing"
+  ],
+  "author": "rishab",
+  "publishedAt": "2026-10-07",
+  "updatedAt": "2026-10-07",
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "Swagger UI shows \"Failed to fetch\" when the browser refuses to hand the response of a Try it out request to the page. In most cases the cause is CORS: the API did not send the headers the browser requires. The message lists three possible reasons (CORS, network failure, and a URL scheme that is not http or https) and cannot tell you which one applies. This guide shows how to tell them apart, based on a test where we sent the same requests from a Chrome 152 page to nine CORS server setups and recorded what the browser allowed."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "What the message means",
+      "id": "what-it-means"
+    },
+    {
+      "type": "paragraph",
+      "text": "In Swagger UI 5.33.1, a blocked request ends in a response panel with the code \"Undocumented\" and this text: Failed to fetch. Possible Reasons: CORS, Network Failure, URL scheme must be \"http\" or \"https\" for CORS request. The panel has no status code because the browser never exposed one. The page's JavaScript receives a bare network error, so Swagger UI lists every common cause and leaves the diagnosis to you."
+    },
+    {
+      "type": "paragraph",
+      "text": "The browser console shows the reason. Open DevTools before you click Execute and read the line that starts with \"Access to fetch at\". Chrome names the exact header that is missing or wrong. The Network tab adds a second clue: an OPTIONS request that appears before your real request is a preflight, and a failed preflight is the usual reason authorized calls fail while public GET calls work."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The test: nine servers, four kinds of request",
+      "id": "the-test"
+    },
+    {
+      "type": "paragraph",
+      "text": "We ran a small API on one local port and a test page on another, which makes them different origins. The page sent four kinds of request to each of nine server configurations: a plain GET, a GET with an Authorization header, a POST with a JSON body, and a GET with credentials: \"include\". Every request used a unique URL, because Chrome caches a successful preflight for five seconds by default (MDN documents that default under Access-Control-Max-Age). In our first run, without unique URLs, a POST sent right after an Authorization request reused the cached preflight, and the server log showed no second OPTIONS call."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Server setup",
+        "Plain GET",
+        "GET with Authorization",
+        "POST with JSON",
+        "GET with credentials"
+      ],
+      "rows": [
+        [
+          "No CORS headers",
+          "Blocked",
+          "Blocked",
+          "Blocked",
+          "Blocked"
+        ],
+        [
+          "Allow-Origin names a different origin",
+          "Blocked",
+          "Blocked",
+          "Blocked",
+          "Blocked"
+        ],
+        [
+          "Allow-Origin: *",
+          "OK",
+          "Blocked",
+          "Blocked",
+          "Blocked"
+        ],
+        [
+          "Allow-Origin: the page's origin",
+          "OK",
+          "Blocked",
+          "Blocked",
+          "Blocked"
+        ],
+        [
+          "Page origin + Allow-Methods, no Allow-Headers",
+          "OK",
+          "Blocked",
+          "Blocked",
+          "Blocked"
+        ],
+        [
+          "Page origin + Allow-Methods + Allow-Headers (authorization, content-type)",
+          "OK",
+          "OK",
+          "OK",
+          "Blocked"
+        ],
+        [
+          "Same headers as above, but OPTIONS returns 404",
+          "OK",
+          "Blocked",
+          "Blocked",
+          "Blocked"
+        ],
+        [
+          "Allow-Origin: * + Allow-Credentials: true",
+          "OK",
+          "Blocked",
+          "Blocked",
+          "Blocked"
+        ],
+        [
+          "Page origin + Allow-Credentials: true",
+          "OK",
+          "Blocked",
+          "Blocked",
+          "OK"
+        ]
+      ],
+      "caption": "Chrome 152. OK means the page received the response. Blocked means fetch rejected with TypeError: Failed to fetch."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Five things the results show",
+      "id": "findings"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "A wildcard origin fixes plain GET requests only",
+      "id": "wildcard"
+    },
+    {
+      "type": "paragraph",
+      "text": "With Access-Control-Allow-Origin: * the plain GET succeeded and the Authorization request failed. Chrome reported: Request header field authorization is not allowed by Access-Control-Allow-Headers in preflight response. Swagger UI adds an Authorization header after you click Authorize, so a wildcard that worked for your public endpoints stops working for the protected ones. If the header is missing and not blocked, the cause is in the spec: see [Swagger UI Authorize not sending the bearer token](/guides/swagger-ui-authorize-bearer-token-not-working)."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Authorization headers and JSON bodies trigger a preflight",
+      "id": "preflight"
+    },
+    {
+      "type": "paragraph",
+      "text": "MDN lists what forces a preflight: a method other than GET, HEAD or POST, a header outside the safelist, or a content type other than form, multipart or plain text. A JSON body sends Content-Type: application/json, which is outside that list. In our server log, those requests produced only an OPTIONS call whenever the preflight failed, and the actual request was never sent. Only the setup that allowed both authorization and content-type in Access-Control-Allow-Headers let the Authorization and JSON requests through."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "A blocked response can still mean the request ran",
+      "id": "request-ran"
+    },
+    {
+      "type": "paragraph",
+      "text": "For plain GET requests, the server logged the request in every blocked setup, including the one with no CORS headers at all. The browser discarded the response after the server had already handled the call. If a GET endpoint changes data, Try it out has already changed it, even though Swagger UI shows an error. Preflighted requests behave differently: when the preflight fails, the server sees only the OPTIONS request."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "A failing preflight blocks the request that follows",
+      "id": "failing-preflight"
+    },
+    {
+      "type": "paragraph",
+      "text": "When our server answered OPTIONS with 404, Chrome reported: Response to preflight request doesn't pass access control check: It does not have HTTP ok status. The same pattern appears in real frameworks when authentication or routing code answers OPTIONS before the CORS code runs. The ASP.NET Core documentation states that UseCors must be placed after UseRouting and before UseAuthorization so that CORS headers are included for both authorized and unauthorized calls."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Cookies need an exact origin",
+      "id": "credentials"
+    },
+    {
+      "type": "paragraph",
+      "text": "With credentials: \"include\", a wildcard origin failed even when Access-Control-Allow-Credentials: true was present, and a specific origin without that header failed too. Only the setup that returned the page's exact origin plus Allow-Credentials: true passed. MDN states the same rule, and the FastAPI documentation adds that allow_origins, allow_methods and allow_headers cannot be wildcards when credentials are allowed. Swagger UI has a withCredentials option for APIs that rely on cookies; most token-based APIs do not need it."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Match the Chrome message to the fix",
+      "id": "message-to-fix"
+    },
+    {
+      "type": "paragraph",
+      "text": "Each failure in the matrix produced a different console message. These are the six we saw, with the change that clears each one."
+    },
+    {
+      "type": "decisionTree",
+      "title": "Console message to server change",
+      "description": "Copy the text after \"blocked by CORS policy:\" from the console and find it here.",
+      "nodes": [
+        {
+          "condition": "No 'Access-Control-Allow-Origin' header is present on the requested resource.",
+          "recommendation": "The API sends no CORS headers. Add Access-Control-Allow-Origin with the origin of your Swagger UI page.",
+          "alternative": null
+        },
+        {
+          "condition": "The 'Access-Control-Allow-Origin' header has a value 'http://localhost:9999' that is not equal to the supplied origin.",
+          "recommendation": "The allowed origin is spelled differently from the page origin. Scheme, host and port must all match.",
+          "alternative": "Allow more than one origin by echoing back the request's Origin when it is on your allow list."
+        },
+        {
+          "condition": "Request header field authorization is not allowed by Access-Control-Allow-Headers in preflight response.",
+          "recommendation": "Add authorization to Access-Control-Allow-Headers. Add content-type too if you send JSON.",
+          "alternative": null
+        },
+        {
+          "condition": "Response to preflight request doesn't pass access control check: It does not have HTTP ok status.",
+          "recommendation": "The OPTIONS request is answered with an error. Handle OPTIONS before authentication and routing, and return 200 or 204.",
+          "alternative": null
+        },
+        {
+          "condition": "The value of the 'Access-Control-Allow-Origin' header in the response must not be the wildcard '*' when the request's credentials mode is 'include'.",
+          "recommendation": "Replace * with the exact origin.",
+          "alternative": null
+        },
+        {
+          "condition": "The value of the 'Access-Control-Allow-Credentials' header in the response is '' which must be 'true' when the request's credentials mode is 'include'.",
+          "recommendation": "Send Access-Control-Allow-Credentials: true, together with an exact origin.",
+          "alternative": null
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Check the preflight yourself with curl",
+      "id": "curl"
+    },
+    {
+      "type": "paragraph",
+      "text": "You can reproduce what the browser asks without a browser. Send the preflight by hand and read the Access-Control headers in the reply."
+    },
+    {
+      "type": "code",
+      "language": "bash",
+      "code": "curl -i -X OPTIONS https://api.example.com/orders \\\n  -H \"Origin: https://docs.example.com\" \\\n  -H \"Access-Control-Request-Method: GET\" \\\n  -H \"Access-Control-Request-Headers: authorization\""
+    },
+    {
+      "type": "paragraph",
+      "text": "Against our test server with the full header setup, the reply was:"
+    },
+    {
+      "type": "code",
+      "language": "text",
+      "code": "HTTP/1.1 204 No Content\nAccess-Control-Allow-Origin: http://localhost:4001\nAccess-Control-Allow-Methods: GET,POST,PUT,DELETE,OPTIONS\nAccess-Control-Allow-Headers: authorization,content-type",
+      "caption": "Headers from our full-setup test server, trimmed to the CORS lines."
+    },
+    {
+      "type": "paragraph",
+      "text": "Against the wildcard-only setup, the same request returned 204 with a single CORS line, Access-Control-Allow-Origin: *. With no Access-Control-Allow-Headers line, the browser rejects any request that carries an Authorization header. The Swagger UI documentation adds a caveat: third-party CORS testers can report success even when Access-Control-Allow-Headers is misconfigured, so check the headers your own requests send."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Fix CORS on the server",
+      "id": "server-fix"
+    },
+    {
+      "type": "paragraph",
+      "text": "Allow the origin that serves your Swagger UI page, the methods your operations use, and the headers Swagger UI sends. These three examples follow each framework's own CORS documentation."
+    },
+    {
+      "type": "code",
+      "language": "javascript",
+      "code": "import cors from \"cors\";\n\napp.use(cors({\n  origin: \"https://docs.example.com\",\n  methods: [\"GET\", \"POST\", \"PUT\", \"DELETE\"],\n  allowedHeaders: [\"Authorization\", \"Content-Type\"]\n}));",
+      "filename": "express-server.mjs"
+    },
+    {
+      "type": "paragraph",
+      "text": "The Express cors package defaults to an origin of * and, when you omit allowedHeaders, reflects the headers named in Access-Control-Request-Headers."
+    },
+    {
+      "type": "code",
+      "language": "python",
+      "code": "from fastapi.middleware.cors import CORSMiddleware\n\napp.add_middleware(\n    CORSMiddleware,\n    allow_origins=[\"https://docs.example.com\"],\n    allow_methods=[\"GET\", \"POST\", \"PUT\", \"DELETE\"],\n    allow_headers=[\"Authorization\", \"Content-Type\"],\n)",
+      "filename": "main.py"
+    },
+    {
+      "type": "code",
+      "language": "csharp",
+      "code": "builder.Services.AddCors(options =>\n{\n    options.AddPolicy(\"Docs\", policy => policy\n        .WithOrigins(\"https://docs.example.com\")\n        .WithMethods(\"GET\", \"POST\", \"PUT\", \"DELETE\")\n        .WithHeaders(\"Authorization\", \"Content-Type\"));\n});\n\nvar app = builder.Build();\napp.UseRouting();\napp.UseCors(\"Docs\");\napp.UseAuthorization();",
+      "filename": "Program.cs"
+    },
+    {
+      "type": "paragraph",
+      "text": "CORS limits which web pages can read your responses. It does not authenticate callers: curl and server-side code ignore it, and as the test showed, the server still handles many blocked requests. Keep authorization checks on the server, as described in [API security best practices](/guides/api-security-best-practices). If a gateway sits in front of your API, it may add, replace or strip CORS headers, so check its policy as well; the [API gateway glossary entry](/glossary/api-gateway) lists CORS handling among its jobs."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Other causes of the same message",
+      "id": "other-causes"
+    },
+    {
+      "type": "decisionTree",
+      "title": "When the console does not show a CORS message",
+      "description": "These produce the same Failed to fetch text.",
+      "nodes": [
+        {
+          "condition": "The docs page is served over https and the API URL starts with http",
+          "recommendation": "Browsers block fetch and XMLHttpRequest calls from an https page to an http endpoint as mixed content. Serve the API over https. MDN notes that localhost counts as a secure origin.",
+          "alternative": null
+        },
+        {
+          "condition": "The Request URL shown in the response panel is not your API",
+          "recommendation": "Swagger UI builds the URL from the servers entry in the spec. A GitHub issue (swagger-ui #10227, closed as not planned) reports Try it out calls going to the dev server instead of the spec's server in a React setup. Check the servers array and the Request URL line.",
+          "alternative": "Set the server URL explicitly in the spec or in your Swagger UI configuration."
+        },
+        {
+          "condition": "The Request URL also fails when opened in a new browser tab",
+          "recommendation": "The cause is network-level: the API is down, the hostname does not resolve, a VPN or firewall blocks it, or the certificate is not trusted. Fix that first.",
+          "alternative": null
+        },
+        {
+          "condition": "The same request works in curl but fails in Swagger UI",
+          "recommendation": "That points to CORS. curl does not enforce it. Use the message table above.",
+          "alternative": null
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Test the API without touching its CORS settings",
+      "id": "apiforge"
+    },
+    {
+      "type": "paragraph",
+      "text": "To check whether the API itself works while you wait for a server change, paste your spec into the [API testing workbench](/api-testing). Its Auto mode sends the request from your browser first and switches to APIForge's server-side proxy when the browser reports a CORS or network failure. Proxy mode always sends from the server."
+    },
+    {
+      "type": "paragraph",
+      "text": "We pointed APIForge's proxy at three of the setups that blocked the browser: no CORS headers, the wrong allowed origin, and the OPTIONS 404. All three returned 200 with the JSON body, and a request carrying a bearer token reached our server with its Authorization header intact."
+    },
+    {
+      "type": "paragraph",
+      "text": "Use the proxy to diagnose the API. It does not fix CORS for your own frontend. Three limits apply. The request, including any token you enter, travels through APIForge's server, so use a test token. The proxy runs on APIForge's server, so from the hosted site it cannot reach an API that exists only on your machine, such as http://localhost:3000; fix CORS on that server or expose it through a tunnel. And requests are capped at a 30-second timeout, 5 MB responses, 3 redirects and 60 requests per minute."
+    },
+    {
+      "type": "paragraph",
+      "text": "Once requests go through, the [guide to validating API responses against an OpenAPI schema](/guides/validate-api-response-against-openapi-schema) covers the next check. If Swagger UI cannot load the spec at all, see [how to get the OpenAPI JSON from a Swagger UI page](/guides/get-openapi-json-from-swagger-ui). For the wider testing picture, read [API testing best practices](/guides/api-testing-best-practices)."
+    },
+    {
+      "type": "tool",
+      "tool": "api-testing",
+      "title": "Send the request from APIForge instead",
+      "description": "Run your OpenAPI operation from the browser or through the server proxy and read the response.",
+      "buttonText": "Open the testing workbench",
+      "href": "/api-testing"
+    },
+    {
+      "type": "relatedContent",
+      "slugs": [
+        "get-openapi-json-from-swagger-ui",
+        "validate-api-response-against-openapi-schema",
+        "api-testing-best-practices"
+      ]
+    },
+    {
+      "type": "externalReference",
+      "title": "Cross-Origin Resource Sharing (CORS)",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS",
+      "source": "MDN"
+    },
+    {
+      "type": "externalReference",
+      "title": "Swagger UI: CORS",
+      "url": "https://swagger.io/docs/open-source-tools/swagger-ui/usage/cors/",
+      "source": "swagger.io"
+    },
+    {
+      "type": "externalReference",
+      "title": "Mixed content",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/Security/Mixed_content",
+      "source": "MDN"
+    },
+    {
+      "type": "externalReference",
+      "title": "CORS (Cross-Origin Resource Sharing)",
+      "url": "https://fastapi.tiangolo.com/tutorial/cors/",
+      "source": "FastAPI documentation"
+    },
+    {
+      "type": "externalReference",
+      "title": "Enable Cross-Origin Requests (CORS) in ASP.NET Core",
+      "url": "https://learn.microsoft.com/en-us/aspnet/core/security/cors",
+      "source": "Microsoft Learn"
+    },
+    {
+      "type": "externalReference",
+      "title": "expressjs/cors",
+      "url": "https://github.com/expressjs/cors",
+      "source": "GitHub"
+    },
+    {
+      "type": "externalReference",
+      "title": "API Calls Not Using Server from OpenAPI Spec (swagger-ui #10227)",
+      "url": "https://github.com/swagger-api/swagger-ui/issues/10227",
+      "source": "GitHub"
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Is Failed to fetch always a CORS problem?",
+      "answer": "No. Swagger UI's message lists CORS, network failure and a bad URL scheme. A request to an API that is down, a hostname that does not resolve, an untrusted certificate, or an http API called from an https page produces the same text. Read the console message to see which one it is."
+    },
+    {
+      "question": "Why does Try it out work for some endpoints and fail for others?",
+      "answer": "Plain GET requests need only Access-Control-Allow-Origin. Endpoints that need an Authorization header, a JSON body, or a method such as PUT or DELETE trigger a preflight, and the server must also answer OPTIONS and allow those headers and methods. In our test, the wildcard setup passed plain GETs and failed every authorized or JSON request."
+    },
+    {
+      "question": "Is it safe to set Access-Control-Allow-Origin to *?",
+      "answer": "For a public API with no cookies, many teams do. A wildcard cannot be combined with credentials, and it lets any web page read the API's responses in a browser. CORS does not replace authentication either way. List your own origins when the API serves a known frontend."
+    }
+  ]
+}

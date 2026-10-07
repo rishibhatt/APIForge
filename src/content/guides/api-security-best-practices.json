@@ -1,7 +1,7 @@
 {
   "slug": "api-security-best-practices",
   "title": "API Security Best Practices Mapped to the OWASP Top 10",
-  "description": "API security best practices for each OWASP API Security Top 10 2023 risk, and how to declare auth, scopes and 401/403 responses in OpenAPI.",
+  "description": "API security best practices for each OWASP API Security Top 10 2023 risk, plus how to declare auth, scopes and 401/403 responses in OpenAPI.",
   "excerpt": "The ten OWASP API risks, the control for each, and which of those controls you can see in an OpenAPI spec.",
   "category": "api-security",
   "cluster": "api-security",
@@ -20,7 +20,7 @@
   ],
   "author": "rishab",
   "publishedAt": "2026-09-26",
-  "updatedAt": "2026-10-04",
+  "updatedAt": "2026-10-07",
   "featured": true,
   "content": [
     {
@@ -215,7 +215,7 @@
     },
     {
       "type": "paragraph",
-      "text": "For runtime checks, the [API testing workbench](/api-testing) reads the operation's security requirement, fills in the API key name and location from the matching scheme, and sends requests with bearer, basic or API key auth. That makes a manual BOLA test quick: sign in as user A, request an invoice ID that belongs to user B, and confirm the API returns 404. Repeat with a token that lacks invoices:write against the refund operation and confirm 403."
+      "text": "For runtime checks, the [API testing workbench](/api-testing) reads the operation's security requirement, fills in the API key name and location from the matching scheme, and sends requests with bearer, basic or API key auth. That makes a manual BOLA test quick: sign in as user A, request an invoice ID that belongs to user B, and confirm the API returns 404. Repeat with a token that lacks invoices:write against the refund operation and confirm 403. If Swagger UI sends no token after you click Authorize, [Swagger UI Authorize not sending the bearer token](/guides/swagger-ui-authorize-bearer-token-not-working) shows nine spec setups and the header each one produced."
     },
     {
       "type": "tool",
@@ -230,7 +230,8 @@
       "slugs": [
         "api-rate-limiting-best-practices",
         "validate-api-response-against-openapi-schema",
-        "openapi-best-practices"
+        "openapi-best-practices",
+        "swagger-ui-authorize-bearer-token-not-working"
       ]
     },
     {

@@ -4,7 +4,7 @@ import { contentRegistry } from "../src/content/registry";
 import {
   COMPETING_TYPES,
   OVERLAP_THRESHOLD,
-  changedGuideSlugs,
+  changedContentSlugs,
   reportGuide,
   signatureOf,
   similarity,
@@ -58,15 +58,15 @@ for (const g of guides) {
   }
 }
 
-// Quality gates: errors for guides changed on this branch (or passed via --strict), warnings for the rest.
+// Quality gates: errors for pages changed in the working tree (or passed via --strict), warnings for the rest.
 const strictArgIndex = process.argv.indexOf("--strict");
 const strictSlugs = new Set(
-  strictArgIndex >= 0 ? process.argv.slice(strictArgIndex + 1).filter((a) => !a.startsWith("--")) : changedGuideSlugs(),
+  strictArgIndex >= 0 ? process.argv.slice(strictArgIndex + 1).filter((a) => !a.startsWith("--")) : changedContentSlugs(),
 );
 const today = new Date().toISOString().slice(0, 10);
 let legacyIssues = 0;
 
-for (const item of contentRegistry.guides) {
+for (const item of contentRegistry.all) {
   const report = reportGuide(item);
   const issues = [...report.issues];
 
@@ -75,9 +75,10 @@ for (const item of contentRegistry.guides) {
   if (item.updatedAt && !isoDate.test(item.updatedAt)) issues.push(`updatedAt "${item.updatedAt}" is not YYYY-MM-DD`);
   if (item.publishedAt > today || (item.updatedAt ?? "") > today) issues.push("date in the future");
   if (item.updatedAt && item.updatedAt < item.publishedAt) issues.push("updatedAt before publishedAt");
-  if (strictSlugs.has(item.slug) && !item.primaryKeyword) issues.push("missing primaryKeyword");
+  if (strictSlugs.has(item.slug) && item.type === "guide" && !item.primaryKeyword) issues.push("missing primaryKeyword");
 
   for (const other of contentRegistry.all) {
+    if (!COMPETING_TYPES.has(item.type)) break;
     if (other.slug === item.slug || !COMPETING_TYPES.has(other.type)) continue;
     const s = similarity(signatureOf(item), signatureOf(other));
     if (s >= OVERLAP_THRESHOLD) issues.push(`topic overlap ${s.toFixed(2)} with ${other.type}:${other.slug}`);
@@ -95,7 +96,7 @@ for (const item of contentRegistry.guides) {
 
 if (strictSlugs.size > 0) console.log(`✓ Strict quality gates applied to: ${Array.from(strictSlugs).join(", ")}`);
 if (legacyIssues > 0) {
-  console.warn(`⚠ ${legacyIssues} quality issues in unchanged guides (run: npm run content:audit)`);
+  console.warn(`⚠ ${legacyIssues} quality issues in unchanged pages (run: npm run content:audit)`);
   warnings++;
 }
 

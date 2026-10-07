@@ -7,6 +7,8 @@ import { calculateApiScore } from "../src/lib/api-quality-score/scoringEngine";
 import {
   COMPETING_TYPES,
   OVERLAP_THRESHOLD,
+  buildLinkGraph,
+  recentlyTouched,
   reportGuide,
   signatureOf,
   similarity,
@@ -21,22 +23,75 @@ function flag(name: string): string | undefined {
 }
 
 function audit() {
-  const reports = contentRegistry.guides.map(reportGuide).sort((a, b) => b.weakness - a.weakness);
+  const type = flag("type");
+  const skipDays = Number(flag("skip-recent") ?? 0);
+  const skip = skipDays > 0 ? recentlyTouched(skipDays) : new Set<string>();
+  const all = contentRegistry.all
+    .filter((item) => !type || item.type === type)
+    .map(reportGuide)
+    .sort((a, b) => b.weakness - a.weakness);
+  const queue = all.filter((r) => !skip.has(r.slug));
   if (rest.includes("--json")) {
-    console.log(JSON.stringify(reports, null, 2));
+    console.log(JSON.stringify(queue, null, 2));
     return;
   }
-  console.log("Guide quality audit (weakest first)\n");
-  for (const r of reports) {
+  console.log("Content quality audit (weakest first)\n");
+  for (const r of queue) {
     console.log(
-      `${r.slug}  words=${r.words} links=${r.internalLinks} refs=${r.externalRefs} code=${r.codeBlocks} ` +
+      `${r.type}:${r.slug}  words=${r.words} links=${r.internalLinks} refs=${r.externalRefs} code=${r.codeBlocks} ` +
         `faqs=${r.faqs} weakness=${r.weakness.toFixed(0)}`,
     );
     for (const issue of r.issues) console.log(`   - ${issue}`);
   }
-  const passing = reports.filter((r) => r.issues.length === 0).length;
-  console.log(`\n${passing}/${reports.length} guides pass every gate.`);
-  console.log(`Refresh queue: ${reports.slice(0, 5).map((r) => r.slug).join(", ")}`);
+  const passing = all.filter((r) => r.issues.length === 0).length;
+  console.log(`\n${passing}/${all.length} pages pass every gate.`);
+  if (skip.size > 0) console.log(`Skipped (touched in last ${skipDays} days): ${Array.from(skip).join(", ")}`);
+  console.log(`Refresh queue: ${queue.slice(0, 5).map((r) => `${r.type}:${r.slug}`).join(", ")}`);
+}
+
+function links() {
+  const graph = buildLinkGraph();
+  const nodes = Array.from(graph.values()).sort((a, b) => a.inbound.length - b.inbound.length);
+  if (rest.includes("--json")) {
+    console.log(JSON.stringify(nodes, null, 2));
+    return;
+  }
+  console.log("Internal link graph (fewest inbound links first)\n");
+  for (const n of nodes) console.log(`in=${n.inbound.length} out=${n.outbound.length}  ${n.key}`);
+  const orphans = nodes.filter((n) => n.inbound.length === 0);
+  console.log(`\nOrphans (no inbound content links): ${orphans.length}`);
+  for (const o of orphans) console.log(`  ${o.key}`);
+}
+
+function suggestLinks() {
+  const slug = flag("slug");
+  if (!slug) {
+    console.error("Usage: content-ops suggest-links --slug <new-slug>");
+    process.exit(1);
+  }
+  const target = contentRegistry.all.find((i) => i.slug === slug);
+  if (!target) {
+    console.error(`Unknown slug: ${slug}`);
+    process.exit(1);
+  }
+  const graph = buildLinkGraph();
+  const targetKey = Array.from(graph.values()).find((n) => n.slug === slug)!.key;
+  const ranked = contentRegistry.all
+    .filter((i) => i.slug !== slug)
+    .map((i) => {
+      const node = Array.from(graph.values()).find((n) => n.slug === i.slug)!;
+      return {
+        item: i,
+        score: similarity(signatureOf(target), signatureOf(i)),
+        alreadyLinks: node.outbound.includes(targetKey),
+      };
+    })
+    .filter((r) => !r.alreadyLinks && r.score >= 0.1)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 6);
+  console.log(`Existing pages worth linking to ${slug} (related, not yet linking):`);
+  for (const r of ranked) console.log(`  ${r.score.toFixed(2)}  ${r.item.type}:${r.item.slug}  "${r.item.title}"`);
+  if (ranked.length === 0) console.log("  none above 0.10 similarity");
 }
 
 function pairs() {
@@ -97,10 +152,10 @@ function score() {
   console.log(JSON.stringify({ endpoints: endpoints.length, ...result }, null, 2));
 }
 
-const commands: Record<string, () => void> = { audit, pairs, overlap, score };
+const commands: Record<string, () => void> = { audit, links, "suggest-links": suggestLinks, pairs, overlap, score };
 const run = commands[command ?? ""];
 if (!run) {
-  console.error("Commands: audit [--json] | pairs [--min 0.3] | overlap --title ... | score <spec-file>");
+  console.error("Commands: audit [--json] [--type guide] [--skip-recent 14] | links [--json] | suggest-links --slug <slug> | pairs [--min 0.3] | overlap --title ... | score <spec-file>");
   process.exit(1);
 }
 run();

@@ -91,10 +91,12 @@ interface RawComparisonData {
   title: string;
   description: string;
   competitorName: string;
+  heroSubtitle?: string;
   verdict: string;
-  featuresTable: Array<{ feature: string; apiforge: string; competitor: string }>;
-  sections: Array<{ title: string; apiforgeWay: string; competitorWay: string }>;
+  featuresTable: Array<{ feature: string; apiforge: string; competitor: string; notes?: string }>;
+  sections: Array<{ title: string; description?: string; apiforgeWay: string; competitorWay: string }>;
   faqs?: Array<{ question: string; answer: string }>;
+  sources?: Array<{ title: string; url: string; source: string }>;
   publishedAt?: string;
   updatedAt?: string;
 }
@@ -283,9 +285,16 @@ function convertComparisonToItem(comp: RawComparisonData): KnowledgeItem {
       headers: ["Capability", "APIForge", comp.competitorName],
       rows: comp.featuresTable.map((f) => [f.feature, f.apiforge, f.competitor]),
     },
-    ...comp.sections.map((s) => ({
-      type: "paragraph" as const,
-      text: `${s.title}: APIForge takes the approach of ${s.apiforgeWay}, while ${comp.competitorName} relies on ${s.competitorWay}.`,
+    ...comp.sections.flatMap((s): ContentBlock[] => [
+      { type: "heading", level: 2, text: s.title },
+      ...(s.description ? [{ type: "paragraph" as const, text: s.description }] : []),
+      { type: "paragraph", text: `APIForge: ${s.apiforgeWay}. ${comp.competitorName}: ${s.competitorWay}.` },
+    ]),
+    ...(comp.sources ?? []).map((src): ContentBlock => ({
+      type: "externalReference",
+      title: src.title,
+      url: src.url,
+      source: src.source,
     })),
   ];
 
@@ -307,6 +316,20 @@ function convertComparisonToItem(comp: RawComparisonData): KnowledgeItem {
     blocks,
     answerFirst: comp.verdict,
     faqs: comp.faqs || [],
+    comparisonData: {
+      slug: comp.slug,
+      title: comp.title,
+      description: comp.description,
+      competitorName: comp.competitorName,
+      heroSubtitle: comp.heroSubtitle || comp.description,
+      verdict: comp.verdict,
+      featuresTable: comp.featuresTable,
+      sections: comp.sections.map((s) => ({ ...s, description: s.description || "" })),
+      faqs: comp.faqs,
+      sources: comp.sources,
+      publishedAt: comp.publishedAt || "2026-09-20",
+      updatedAt: comp.updatedAt || comp.publishedAt,
+    },
     seo: {
       title: `${comp.title} — Developer Tool Comparison | APIForge`,
       description: comp.description,

@@ -10,6 +10,8 @@ import ArticleCodeBlock from "@/components/content/ArticleCodeBlock";
 import ArticleCTA from "@/components/content/ArticleCTA";
 import FAQSection from "@/components/content/FAQSection";
 import ShareButtons from "@/components/content/ShareButtons";
+import RichParagraphs from "@/components/content/RichText";
+import { renderInline } from "@/components/content/ArticleContent";
 import MetaRow from "@/components/content/MetaRow";
 import { formatDate, formatLabel } from "@/components/content/labels";
 import styles from "@/components/content/content.module.css";
@@ -86,7 +88,7 @@ export default function GlossaryDetailPage({
 
         <section className={styles.articleBody}>
           <h2 className={styles.heading2}>How it works</h2>
-          <p className={styles.paragraph}>{entry.detailedExplanation}</p>
+          <RichParagraphs text={entry.detailedExplanation} className={styles.paragraph} />
 
           {entry.codeExample && (
             <>
@@ -104,7 +106,7 @@ export default function GlossaryDetailPage({
               <h2 className={styles.heading2}>Common mistakes</h2>
               <ul className={styles.unorderedList}>
                 {entry.commonMistakes.map((m, i) => (
-                  <li key={i}>{m}</li>
+                  <li key={i}>{renderInline(m)}</li>
                 ))}
               </ul>
             </>

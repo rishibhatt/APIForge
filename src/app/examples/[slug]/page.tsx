@@ -9,6 +9,8 @@ import ArticleHero from "@/components/content/ArticleHero";
 import ArticleCodeBlock from "@/components/content/ArticleCodeBlock";
 import ArticleCTA from "@/components/content/ArticleCTA";
 import ShareButtons from "@/components/content/ShareButtons";
+import RichParagraphs from "@/components/content/RichText";
+import { renderInline } from "@/components/content/ArticleContent";
 import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
 import MetaRow from "@/components/content/MetaRow";
 import { formatDate, formatLabel } from "@/components/content/labels";
@@ -78,7 +80,7 @@ export default function ExampleDetailPage({
 
         <section className={styles.articleBody}>
           <h2 className={styles.heading2}>The problem</h2>
-          <p className={styles.paragraph}>{example.problemStatement}</p>
+          <RichParagraphs text={example.problemStatement} className={styles.paragraph} />
 
           <section className={styles.exampleBlock} aria-labelledby="example-avoid">
             <h3 id="example-avoid" className={styles.exampleHead}>
@@ -93,7 +95,7 @@ export default function ExampleDetailPage({
               code={example.badExample.code}
               filename={`bad-pattern.${example.badExample.language === "json" ? "json" : "yaml"}`}
             />
-            <p className={styles.exampleExplain}>{example.badExample.explanation}</p>
+            <div className={styles.exampleExplain}><RichParagraphs text={example.badExample.explanation} /></div>
           </section>
 
           <section className={styles.exampleBlock} aria-labelledby="example-prefer">
@@ -109,13 +111,13 @@ export default function ExampleDetailPage({
               code={example.goodExample.code}
               filename={`good-pattern.${example.goodExample.language === "json" ? "json" : "yaml"}`}
             />
-            <p className={styles.exampleExplain}>{example.goodExample.explanation}</p>
+            <div className={styles.exampleExplain}><RichParagraphs text={example.goodExample.explanation} /></div>
           </section>
 
           <h2 className={styles.heading2}>How APIForge checks this</h2>
           <ul className={styles.unorderedList}>
             {example.apiforgeChecks.map((check, i) => (
-              <li key={i}>{check}</li>
+              <li key={i}>{renderInline(check)}</li>
             ))}
           </ul>
         </section>

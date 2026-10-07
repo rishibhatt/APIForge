@@ -1,0 +1,325 @@
+{
+  "slug": "swagger-ui-unable-to-render-definition",
+  "title": "Fix Swagger UI \"Unable to Render This Definition\"",
+  "description": "Swagger UI rejects specs without a valid version field. We tested 12 variants in Swagger UI 5.33.1: unquoted YAML 2.0 and 3.0 fail. See what works.",
+  "excerpt": "The error means Swagger UI could not read a valid version field. The usual culprit is an unquoted number in YAML.",
+  "category": "swagger",
+  "cluster": "openapi",
+  "primaryKeyword": "swagger ui unable to render this definition",
+  "keywords": [
+    "provided definition does not specify a valid version field",
+    "swagger ui openapi version error",
+    "swagger 2.0 yaml version quotes",
+    "openapi 3.0 version field"
+  ],
+  "tags": [
+    "Swagger UI",
+    "OpenAPI",
+    "YAML",
+    "Troubleshooting"
+  ],
+  "author": "rishab",
+  "publishedAt": "2026-10-07",
+  "updatedAt": "2026-10-07",
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "Swagger UI shows \"Unable to render this definition\" when it cannot find a version field it recognizes. The full message reads: The provided definition does not specify a valid version field. Please indicate a valid Swagger or OpenAPI version field. Supported version fields are swagger: \"2.0\" and openapi: 3.0.x, openapi: 3.1.x, or openapi: 3.2.x (for example, openapi: 3.2.0). The most common cause we found is an unquoted number. In YAML, swagger: 2.0 is the number 2 and openapi: 3.0 is the number 3, and Swagger UI rejects both."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "What Swagger UI accepts",
+      "id": "accepted"
+    },
+    {
+      "type": "paragraph",
+      "text": "We loaded 12 spec variants into Swagger UI 5.33.1 in Chrome 152 and recorded whether each one rendered. Every variant had the same single operation, GET /ping, and differed only in the version line. The spec was passed as a JavaScript object, which is what Swagger UI receives after it parses JSON or YAML."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Version line",
+        "Result in Swagger UI 5.33.1"
+      ],
+      "rows": [
+        [
+          "swagger: \"2.0\"",
+          "Renders (labeled OAS 2.0)"
+        ],
+        [
+          "swagger: 2 (a number)",
+          "Fails with the version error"
+        ],
+        [
+          "swagger: \"1.2\"",
+          "Fails with the version error"
+        ],
+        [
+          "openapi: \"3.0.0\"",
+          "Renders (labeled OAS 3.0)"
+        ],
+        [
+          "openapi: \"3.0.3\"",
+          "Renders (labeled OAS 3.0)"
+        ],
+        [
+          "openapi: \"3.0\" (no patch number)",
+          "Fails with the version error"
+        ],
+        [
+          "openapi: 3 (a number)",
+          "Fails with the version error"
+        ],
+        [
+          "openapi: \"3.1.0\"",
+          "Renders (labeled OAS 3.1)"
+        ],
+        [
+          "openapi: \"3.1.1\"",
+          "Renders (labeled OAS 3.1)"
+        ],
+        [
+          "openapi: \"3.2.0\"",
+          "Renders (labeled OAS 3.2)"
+        ],
+        [
+          "No version field at all",
+          "Fails with the version error"
+        ],
+        [
+          "openapi: \"3.0.3\" with no paths",
+          "Renders the title and shows \"No operations defined in spec!\" (not an error)"
+        ]
+      ],
+      "caption": "Swagger UI 5.33.1, Chrome 152, spec passed as a JavaScript object."
+    },
+    {
+      "type": "paragraph",
+      "text": "The version must be a string, and an OpenAPI 3 version needs all three parts. A spec with no paths is not an error: it renders its title and a notice, so an empty page with that notice is a different problem from this one."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The YAML trap: unquoted versions become numbers",
+      "id": "yaml-trap"
+    },
+    {
+      "type": "paragraph",
+      "text": "The version field is a string, but YAML chooses a type by reading the text. A value like 3.0.3 is not a valid number, so it stays a string. A value like 3.0 is a valid number, so the parser turns it into the number 3. We parsed six lines with js-yaml 4.1.1 and checked the result type:"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "YAML line",
+        "Parsed as"
+      ],
+      "rows": [
+        [
+          "openapi: 3.0",
+          "number 3"
+        ],
+        [
+          "openapi: 3.0.0",
+          "string \"3.0.0\""
+        ],
+        [
+          "openapi: \"3.0\"",
+          "string \"3.0\""
+        ],
+        [
+          "swagger: 2.0",
+          "number 2"
+        ],
+        [
+          "swagger: \"2.0\"",
+          "string \"2.0\""
+        ],
+        [
+          "openapi: 3.1.0",
+          "string \"3.1.0\""
+        ]
+      ],
+      "caption": "js-yaml 4.1.1. Other YAML parsers may differ in edge cases; the number rule for 2.0 and 3.0 is the same in the ones we know of."
+    },
+    {
+      "type": "paragraph",
+      "text": "This is why a file that looks correct to a human fails. swagger: 2.0 reads like the right value, but the parser hands Swagger UI the number 2, which is not the string \"2.0\". The Swagger documentation writes the field as swagger: \"2.0\", with quotes, and the OpenAPI Specification says the openapi field must be the version number of the specification and that tooling should use it to interpret the document. A number does not satisfy that."
+    },
+    {
+      "type": "paragraph",
+      "text": "The fix is two habits: quote Swagger 2.0 versions, and write all three parts of an OpenAPI 3 version."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "code": "# Fails in Swagger UI: parsed as numbers\nswagger: 2.0\nopenapi: 3.0\n\n# Works: strings with all three parts\nswagger: \"2.0\"\nopenapi: 3.0.3",
+      "filename": "openapi.yaml"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Check what your parser sees",
+      "id": "check"
+    },
+    {
+      "type": "paragraph",
+      "text": "If you cannot tell whether your file is affected, ask a parser. For a JSON spec, jq prints the type of the version field:"
+    },
+    {
+      "type": "code",
+      "language": "bash",
+      "code": "jq '.openapi // .swagger | type' openapi.json\n# \"string\" is correct. \"number\" or \"null\" explains the error."
+    },
+    {
+      "type": "paragraph",
+      "text": "For a YAML spec, parse it the way a tool would. This one-liner needs js-yaml installed (npm install js-yaml):"
+    },
+    {
+      "type": "code",
+      "language": "bash",
+      "code": "node -e \"const y=require('js-yaml');const d=y.load(require('fs').readFileSync('openapi.yaml','utf8'));console.log(typeof d.openapi, d.openapi, typeof d.swagger, d.swagger)\"\n# Expected for a valid OpenAPI 3 file: string 3.0.3 undefined undefined"
+    },
+    {
+      "type": "paragraph",
+      "text": "If a framework generates the spec, request the generated JSON and run the jq line on that response. Generators write JSON, where the version is already a string, so the YAML trap usually applies to specs that people write and edit by hand."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Catch it before it ships",
+      "id": "ci-check"
+    },
+    {
+      "type": "paragraph",
+      "text": "A version typo costs nothing to find in a pull request and a lot to find after the docs page goes live. The script below reads a spec with js-yaml, which also parses JSON, and exits with an error unless the version is a string that matches what Swagger UI 5.33.1 accepted in our test: \"2.0\" for Swagger 2.0, or 3.0.x, 3.1.x and 3.2.x for OpenAPI 3. We ran it against five files. The files with openapi: 3.0 and swagger: 2.0 failed with \"number 3\" and \"number 2\", the file with no version failed, and the files with openapi: 3.0.3 and swagger: \"2.0\" passed."
+    },
+    {
+      "type": "code",
+      "language": "javascript",
+      "code": "import { readFileSync } from \"node:fs\";\nimport yaml from \"js-yaml\";\n\nconst file = process.argv[2];\nconst spec = yaml.load(readFileSync(file, \"utf8\"));\nconst version = spec.openapi ?? spec.swagger;\nconst ok = typeof version === \"string\" && (/^3\\.[0-2]\\.\\d+$/.test(version) || version === \"2.0\");\n\nif (!ok) {\n  console.error(`${file}: version field is ${typeof version} ${JSON.stringify(version)}`);\n  process.exit(1);\n}\nconsole.log(`${file}: ${version} ok`);",
+      "caption": "Run it in CI with: node check-spec-version.mjs openapi.yaml. Widen the pattern when Swagger UI adds a new minor version.",
+      "filename": "check-spec-version.mjs"
+    },
+    {
+      "type": "paragraph",
+      "text": "A version check proves only that the first line is right. Pair it with a full validation pass, as described in the [guide to validating Swagger and OpenAPI specs](/guides/validate-swagger-openapi-spec), so structural mistakes fail the build too."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Other causes reported on GitHub",
+      "id": "other-causes"
+    },
+    {
+      "type": "paragraph",
+      "text": "The long GitHub threads on this error are mostly unresolved, so treat the items below as leads and not guaranteed fixes."
+    },
+    {
+      "type": "decisionTree",
+      "title": "If the version line is correct",
+      "description": "Work down the list.",
+      "nodes": [
+        {
+          "condition": "The spec URL returns something other than a spec",
+          "recommendation": "Open the spec URL in a new tab. An HTML page, a login redirect or an error body has no version field. [How to get the OpenAPI JSON from a Swagger UI page](/guides/get-openapi-json-from-swagger-ui) lists the default spec URLs for common frameworks.",
+          "alternative": null
+        },
+        {
+          "condition": "The file works in Swagger Editor but fails on a deployed Swagger UI",
+          "recommendation": "A collaborator in an OpenAPI Specification discussion (#2852) suggested the URL passed to the UI may be one it cannot parse. Type the full URL next to the Explore button and click the Invalid badge to see which URL the validator tried.",
+          "alternative": null
+        },
+        {
+          "condition": "swagger-ui-react keeps showing the first spec you gave it",
+          "recommendation": "One reporter in swagger-ui discussion #8586 saw the component keep the first spec after switching between JSON and YAML. The thread has no confirmed fix. Passing a fresh spec object, or remounting the component, is worth a try; we did not test it.",
+          "alternative": null
+        },
+        {
+          "condition": "You have a 3.1 or 3.2 file and an older Swagger UI",
+          "recommendation": "Swagger UI 5.33.1 rendered 3.0, 3.1 and 3.2 in our test. GitHub reports say older builds reject some versions. Update swagger-ui-dist or the Swagger package your framework bundles.",
+          "alternative": null
+        },
+        {
+          "condition": "The page renders but shows No operations defined in spec!",
+          "recommendation": "The version is fine. The paths object is missing or empty.",
+          "alternative": null
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Load the spec in APIForge to split the problem",
+      "id": "apiforge"
+    },
+    {
+      "type": "paragraph",
+      "text": "APIForge's parser does not need a valid version field. We ran nine of the variants above through it, including swagger: 2 as a number, openapi: 3 as a number, \"1.2\", and no version field at all. Every one loaded with its single endpoint. That gives you a quick way to split the problem in two. If APIForge lists your operations, your paths and schemas are readable, and the version line or the way Swagger UI receives the file is the likely culprit. If APIForge fails as well, the file is broken at a deeper level, and the [guide to validating Swagger and OpenAPI specs](/guides/validate-swagger-openapi-spec) and the list of [common OpenAPI errors](/guides/common-openapi-errors) are the next stop."
+    },
+    {
+      "type": "paragraph",
+      "text": "APIForge does not flag the invalid version, so you still need the check from the previous section. Paste your file or URL into the [OpenAPI validator](/openapi-validator) or the [Swagger 2.0 validator](/swagger-validator) to load it, then use the [API quality score](/api-score) to see design problems once it parses. If you are unsure why one file says swagger and another says openapi, [Swagger vs OpenAPI](/guides/swagger-vs-openapi) explains the naming and version history. An editor that validates as you type catches a bad version line earlier; [APIForge vs Swagger Editor](/compare/apiforge-vs-swagger-editor) compares the two tools."
+    },
+    {
+      "type": "tool",
+      "tool": "openapi-validator",
+      "title": "Load your spec and see if it parses",
+      "description": "Paste a spec URL or upload a file. APIForge lists the operations it can read.",
+      "buttonText": "Open the validator",
+      "href": "/openapi-validator"
+    },
+    {
+      "type": "relatedContent",
+      "slugs": [
+        "get-openapi-json-from-swagger-ui",
+        "swagger-vs-openapi",
+        "validate-swagger-openapi-spec"
+      ]
+    },
+    {
+      "type": "externalReference",
+      "title": "OpenAPI Specification 3.1.0: OpenAPI Object",
+      "url": "https://spec.openapis.org/oas/v3.1.0.html#openapi-object",
+      "source": "OpenAPI Initiative"
+    },
+    {
+      "type": "externalReference",
+      "title": "Swagger 2.0: Basic Structure",
+      "url": "https://swagger.io/docs/specification/v2_0/basic-structure/",
+      "source": "swagger.io"
+    },
+    {
+      "type": "externalReference",
+      "title": "Swagger UI discussion: Unable to render this definition error solutions not working (#8586)",
+      "url": "https://github.com/swagger-api/swagger-ui/discussions/8586",
+      "source": "GitHub"
+    },
+    {
+      "type": "externalReference",
+      "title": "OpenAPI Specification discussion: Unable to render this definition on EC2 (#2852)",
+      "url": "https://github.com/OAI/OpenAPI-Specification/discussions/2852",
+      "source": "GitHub"
+    },
+    {
+      "type": "externalReference",
+      "title": "js-yaml",
+      "url": "https://github.com/nodeca/js-yaml",
+      "source": "GitHub"
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Does Swagger UI support OpenAPI 3.1?",
+      "answer": "Swagger UI 5.33.1 rendered openapi 3.1.0 and 3.1.1 in our test, and 3.2.0 too. GitHub reports say older builds reject some versions, and we tested only 5.33.1, so check the version of swagger-ui-dist or the framework package you use."
+    },
+    {
+      "question": "Do I need quotes around the version in YAML?",
+      "answer": "Quote it when the value has one or two parts, such as 2.0 or 3.0, because YAML reads those as numbers. A three-part value like 3.0.3 stays a string without quotes. Quoting every version removes the risk."
+    },
+    {
+      "question": "Why does my framework's generated spec fail?",
+      "answer": "Generators write JSON, where the version is already a string, so the YAML trap rarely applies. Check that the file contains a full three-part version, and that the URL returns the JSON spec and not an HTML error page."
+    }
+  ]
+}

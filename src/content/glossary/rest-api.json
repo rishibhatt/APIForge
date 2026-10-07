@@ -1,16 +1,42 @@
 {
   "slug": "rest-api",
   "term": "REST API",
-  "definition": "Representational State Transfer (REST) is an architectural style for designing networked applications using stateless communications and standard HTTP methods.",
+  "definition": "A REST API lets clients read and change resources at URLs with standard HTTP methods and status codes, following the constraints of Roy Fielding's REST style.",
   "category": "api-design",
-  "detailedExplanation": "REST APIs utilize HTTP methods (GET, POST, PUT, DELETE) to manipulate resource state identified by URIs. Key principles include statelessness, client-server separation, cacheability, and uniform interface design.",
+  "detailedExplanation": "A REST API lets clients read and change resources, such as orders or users, at URLs by using standard HTTP methods and status codes. REST (Representational State Transfer) is an architectural style that Roy Fielding described in his doctoral dissertation. It is a set of constraints that no tool can certify, so teams check an API against the constraints and the common conventions built on them.\n\nFielding names six constraints: client-server, stateless, cacheable, a uniform interface, a layered system, and code on demand, which he calls optional. Stateless means each request carries all the information the server needs to understand it, so the server keeps no session state between calls. The uniform interface has four parts: resources are identified by URLs, clients change them through representations such as JSON, messages describe themselves, and responses link to related actions (hypermedia).\n\nIn practice, a path names a thing and the HTTP method names the action. GET /orders/42 returns an order. POST /orders creates one. PUT /orders/42 replaces it, PATCH changes part of it, and DELETE removes it. The status code reports the outcome. [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110) defines GET, HEAD and OPTIONS as safe, meaning read-only, and PUT and DELETE as idempotent, meaning repeating the request has the same effect as sending it once. POST is neither, so clients should not retry it blindly. [Idempotency](/glossary/idempotency) explains why that matters for retries, and [HTTP status codes](/glossary/http-status-code) lists which code fits which outcome.\n\nAn OpenAPI file describes a REST API as paths and operations, which makes the conventions checkable. When we scored a small example spec in APIForge, a path called /api/createOrder was flagged for using camelCase and a verb, two operations were flagged for documenting no error responses, and the whole spec was flagged for having no version in its paths. The score came to 78 out of 100. The [REST API design best practices](/guides/rest-api-design-best-practices), [naming conventions](/guides/api-naming-conventions) and [error handling](/guides/rest-api-error-handling) guides explain each rule.",
+  "codeExample": {
+    "language": "yaml",
+    "code": "paths:\n  /orders:\n    get:\n      summary: List orders\n    post:\n      summary: Create an order\n  /orders/{id}:\n    get:\n      summary: Get one order\n    put:\n      summary: Replace an order\n    delete:\n      summary: Delete an order",
+    "caption": "The same resource at two paths. The method carries the action, so no path contains a verb."
+  },
   "commonMistakes": [
-    "Using POST for all operations regardless of idempotency",
-    "Including verbs in resource URIs (/getUser)",
-    "Returning HTTP 200 OK with error payload bodies"
+    "Using POST for every operation, which gives up the caching of GET and the safe retries of PUT and DELETE.",
+    "Putting verbs in resource paths, such as /getUser or /createOrder. The HTTP method already names the action.",
+    "Returning 200 OK with an error in the body, which hides failures from clients, caches and monitoring tools.",
+    "Keeping session state on the server between requests, which breaks the stateless constraint and makes scaling harder.",
+    "Calling any JSON-over-HTTP API REST. An API that sends every call to one endpoint with an action name in the body is RPC-style."
   ],
-  "relatedTerms": ["HTTP Status Code", "API Contract", "Idempotency"],
+  "relatedTerms": [
+    "HTTP Status Code",
+    "API Contract",
+    "Idempotency"
+  ],
   "relatedToolHref": "/api-score",
-  "relatedToolTitle": "Audit REST API Quality with APIForge",
-  "publishedAt": "2026-09-26"
+  "relatedToolTitle": "Score your REST API design with APIForge",
+  "faqs": [
+    {
+      "question": "Is REST the same as HTTP?",
+      "answer": "No. HTTP is a protocol. REST is a set of constraints about how to use it. Most REST APIs run over HTTP, but HTTP can also carry designs that are not REST, such as RPC calls to a single endpoint."
+    },
+    {
+      "question": "Does a REST API have to use JSON?",
+      "answer": "No. REST talks about representations and does not name a format. JSON is the usual choice, and OpenAPI can describe JSON, XML and other media types."
+    },
+    {
+      "question": "How can I check whether my API follows REST conventions?",
+      "answer": "Read its OpenAPI spec for noun-based paths, correct methods and documented errors, or load the spec in APIForge's API quality score, which checks these rules and lists each violation with a suggested fix."
+    }
+  ],
+  "publishedAt": "2026-09-26",
+  "updatedAt": "2026-10-07"
 }

@@ -20,7 +20,7 @@
   ],
   "author": "rishab",
   "publishedAt": "2026-09-26",
-  "updatedAt": "2026-10-04",
+  "updatedAt": "2026-10-07",
   "content": [
     {
       "type": "paragraph",
@@ -65,7 +65,7 @@
     },
     {
       "type": "paragraph",
-      "text": "The file name proves nothing. Many frameworks still serve an OpenAPI 3 document at /swagger.json or behind a Swagger UI page; [getting the OpenAPI JSON from a Swagger UI page](/guides/get-openapi-json-from-swagger-ui) shows how to find the raw file. Open it and read the version field before choosing a validator, a code generator or a migration plan. The glossary entries for [Swagger](/glossary/swagger) and [OpenAPI](/glossary/openapi) cover the terms on their own."
+      "text": "The file name proves nothing. Many frameworks still serve an OpenAPI 3 document at /swagger.json or behind a Swagger UI page; [getting the OpenAPI JSON from a Swagger UI page](/guides/get-openapi-json-from-swagger-ui) shows how to find the raw file. Open it and read the version field before choosing a validator, a code generator or a migration plan. The glossary entries for [Swagger](/glossary/swagger) and [OpenAPI](/glossary/openapi) cover the terms on their own. If Swagger UI refuses to render a file, [Swagger UI unable to render this definition](/guides/swagger-ui-unable-to-render-definition) lists the version values it accepts. To write a spec and not only read one, [APIForge vs Swagger Editor](/compare/apiforge-vs-swagger-editor) compares the two tools."
     },
     {
       "type": "heading",

@@ -21,7 +21,9 @@ const output = [
   "",
 ].join("\n");
 
-const current = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "";
+// Git on Windows may check the file out with CRLF line endings; compare content, not line endings.
+const normalize = (text: string) => text.split("\r\n").join("\n");
+const current = existsSync(indexPath) ? normalize(readFileSync(indexPath, "utf8")) : "";
 
 if (checkOnly) {
   if (current !== output) {

@@ -14,6 +14,9 @@ import guide_openapi_best_practices from "./openapi-best-practices.json";
 import guide_openapi_response_schema_best_practices from "./openapi-response-schema-best-practices.json";
 import guide_rest_api_design_best_practices from "./rest-api-design-best-practices.json";
 import guide_rest_api_error_handling from "./rest-api-error-handling.json";
+import guide_swagger_ui_authorize_bearer_token_not_working from "./swagger-ui-authorize-bearer-token-not-working.json";
+import guide_swagger_ui_failed_to_fetch from "./swagger-ui-failed-to-fetch.json";
+import guide_swagger_ui_unable_to_render_definition from "./swagger-ui-unable-to-render-definition.json";
 import guide_swagger_vs_openapi from "./swagger-vs-openapi.json";
 import guide_validate_api_response_against_openapi_schema from "./validate-api-response-against-openapi-schema.json";
 import guide_validate_swagger_openapi_spec from "./validate-swagger-openapi-spec.json";
@@ -34,6 +37,9 @@ export const guideSources: unknown[] = [
   guide_openapi_response_schema_best_practices,
   guide_rest_api_design_best_practices,
   guide_rest_api_error_handling,
+  guide_swagger_ui_authorize_bearer_token_not_working,
+  guide_swagger_ui_failed_to_fetch,
+  guide_swagger_ui_unable_to_render_definition,
   guide_swagger_vs_openapi,
   guide_validate_api_response_against_openapi_schema,
   guide_validate_swagger_openapi_spec,

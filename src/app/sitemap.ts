@@ -15,24 +15,33 @@ function toDate(value?: string): Date {
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://apiforge.info";
-  const lastModified = new Date();
+  const newest = (items: Array<{ updatedAt?: string; publishedAt?: string }>): Date =>
+    items.reduce<Date>((max, i) => {
+      const d = toDate(i.updatedAt || i.publishedAt);
+      return d > max ? d : max;
+    }, new Date(0));
+
+  // Real dates only: bump SITE_PAGES_UPDATED when the home page, tool pages or About page change.
+  const SITE_PAGES_UPDATED = new Date("2026-10-07");
+  const listing = (items: Array<{ updatedAt?: string; publishedAt?: string }>): Date =>
+    items.length > 0 ? newest(items) : SITE_PAGES_UPDATED;
 
   const staticRoutes: MetadataRoute.Sitemap = [
-    { url: baseUrl, lastModified, changeFrequency: "weekly", priority: 1.0 },
-    { url: `${baseUrl}/about`, lastModified, changeFrequency: "monthly", priority: 0.8 },
-    { url: `${baseUrl}/support`, lastModified, changeFrequency: "monthly", priority: 0.5 },
-    { url: `${baseUrl}/roast-my-api`, lastModified, changeFrequency: "daily", priority: 0.9 },
-    { url: `${baseUrl}/api-score`, lastModified, changeFrequency: "weekly", priority: 0.9 },
-    { url: `${baseUrl}/openapi-validator`, lastModified, changeFrequency: "weekly", priority: 0.9 },
-    { url: `${baseUrl}/swagger-validator`, lastModified, changeFrequency: "weekly", priority: 0.9 },
-    { url: `${baseUrl}/api-quality-checker`, lastModified, changeFrequency: "weekly", priority: 0.9 },
-    { url: `${baseUrl}/api-testing`, lastModified, changeFrequency: "weekly", priority: 0.9 },
-    { url: `${baseUrl}/guides`, lastModified, changeFrequency: "daily", priority: 0.8 },
-    { url: `${baseUrl}/glossary`, lastModified, changeFrequency: "weekly", priority: 0.8 },
-    { url: `${baseUrl}/examples`, lastModified, changeFrequency: "weekly", priority: 0.8 },
-    { url: `${baseUrl}/compare`, lastModified, changeFrequency: "weekly", priority: 0.8 },
-    { url: `${baseUrl}/checklists`, lastModified, changeFrequency: "weekly", priority: 0.8 },
-    { url: `${baseUrl}/reference`, lastModified, changeFrequency: "weekly", priority: 0.8 },
+    { url: baseUrl, lastModified: SITE_PAGES_UPDATED, changeFrequency: "weekly", priority: 1.0 },
+    { url: `${baseUrl}/about`, lastModified: SITE_PAGES_UPDATED, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${baseUrl}/support`, lastModified: SITE_PAGES_UPDATED, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${baseUrl}/roast-my-api`, lastModified: SITE_PAGES_UPDATED, changeFrequency: "daily", priority: 0.9 },
+    { url: `${baseUrl}/api-score`, lastModified: SITE_PAGES_UPDATED, changeFrequency: "weekly", priority: 0.9 },
+    { url: `${baseUrl}/openapi-validator`, lastModified: SITE_PAGES_UPDATED, changeFrequency: "weekly", priority: 0.9 },
+    { url: `${baseUrl}/swagger-validator`, lastModified: SITE_PAGES_UPDATED, changeFrequency: "weekly", priority: 0.9 },
+    { url: `${baseUrl}/api-quality-checker`, lastModified: SITE_PAGES_UPDATED, changeFrequency: "weekly", priority: 0.9 },
+    { url: `${baseUrl}/api-testing`, lastModified: SITE_PAGES_UPDATED, changeFrequency: "weekly", priority: 0.9 },
+    { url: `${baseUrl}/guides`, lastModified: listing(getAllGuides()), changeFrequency: "daily", priority: 0.8 },
+    { url: `${baseUrl}/glossary`, lastModified: listing(getAllGlossary()), changeFrequency: "weekly", priority: 0.8 },
+    { url: `${baseUrl}/examples`, lastModified: listing(getAllExamples()), changeFrequency: "weekly", priority: 0.8 },
+    { url: `${baseUrl}/compare`, lastModified: listing(getAllComparisons()), changeFrequency: "weekly", priority: 0.8 },
+    { url: `${baseUrl}/checklists`, lastModified: listing(getAllChecklists()), changeFrequency: "weekly", priority: 0.8 },
+    { url: `${baseUrl}/reference`, lastModified: listing(getAllReferences()), changeFrequency: "weekly", priority: 0.8 },
   ];
 
   const guideRoutes: MetadataRoute.Sitemap = getAllGuides().map((g) => ({

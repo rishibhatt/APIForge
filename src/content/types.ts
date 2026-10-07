@@ -299,6 +299,7 @@ export interface KnowledgeItem {
   tags?: string[];
   keywords?: string[];
   primaryKeyword?: string;
+  comparisonData?: Comparison;
 }
 
 // Backward-compatibility type aliases
@@ -370,6 +371,7 @@ export interface Comparison {
   featuresTable: ComparisonFeature[];
   sections: ComparisonSection[];
   faqs?: FAQItem[];
+  sources?: ExternalReference[];
   publishedAt: string;
   updatedAt?: string;
 }

@@ -230,6 +230,75 @@
       "slug": "openapi-best-practices",
       "primaryKeyword": "openapi best practices",
       "notes": "refresh: rewritten to 1200+ words, title/description fixed, scored spec, sources; feature: /openapi-validator"
+    },
+    {
+      "date": "2026-10-07",
+      "action": "new",
+      "slug": "swagger-ui-failed-to-fetch",
+      "primaryKeyword": "swagger ui failed to fetch",
+      "notes": "SERP: GitHub issues, community Q&As, thin tutorial sites; feature: /api-testing proxy fallback; score 7/8; original data: 9 CORS setups x 4 requests in Chrome 152"
+    },
+    {
+      "date": "2026-10-07",
+      "action": "new",
+      "slug": "swagger-ui-unable-to-render-definition",
+      "primaryKeyword": "swagger ui unable to render this definition",
+      "notes": "SERP: unresolved GitHub threads, SAP KB, forum Q&As; feature: /openapi-validator parse; score 7/8; original data: 12 version lines in Swagger UI 5.33.1 + YAML type table"
+    },
+    {
+      "date": "2026-10-07",
+      "action": "new",
+      "slug": "swagger-ui-authorize-bearer-token-not-working",
+      "primaryKeyword": "swagger ui authorize bearer token not working",
+      "notes": "SERP: GitHub issues, vendor forums; feature: /api-testing bearer auth; score 7/8; original data: 9 spec setups, header received by server"
+    },
+    {
+      "date": "2026-10-07",
+      "action": "refresh",
+      "slug": "apiforge-vs-swagger-editor",
+      "notes": "rewritten to 1200+ words with 6 sections, sourced competitor claims, honest where-Swagger-wins; comparison pages now render sections and sources"
+    },
+    {
+      "date": "2026-10-07",
+      "action": "refresh",
+      "slug": "rest-api",
+      "notes": "glossary expanded from 53 to 500+ words: Fielding constraints, RFC 9110 methods, APIForge score example, FAQs"
+    },
+    {
+      "date": "2026-10-07",
+      "action": "link",
+      "slug": "swagger-vs-openapi",
+      "notes": "internal link graph edit for the Swagger UI troubleshooting cluster"
+    },
+    {
+      "date": "2026-10-07",
+      "action": "link",
+      "slug": "api-testing-best-practices",
+      "notes": "internal link graph edit for the Swagger UI troubleshooting cluster"
+    },
+    {
+      "date": "2026-10-07",
+      "action": "link",
+      "slug": "api-security-best-practices",
+      "notes": "internal link graph edit for the Swagger UI troubleshooting cluster"
+    },
+    {
+      "date": "2026-10-07",
+      "action": "link",
+      "slug": "get-openapi-json-from-swagger-ui",
+      "notes": "internal link graph edit for the Swagger UI troubleshooting cluster"
+    },
+    {
+      "date": "2026-10-07",
+      "action": "link",
+      "slug": "swagger-ui-failed-to-fetch",
+      "notes": "internal link graph edit for the Swagger UI troubleshooting cluster"
+    },
+    {
+      "date": "2026-10-07",
+      "action": "link",
+      "slug": "swagger-ui-unable-to-render-definition",
+      "notes": "internal link graph edit for the Swagger UI troubleshooting cluster"
     }
   ]
 }

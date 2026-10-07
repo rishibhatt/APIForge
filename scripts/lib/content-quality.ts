@@ -1,11 +1,12 @@
 import { execSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import type { ContentBlock, KnowledgeItem } from "../../src/content/types";
 import { blockText, countBlockWords } from "../../src/content/metrics";
 import { contentRegistry } from "../../src/content/registry";
 
 export const MIN_GUIDE_WORDS = 1200;
 export const MAX_TITLE_CHARS = 60;
-export const DESCRIPTION_RANGE: [number, number] = [110, 160];
+export const DESCRIPTION_RANGE: [number, number] = [140, 160];
 export const MAX_EM_DASHES = 2;
 export const OVERLAP_THRESHOLD = 0.45;
 
@@ -76,7 +77,29 @@ export function emDashCount(text: string): number {
   return (text.match(/—/g) ?? []).length;
 }
 
+export interface TypeRules {
+  minWords: number;
+  minLinks: number;
+  needToolLink: boolean;
+  needExternal: boolean;
+  needCode: boolean;
+  minFaqs: number;
+  strictTitle: boolean;
+}
+
+// Per-type quality bar. Guides carry the highest bar; glossary entries stay short but must still be substantive.
+export const TYPE_RULES: Record<string, TypeRules> = {
+  guide: { minWords: MIN_GUIDE_WORDS, minLinks: 3, needToolLink: true, needExternal: true, needCode: true, minFaqs: 2, strictTitle: true },
+  "tool-guide": { minWords: MIN_GUIDE_WORDS, minLinks: 3, needToolLink: true, needExternal: true, needCode: true, minFaqs: 2, strictTitle: true },
+  glossary: { minWords: 300, minLinks: 2, needToolLink: true, needExternal: false, needCode: false, minFaqs: 1, strictTitle: false },
+  example: { minWords: 250, minLinks: 2, needToolLink: true, needExternal: false, needCode: true, minFaqs: 0, strictTitle: false },
+  comparison: { minWords: 700, minLinks: 3, needToolLink: true, needExternal: true, needCode: false, minFaqs: 2, strictTitle: false },
+  checklist: { minWords: 400, minLinks: 2, needToolLink: true, needExternal: false, needCode: false, minFaqs: 0, strictTitle: false },
+  reference: { minWords: 400, minLinks: 2, needToolLink: true, needExternal: false, needCode: false, minFaqs: 0, strictTitle: false },
+};
+
 export interface GuideReport {
+  type: string;
   slug: string;
   words: number;
   internalLinks: number;
@@ -93,11 +116,23 @@ export interface GuideReport {
   weakness: number;
 }
 
-export function reportGuide(item: KnowledgeItem): GuideReport {
-  const words = countBlockWords(item.blocks);
+export function linksOf(item: KnowledgeItem): string[] {
   const links = internalLinks(item.blocks);
+  if (item.type !== "guide" && item.tool?.href?.startsWith("/")) links.push(item.tool.href);
+  return links;
+}
+
+export function reportGuide(item: KnowledgeItem): GuideReport {
+  const rules = TYPE_RULES[item.type] ?? TYPE_RULES.guide;
+  const faqWords = (item.faqs ?? []).reduce(
+    (n, f) => n + f.answer.trim().split(/\s+/).length + f.question.trim().split(/\s+/).length,
+    0,
+  );
+  const words = countBlockWords(item.blocks) + faqWords;
+  const links = linksOf(item);
   const prose = proseOf(item);
   const report: GuideReport = {
+    type: item.type,
     slug: item.slug,
     words,
     internalLinks: links.length,
@@ -115,28 +150,33 @@ export function reportGuide(item: KnowledgeItem): GuideReport {
   };
 
   const r = report;
-  if (r.words < MIN_GUIDE_WORDS) r.issues.push(`body ${r.words} words (< ${MIN_GUIDE_WORDS})`);
-  if (r.titleChars > MAX_TITLE_CHARS) r.issues.push(`title ${r.titleChars} chars (> ${MAX_TITLE_CHARS})`);
-  const hype = HYPE_TITLE_WORDS.filter((w) => new RegExp(`\\b${w}\\b`, "i").test(item.title));
-  if (hype.length) r.issues.push(`hype words in title: ${hype.join(", ")}`);
-  if (/\(20\d\d\)/.test(item.title)) r.issues.push("year in title");
-  if (r.descriptionChars < DESCRIPTION_RANGE[0] || r.descriptionChars > DESCRIPTION_RANGE[1]) {
-    r.issues.push(`description ${r.descriptionChars} chars (want ${DESCRIPTION_RANGE[0]}-${DESCRIPTION_RANGE[1]})`);
+  if (r.words < rules.minWords) r.issues.push(`body ${r.words} words (< ${rules.minWords})`);
+  if (rules.strictTitle) {
+    if (r.titleChars > MAX_TITLE_CHARS) r.issues.push(`title ${r.titleChars} chars (> ${MAX_TITLE_CHARS})`);
+    const hype = HYPE_TITLE_WORDS.filter((w) => new RegExp(`\\b${w}\\b`, "i").test(item.title));
+    if (hype.length) r.issues.push(`hype words in title: ${hype.join(", ")}`);
+    if (/\(20\d\d\)/.test(item.title)) r.issues.push("year in title");
+    if (r.descriptionChars < DESCRIPTION_RANGE[0] || r.descriptionChars > DESCRIPTION_RANGE[1]) {
+      r.issues.push(`description ${r.descriptionChars} chars (want ${DESCRIPTION_RANGE[0]}-${DESCRIPTION_RANGE[1]})`);
+    }
+  } else if (r.descriptionChars < 60) {
+    r.issues.push(`description ${r.descriptionChars} chars (< 60)`);
   }
-  if (r.internalLinks < 3) r.issues.push(`${r.internalLinks} internal links (< 3)`);
-  if (!r.toolLinked) r.issues.push("no link to an APIForge tool page");
+  if (r.internalLinks < rules.minLinks) r.issues.push(`${r.internalLinks} internal links (< ${rules.minLinks})`);
+  if (rules.needToolLink && !r.toolLinked) r.issues.push("no link to an APIForge tool page");
   if (r.brokenLinks.length) r.issues.push(`broken internal links: ${r.brokenLinks.join(", ")}`);
-  if (r.externalRefs < 1) r.issues.push("no externalReference source");
-  if (r.codeBlocks < 1) r.issues.push("no code or example block");
+  if (rules.needExternal && r.externalRefs < 1) r.issues.push("no externalReference source");
+  if (rules.needCode && r.codeBlocks < 1) r.issues.push("no code or example block");
+  if (r.faqs < rules.minFaqs) r.issues.push(`${r.faqs} FAQs (< ${rules.minFaqs})`);
   if (r.slop.length) r.issues.push(`slop: ${r.slop.join(", ")}`);
   if (r.emDashes > MAX_EM_DASHES) r.issues.push(`${r.emDashes} em dashes (> ${MAX_EM_DASHES})`);
 
   r.weakness =
-    Math.max(0, MIN_GUIDE_WORDS - r.words) / 10 +
+    (Math.max(0, rules.minWords - r.words) / rules.minWords) * 100 +
     r.slop.length * 8 +
-    Math.max(0, 3 - r.internalLinks) * 5 +
-    (r.externalRefs ? 0 : 10) +
-    (r.codeBlocks ? 0 : 10) +
+    Math.max(0, rules.minLinks - r.internalLinks) * 5 +
+    (rules.needExternal && !r.externalRefs ? 10 : 0) +
+    (rules.needCode && !r.codeBlocks ? 10 : 0) +
     r.issues.length * 2;
   return r;
 }
@@ -218,7 +258,7 @@ export function signatureOf(item: KnowledgeItem): TopicSignature {
   };
 }
 
-export function changedGuideSlugs(): string[] {
+export function changedContentSlugs(): string[] {
   const run = (cmd: string) => {
     try {
       return execSync(cmd, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
@@ -234,8 +274,77 @@ export function changedGuideSlugs(): string[] {
   ].join("\n");
   const slugs = new Set<string>();
   for (const line of out.split(/\r?\n/)) {
-    const m = line.trim().match(/^src\/content\/guides\/([a-z0-9-]+)\.json$/);
-    if (m) slugs.add(m[1]);
+    const m = line.trim().match(/^src\/content\/(guides|glossary|examples|comparisons)\/([a-z0-9-]+)\.json$/);
+    if (!m) continue;
+    try {
+      const raw = JSON.parse(readFileSync(m[0], "utf8")) as { slug?: string };
+      slugs.add(raw.slug ?? m[2]);
+    } catch {
+      slugs.add(m[2]);
+    }
   }
   return Array.from(slugs);
+}
+
+export const changedGuideSlugs = changedContentSlugs;
+
+export interface LedgerEntry {
+  date: string;
+  action: "new" | "refresh" | "existing" | "link";
+  slug: string;
+  primaryKeyword?: string;
+  notes?: string;
+}
+
+export function readLedger(): LedgerEntry[] {
+  try {
+    const raw = JSON.parse(readFileSync("src/content/seo/topic-ledger.json", "utf8")) as { entries: LedgerEntry[] };
+    return raw.entries ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export function recentlyTouched(days: number): Set<string> {
+  const cutoff = Date.now() - days * 86_400_000;
+  const slugs = new Set<string>();
+  for (const e of readLedger()) {
+    if (e.action === "existing" || e.action === "link") continue;
+    if (new Date(e.date).getTime() >= cutoff) slugs.add(e.slug);
+  }
+  return Array.from(slugs).reduce((set, slug) => set.add(slug), new Set<string>());
+}
+
+export interface LinkGraphNode {
+  key: string;
+  type: string;
+  slug: string;
+  title: string;
+  outbound: string[];
+  inbound: string[];
+}
+
+export function buildLinkGraph(): Map<string, LinkGraphNode> {
+  const nodes = new Map<string, LinkGraphNode>();
+  for (const item of contentRegistry.all) {
+    const key = `${TYPE_PATHS[item.type]}/${item.slug}`;
+    nodes.set(key, { key, type: item.type, slug: item.slug, title: item.title, outbound: [], inbound: [] });
+  }
+  for (const item of contentRegistry.all) {
+    const from = nodes.get(`${TYPE_PATHS[item.type]}/${item.slug}`)!;
+    const targets = new Set(linksOf(item).map((l) => l.split(/[?#]/)[0].replace(/\/$/, "")));
+    for (const block of item.blocks) {
+      if (block.type !== "relatedContent") continue;
+      for (const slug of block.slugs) {
+        const hit = contentRegistry.all.find((c) => c.slug === slug);
+        if (hit) targets.add(`${TYPE_PATHS[hit.type]}/${hit.slug}`);
+      }
+    }
+    for (const t of Array.from(targets)) {
+      if (t === from.key) continue;
+      from.outbound.push(t);
+      nodes.get(t)?.inbound.push(from.key);
+    }
+  }
+  return nodes;
 }

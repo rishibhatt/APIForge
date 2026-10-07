@@ -81,6 +81,7 @@ export function getExampleBySlug(slug: string): OpenApiExample | undefined {
 
 export function getAllComparisons(): Comparison[] {
   return contentRegistry.comparisons.map((item) => {
+    if (item.comparisonData) return item.comparisonData;
     const compBlock = item.blocks.find((b) => b.type === "comparison") as { rows?: Array<[string, string, string]> } | undefined;
     const infoCallout = item.blocks.find((b) => b.type === "callout") as { text: string } | undefined;
 

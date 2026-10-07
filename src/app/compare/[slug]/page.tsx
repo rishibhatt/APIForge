@@ -9,6 +9,8 @@ import ArticleHero from "@/components/content/ArticleHero";
 import ArticleCTA from "@/components/content/ArticleCTA";
 import FAQSection from "@/components/content/FAQSection";
 import ShareButtons from "@/components/content/ShareButtons";
+import RichParagraphs from "@/components/content/RichText";
+import { renderInline } from "@/components/content/ArticleContent";
 import MetaRow from "@/components/content/MetaRow";
 import { formatDate } from "@/components/content/labels";
 import styles from "@/components/content/content.module.css";
@@ -86,7 +88,7 @@ export default function ComparisonDetailPage({
         <section className={styles.articleBody}>
           <aside className={styles.answerFirst} aria-label="Verdict">
             <p className={styles.answerLabel}>Verdict</p>
-            <p className={styles.answerText}>{comparison.verdict}</p>
+            <div className={styles.answerText}><RichParagraphs text={comparison.verdict} /></div>
           </aside>
 
           <h2 className={styles.heading2}>Capability breakdown</h2>
@@ -104,9 +106,9 @@ export default function ComparisonDetailPage({
                 {comparison.featuresTable.map((row, idx) => (
                   <tr key={idx}>
                     <td><strong>{row.feature}</strong></td>
-                    <td>{row.apiforge}</td>
-                    <td>{row.competitor}</td>
-                    <td>{row.notes || "—"}</td>
+                    <td>{renderInline(row.apiforge)}</td>
+                    <td>{renderInline(row.competitor)}</td>
+                    <td>{row.notes ? renderInline(row.notes) : "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -116,7 +118,7 @@ export default function ComparisonDetailPage({
           {comparison.sections.map((section, idx) => (
             <div key={idx}>
               <h2 className={styles.heading2}>{section.title}</h2>
-              <p className={styles.paragraph}>{section.description}</p>
+              <RichParagraphs text={section.description} className={styles.paragraph} />
               <div className={styles.tableWrapper} tabIndex={0} role="region" aria-label={section.title}>
                 <table className={styles.table}>
                   <thead>
@@ -127,14 +129,29 @@ export default function ComparisonDetailPage({
                   </thead>
                   <tbody>
                     <tr>
-                      <td>{section.apiforgeWay}</td>
-                      <td>{section.competitorWay}</td>
+                      <td>{renderInline(section.apiforgeWay)}</td>
+                      <td>{renderInline(section.competitorWay)}</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
             </div>
           ))}
+          {comparison.sources && comparison.sources.length > 0 && (
+            <>
+              <h2 className={styles.heading2}>Sources</h2>
+              <ul className={styles.unorderedList}>
+                {comparison.sources.map((src) => (
+                  <li key={src.url}>
+                    <a href={src.url} target="_blank" rel="noopener noreferrer">
+                      {src.title}
+                    </a>{" "}
+                    ({src.source})
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </section>
 
         <ArticleCTA
