@@ -15,7 +15,7 @@ function extractAndParseJson(text: string): unknown {
   return JSON.parse(s);
 }
 
-export class AIService {
+class AIService {
   /**
    * Generates text using the configured capability, with automatic provider failover and FREE model fallbacks.
    */

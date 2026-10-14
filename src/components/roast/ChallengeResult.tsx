@@ -18,7 +18,7 @@ export interface ChallengeResultProps {
   onRoastAnother: () => void;
 }
 
-export function buildChallengeUrl(origin: string, score: number, title: string): string {
+function buildChallengeUrl(origin: string, score: number, title: string): string {
   return `${origin}/roast-my-api?beat=${score}&from=${encodeURIComponent(title.slice(0, 60))}`;
 }
 

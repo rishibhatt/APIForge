@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { parseSwaggerFile, parseSwaggerUrl } from "@/lib/swagger-parser";
+import { parseSpecFetchHeaders } from "@/lib/security/spec-fetch-headers";
 import { normalizeFromEndpoints } from "@/lib/api-quality-score/normalize-api-input";
 import { calculateApiScore } from "@/lib/scoringEngine";
 import { generateRoastSummary } from "@/lib/roast/generateRoast";
@@ -99,9 +100,14 @@ export async function POST(request: Request) {
         );
       }
 
+      const authHeaders = parseSpecFetchHeaders(body.headers);
+      if (!authHeaders.ok) {
+        return NextResponse.json({ success: false, error: authHeaders.error }, { status: 400 });
+      }
+
       specUrlInput = url;
       // Strict policy applies to every hop (redirects, Swagger UI assets, external $refs), not just the input URL.
-      parseResult = await parseSwaggerUrl(url, { security: ROAST_SECURITY });
+      parseResult = await parseSwaggerUrl(url, { security: ROAST_SECURITY, headers: authHeaders.headers });
     }
 
     const endpoints = parseResult.endpoints || [];

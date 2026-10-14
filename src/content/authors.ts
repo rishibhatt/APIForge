@@ -10,7 +10,7 @@ export const CANONICAL_AUTHOR: Author = {
   x: "https://x.com/Rishi_o07",
 };
 
-export const AUTHORS_REGISTRY: Record<string, Author> = {
+const AUTHORS_REGISTRY: Record<string, Author> = {
   rishab: CANONICAL_AUTHOR,
 };
 

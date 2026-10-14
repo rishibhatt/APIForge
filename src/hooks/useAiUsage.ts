@@ -55,7 +55,7 @@ function toInt(v: string | null): number | null {
 }
 
 /** "3h 12m", "12m", "under 1m". Rounds minutes up so the label never reads 0 early. */
-export function formatResetIn(resetAt: number | null, now: number = Date.now()): string {
+function formatResetIn(resetAt: number | null, now: number = Date.now()): string {
   if (resetAt == null) return "";
   const ms = resetAt - now;
   if (ms <= 0) return "now";

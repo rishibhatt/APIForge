@@ -1,7 +1,6 @@
 import type { Article, FAQItem } from "@/content/types";
 import { CANONICAL_AUTHOR } from "@/lib/content/author";
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://apiforge.info";
+import { SITE_URL } from "@/lib/seo/metadata";
 
 export function generateOrganizationJsonLd() {
   return {

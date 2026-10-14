@@ -14,7 +14,7 @@ interface DemoFrameProps {
   className?: string;
 }
 
-export function DemoFrame({ label, children, className = "" }: DemoFrameProps) {
+function DemoFrame({ label, children, className = "" }: DemoFrameProps) {
   return (
     <div className={`${styles.frame} ${className}`.trim()} aria-hidden>
       <div className={styles.chrome}>
@@ -114,50 +114,6 @@ export function ScoreDemo() {
         <MaterialIcon name="arrow_forward" size="xs" className={styles.fixArrow} />
         <span className={styles.fixTo}>GET /users/{"{id}"}/orders</span>
       </div>
-    </DemoFrame>
-  );
-}
-
-export function GenerateDemo() {
-  return (
-    <DemoFrame label="Generate">
-      <div className={styles.tabs}>
-        <span className={styles.tabOn}>TypeScript</span>
-        <span>Tests</span>
-        <span>AI prompt</span>
-      </div>
-      <pre className={styles.code}>
-        <span className={styles.codeKw}>export interface</span> <span className={styles.codeType}>Pet</span>
-        {" {\n  id"}
-        <span className={styles.codeMuted}>?</span>
-        {": "}
-        <span className={styles.codeType}>number</span>
-        {";\n  name: "}
-        <span className={styles.codeType}>string</span>
-        {";\n  status"}
-        <span className={styles.codeMuted}>?</span>
-        {": "}
-        <span className={styles.codeStr}>&quot;available&quot;</span>
-        {" | "}
-        <span className={styles.codeStr}>&quot;pending&quot;</span>
-        {" | "}
-        <span className={styles.codeStr}>&quot;sold&quot;</span>
-        {";\n}"}
-      </pre>
-      <ul className={styles.tests}>
-        <li>
-          <span className={styles.testKind}>Valid</span>
-          Creates a pet with the required fields
-        </li>
-        <li>
-          <span className={`${styles.testKind} ${styles.testInvalid}`}>Invalid</span>
-          Rejects a missing <code>name</code> with 400
-        </li>
-        <li>
-          <span className={`${styles.testKind} ${styles.testEdge}`}>Edge</span>
-          Handles a 255-character name
-        </li>
-      </ul>
     </DemoFrame>
   );
 }

@@ -2,22 +2,51 @@ import type {
   ApiExecutionRequest,
   ApiExecutionResult,
 } from "@/types/execution";
+import {
+  applyBodyContentType,
+  applyQueryParams,
+  buildRequestBody,
+  RequestBodyError,
+  type BuiltBody,
+  type RequestFile,
+} from "@/lib/http/request-body";
+import {
+  base64ToBlob,
+  isTextContentType,
+  readResponseBytes,
+  STREAM_WINDOW_MS,
+} from "@/lib/http/response-body";
+
+/** Browser mode reads the whole response in memory; keep it bounded. */
+const BROWSER_MAX_RESPONSE_BYTES = 50 * 1024 * 1024;
 
 export async function executeBrowserRequest(
   reqDef: ApiExecutionRequest,
+  files: RequestFile[] = [],
 ): Promise<ApiExecutionResult> {
   const requestId = `req_browser_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const t0 = performance.now();
 
+  let built: BuiltBody;
+  try {
+    built = buildRequestBody(reqDef, files);
+  } catch (e) {
+    return {
+      success: false,
+      executionMode: "browser",
+      requestId,
+      durationMs: 0,
+      proxyAvailable: false,
+      error: {
+        code: "UNKNOWN",
+        message: e instanceof RequestBodyError ? e.message : "Could not build the request body.",
+      },
+    };
+  }
+
   try {
     const u = new URL(reqDef.url);
-    if (reqDef.queryParams) {
-      for (const [k, v] of Object.entries(reqDef.queryParams)) {
-        if (v !== undefined && v !== null) {
-          u.searchParams.set(k, v);
-        }
-      }
-    }
+    applyQueryParams(u, reqDef.queryParams);
 
     const headers = new Headers(reqDef.headers);
 
@@ -43,37 +72,35 @@ export async function executeBrowserRequest(
       }
     }
 
-    let bodyData: BodyInit | undefined;
-    if (reqDef.body !== undefined && reqDef.body !== null) {
-      bodyData =
-        typeof reqDef.body === "string"
-          ? reqDef.body
-          : JSON.stringify(reqDef.body);
-      if (!headers.has("Content-Type") && !headers.has("content-type")) {
-        headers.set("Content-Type", "application/json");
-      }
-    }
+    applyBodyContentType(headers, built);
 
     const controller = new AbortController();
     const timeoutMs = reqDef.timeoutMs || 10_000;
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-    const res = await fetch(u.toString(), {
-      method: reqDef.method || "GET",
-      headers,
-      body: bodyData,
-      signal: controller.signal,
-    });
-
-    clearTimeout(timer);
+    let res: Response;
+    try {
+      res = await fetch(u.toString(), {
+        method: reqDef.method || "GET",
+        headers,
+        body: built.body,
+        signal: controller.signal,
+      });
+    } catch (err) {
+      clearTimeout(timer);
+      throw err;
+    }
 
     const durationMs = Math.round(performance.now() - t0);
-    const text = await res.text();
-    let parsed: unknown = null;
+    const contentType = res.headers.get("content-type") || undefined;
+    let read: Awaited<ReturnType<typeof readResponseBytes>>;
     try {
-      parsed = text ? JSON.parse(text) : null;
-    } catch {
-      parsed = null;
+      read = await readResponseBytes(res, {
+        maxBytes: BROWSER_MAX_RESPONSE_BYTES,
+        streamWindowMs: STREAM_WINDOW_MS,
+      });
+    } finally {
+      clearTimeout(timer);
     }
 
     const resHeaders: Record<string, string> = {};
@@ -81,20 +108,50 @@ export async function executeBrowserRequest(
       resHeaders[key] = val;
     });
 
-    return {
+    if (read.kind === "too-large") {
+      return {
+        success: false,
+        executionMode: "browser",
+        requestId,
+        durationMs,
+        proxyAvailable: false,
+        error: {
+          code: "RESPONSE_TOO_LARGE",
+          message: `Response is larger than ${BROWSER_MAX_RESPONSE_BYTES / (1024 * 1024)}MB.`,
+        },
+      };
+    }
+
+    const base: ApiExecutionResult = {
       success: true,
       executionMode: "browser",
       status: res.status,
       statusText: res.statusText,
       headers: resHeaders,
-      body: parsed !== null ? parsed : text,
-      rawBody: text,
-      contentType: res.headers.get("content-type") || undefined,
+      contentType,
       durationMs,
-      responseSizeBytes: new Blob([text]).size,
+      responseSizeBytes: read.bytes.byteLength,
       requestId,
       proxyAvailable: false,
+      ...(read.truncated ? { streamTruncated: true } : {}),
     };
+
+    if (!isTextContentType(contentType)) {
+      return {
+        ...base,
+        isBinary: true,
+        binaryBody: new Blob([read.bytes], { type: contentType || "application/octet-stream" }),
+      };
+    }
+
+    const text = new TextDecoder().decode(read.bytes);
+    let parsed: unknown = null;
+    try {
+      parsed = text ? JSON.parse(text) : null;
+    } catch {
+      parsed = null;
+    }
+    return { ...base, body: parsed !== null ? parsed : text, rawBody: text };
   } catch (err: unknown) {
     const durationMs = Math.round(performance.now() - t0);
     const msg = err instanceof Error ? err.message : String(err);
@@ -131,16 +188,31 @@ export async function executeBrowserRequest(
 
 export async function executeProxyRequestClient(
   reqDef: ApiExecutionRequest,
+  files: RequestFile[] = [],
 ): Promise<ApiExecutionResult> {
   const t0 = performance.now();
   try {
-    const res = await fetch("/api/test-request", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(reqDef),
-    });
+    // Files cannot ride in JSON: send a multipart envelope with the request as a "request" field.
+    let init: RequestInit;
+    if (files.length > 0) {
+      const fd = new FormData();
+      fd.append("request", JSON.stringify(reqDef));
+      files.forEach((f, i) => fd.append(`file${i}`, f, f.name || `file${i}`));
+      init = { method: "POST", body: fd };
+    } else {
+      init = {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(reqDef),
+      };
+    }
+    const res = await fetch("/api/test-request", init);
 
     const data = (await res.json()) as ApiExecutionResult;
+    if (data.isBinary && data.bodyBase64) {
+      data.binaryBody = base64ToBlob(data.bodyBase64, data.contentType);
+      delete data.bodyBase64;
+    }
     return data;
   } catch (err: unknown) {
     return {

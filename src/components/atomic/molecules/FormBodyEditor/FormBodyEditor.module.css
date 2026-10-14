@@ -1,0 +1,229 @@
+/* Form / multipart body: same row grammar as KeyValueEditor, with a file picker in the value cell. */
+.wrap {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.empty {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--color-on-surface-subtle);
+}
+
+.list {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-container-lowest);
+}
+
+.list:empty {
+  display: none;
+}
+
+.row {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 32px minmax(0, 2fr) minmax(0, 3fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 4px var(--space-1) 4px 0;
+}
+
+.row + .row {
+  border-top: 1px solid var(--color-divider-subtle);
+}
+
+.rowOff .keyCell,
+.rowOff .valueCell {
+  opacity: 0.55;
+}
+
+.check {
+  display: flex;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.check input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.keyCell,
+.valueCell {
+  min-width: 0;
+}
+
+.specKey {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+  padding: 0 var(--space-1);
+}
+
+.keyText {
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-on-surface);
+  overflow-wrap: anywhere;
+}
+
+.req {
+  margin-left: 2px;
+  color: var(--color-error);
+}
+
+.hint {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  text-transform: lowercase;
+  color: var(--color-on-surface-subtle);
+  overflow-wrap: anywhere;
+}
+
+.input {
+  width: 100%;
+  min-width: 0;
+  height: 32px;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 0 8px;
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  color: var(--color-on-surface);
+  background: var(--color-surface-container-low);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.input:hover {
+  border-color: var(--color-outline-variant);
+}
+
+.input:focus {
+  border-color: var(--color-primary);
+  background: var(--color-field-bg);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 16%, transparent);
+}
+
+.fileCell {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.fileName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--color-on-surface-variant);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+}
+
+.iconBtn {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-on-surface-subtle);
+  cursor: pointer;
+}
+
+.iconBtn:hover {
+  color: var(--color-on-surface);
+}
+
+.addRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-left: -4px;
+}
+
+@media (max-width: 767px) {
+  .row {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "check key actions"
+      ". value value";
+    row-gap: 4px;
+    padding: 6px var(--space-1) 8px 0;
+  }
+
+  .check {
+    grid-area: check;
+    height: 40px;
+  }
+
+  .keyCell {
+    grid-area: key;
+  }
+
+  .valueCell {
+    grid-area: value;
+    padding-right: var(--space-1);
+  }
+
+  .actions {
+    grid-area: actions;
+  }
+
+  .input {
+    height: 40px;
+    font-size: 16px;
+    border-color: var(--color-field-border);
+    background: var(--color-field-bg);
+  }
+
+  .iconBtn {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Picker + clear on one line, the full file name wrapped underneath. */
+  .fileCell {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+
+  .fileName {
+    flex: 1 1 100%;
+    order: 3;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}

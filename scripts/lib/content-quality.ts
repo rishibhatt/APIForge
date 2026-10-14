@@ -286,7 +286,6 @@ export function changedContentSlugs(): string[] {
   return Array.from(slugs);
 }
 
-export const changedGuideSlugs = changedContentSlugs;
 
 export interface LedgerEntry {
   date: string;

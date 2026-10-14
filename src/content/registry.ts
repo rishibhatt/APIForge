@@ -1,6 +1,5 @@
 import type {
   KnowledgeItem,
-  ContentType,
   ContentCategory,
   ContentCluster,
   ContentBlock,
@@ -511,14 +510,6 @@ export const contentRegistry = {
 
 export function getKnowledgeItemBySlug(slug: string): KnowledgeItem | undefined {
   return contentRegistry.all.find((item) => item.slug === slug);
-}
-
-export function getKnowledgeItemsByCluster(cluster: ContentCluster): KnowledgeItem[] {
-  return contentRegistry.all.filter((item) => item.cluster === cluster);
-}
-
-export function getKnowledgeItemsByType(type: ContentType): KnowledgeItem[] {
-  return contentRegistry.all.filter((item) => item.type === type);
 }
 
 export function getRelatedContentGraph(currentSlug: string) {

@@ -35,7 +35,7 @@ export type Block =
   | { t: "hr" };
 
 /** Only absolute http(s) links are kept. Everything else renders as plain text. */
-export function safeHref(raw: string): string | null {
+function safeHref(raw: string): string | null {
   const trimmed = raw.trim();
   if (!/^https?:\/\//i.test(trimmed)) return null;
   try {
@@ -48,7 +48,7 @@ export function safeHref(raw: string): string | null {
 
 const isWordChar = (c: string | undefined) => c != null && /[A-Za-z0-9]/.test(c);
 
-export function parseInline(src: string): Inline[] {
+function parseInline(src: string): Inline[] {
   const out: Inline[] = [];
   let buf = "";
   const flush = () => {

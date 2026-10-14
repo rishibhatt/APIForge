@@ -1,7 +1,7 @@
 import type { Endpoint } from "@/types/api";
 import { endpointToJsonSafe } from "@/lib/serialize-endpoint";
 
-export const ALL_ENDPOINTS_SUMMARY_CAP = 100;
+const ALL_ENDPOINTS_SUMMARY_CAP = 100;
 
 /** Structured payload sent to `/api/groq/assistant` and embedded in prompts. */
 export type WorkspaceAssistantAiContext = {

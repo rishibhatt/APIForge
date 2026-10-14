@@ -14,6 +14,10 @@ export interface RequestBodyInfo {
   example: unknown;
   hasExample: boolean;
   required: boolean;
+  /** Every media type the operation accepts (OpenAPI 3 `content` keys), preferred first. */
+  mediaTypes: string[];
+  /** OpenAPI 3 `encoding` for form/multipart fields: per-field `contentType`, `style`, `explode`. */
+  encoding: Record<string, Json>;
 }
 
 function pickMediaType(content: Json): string | null {
@@ -37,12 +41,17 @@ function firstExampleValue(examples: unknown): { found: boolean; value: unknown 
   return { found: false, value: undefined };
 }
 
-/** Request body for OpenAPI 3 (`requestBody.content`) and Swagger 2 (`in: body` / `in: formData` parameters). */
-export function getRequestBodyInfo(endpoint: Endpoint): RequestBodyInfo | null {
+/**
+ * Request body for OpenAPI 3 (`requestBody.content`) and Swagger 2 (`in: body` / `in: formData` parameters).
+ * `preferredMediaType` picks one of several `content` entries (the Body tab's type switcher).
+ */
+export function getRequestBodyInfo(endpoint: Endpoint, preferredMediaType?: string): RequestBodyInfo | null {
   const rb = endpoint.requestBody;
   if (isObject(rb)) {
     const content = isObject(rb.content) ? rb.content : null;
-    const mt = content ? pickMediaType(content) : null;
+    const picked = content ? pickMediaType(content) : null;
+    const mt = content && preferredMediaType && preferredMediaType in content ? preferredMediaType : picked;
+    const mediaTypes = content ? [picked!, ...Object.keys(content).filter((k) => k !== picked)].filter(Boolean) : [];
     const media = content && mt && isObject(content[mt]) ? (content[mt] as Json) : null;
     const schema = media && isObject(media.schema) ? (media.schema as Json) : null;
     let example: unknown = undefined;
@@ -63,6 +72,8 @@ export function getRequestBodyInfo(endpoint: Endpoint): RequestBodyInfo | null {
       example,
       hasExample,
       required: rb.required === true,
+      mediaTypes,
+      encoding: media && isObject(media.encoding) ? (media.encoding as Record<string, Json>) : {},
     };
   }
 
@@ -77,6 +88,8 @@ export function getRequestBodyInfo(endpoint: Endpoint): RequestBodyInfo | null {
       example: ex,
       hasExample: ex !== undefined,
       required: bodyParam.required === true,
+      mediaTypes: ["application/json"],
+      encoding: {},
     };
   }
   const formParams = params.filter((p) => p.in === "formData" && typeof p.name === "string");
@@ -90,12 +103,17 @@ export function getRequestBodyInfo(endpoint: Endpoint): RequestBodyInfo | null {
       properties[name as string] = rest;
       if (req === true) required.push(name as string);
     }
+    // Swagger 2 has no per-operation content type here; a `type: file` field means multipart.
+    const hasFile = formParams.some((p) => p.type === "file");
+    const mediaType = hasFile ? "multipart/form-data" : "application/x-www-form-urlencoded";
     return {
-      mediaType: "application/x-www-form-urlencoded",
+      mediaType,
       schema: { type: "object", properties, required },
       example: undefined,
       hasExample: false,
       required: required.length > 0,
+      mediaTypes: hasFile ? [mediaType] : [mediaType, "multipart/form-data"],
+      encoding: {},
     };
   }
   return null;
@@ -235,8 +253,8 @@ export interface BodyExampleResult {
 }
 
 /** JSON text for "Insert example": the spec's own example when present, otherwise a schema skeleton. */
-export function buildRequestBodyExample(endpoint: Endpoint): BodyExampleResult | null {
-  const info = getRequestBodyInfo(endpoint);
+export function buildRequestBodyExample(endpoint: Endpoint, preferredMediaType?: string): BodyExampleResult | null {
+  const info = getRequestBodyInfo(endpoint, preferredMediaType);
   if (!info) return null;
   if (info.hasExample) {
     const v = info.example;

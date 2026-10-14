@@ -18,11 +18,11 @@ export const SHARE_TONES: { id: ShareTone; label: string }[] = [
 ];
 
 /** X counts every URL as 23 characters, whatever its real length. */
-export const X_URL_LENGTH = 23;
+const X_URL_LENGTH = 23;
 export const X_LIMIT = 280;
 
 /** Strip the backticks the roast copy uses for inline code. */
-export function plainRoast(text: string): string {
+function plainRoast(text: string): string {
   return text.replace(/`([^`]+)`/g, "$1");
 }
 
@@ -51,7 +51,7 @@ export interface DraftFacts {
 }
 
 /** The post body without the report URL (X takes the URL separately; other targets append it). */
-export function buildPostDraft(tone: ShareTone, f: DraftFacts): string {
+function buildPostDraft(tone: ShareTone, f: DraftFacts): string {
   const t = clip(f.title, 40);
   const n = `${f.findings} ${f.findings === 1 ? "finding" : "findings"}`;
   const verdict = clip(f.verdict.replace(/\s+/g, " "), 90);

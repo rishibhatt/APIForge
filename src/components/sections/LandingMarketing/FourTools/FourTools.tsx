@@ -48,7 +48,7 @@ function Chip({ tone, children }: { tone: string; children: string }) {
 }
 
 /** The main-area content for one of the four states. Example data only. */
-export function StateView({ index }: { index: number }) {
+function StateView({ index }: { index: number }) {
   if (index === 0) {
     return (
       <div className={styles.state}>

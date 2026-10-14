@@ -45,8 +45,17 @@ export function describeParseError(rawMessage: string): ParseErrorInfo {
   if (m.includes("exceeds") && m.includes("mb")) {
     return { title: "The spec is too large to fetch.", fix: "Split the spec, or point at a smaller per-service document.", raw };
   }
-  if (/http 40[13]\b/.test(m) || m.includes("unauthorized") || m.includes("forbidden")) {
-    return { title: "The server refused to share the spec (authentication required).", fix: "APIForge fetches specs without credentials. Use a publicly accessible spec URL.", raw };
+  if (m.includes("rejected the auth header")) {
+    return { title: "The server rejected the auth header you added.", fix: "Check the header name and value under \"Docs need auth?\", then try again.", raw };
+  }
+  if (/http 40[13]\b/.test(m) || m.includes("needs authentication") || m.includes("unauthorized") || m.includes("forbidden")) {
+    return { title: "This spec needs authentication.", fix: "Open \"Docs need auth? Add a header\" under the URL field, paste your token or API key (for example Authorization: Bearer …), and try again.", raw };
+  }
+  if (m.includes("found the swagger ui page") || m.includes("found a swagger ui page")) {
+    return { title: "Found the Swagger UI page, but not its spec.", fix: RAW_LINK_FIX, raw };
+  }
+  if (m.includes("no swagger ui and no spec link")) {
+    return { title: "This URL returned a web page, not an OpenAPI spec.", fix: RAW_LINK_FIX, raw };
   }
   if (/http 404\b/.test(m) || m.includes("not found")) {
     return { title: "Nothing was found at that URL (404).", fix: RAW_LINK_FIX, raw };

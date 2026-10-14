@@ -37,7 +37,7 @@ interface GithubContributor {
 }
 
 /** Contributors from the repo. Returns [] on any failure or rate limit; never throws. */
-export async function getGithubContributors(): Promise<Contributor[]> {
+async function getGithubContributors(): Promise<Contributor[]> {
   try {
     const res = await fetch(GITHUB_CONTRIBUTORS_URL, {
       next: { revalidate: 3600 },

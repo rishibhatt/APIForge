@@ -1,12 +1,9 @@
 import { create } from "zustand";
 import { groupEndpointsByTag } from "@/lib/extract-endpoints";
-import {
-  getScopedEndpoints as computeScopedEndpoints,
-  getScopeLabel as computeScopeLabel,
-  primaryTag,
-} from "@/lib/endpoint-groups";
+import { primaryTag } from "@/lib/endpoint-groups";
 import type { AIMetadata, AITokenUsage, GroqTokenUsage } from "@/lib/groq-token-usage";
-import type { Endpoint } from "@/types/api";
+import type { Endpoint, SpecChoice } from "@/types/api";
+import { EMPTY_AUTH_HEADER, type AuthHeader } from "@/lib/spec-auth-header";
 import type { GenerationScope, OutputTab } from "@/types/api";
 import type { ExecutionMode } from "@/types/execution";
 import type { ParseErrorInfo } from "@/lib/parse-error-info";
@@ -69,6 +66,12 @@ export interface WorkspaceState {
   specSecuritySchemes: Record<string, unknown> | null;
   /** URL field (header + landing) */
   specUrlInput: string;
+  /** Optional header sent with the spec fetch (docs behind auth). Memory only. */
+  specAuthHeader: AuthHeader;
+  /** Specs listed by the Swagger UI page that was pasted (definition dropdown); empty when only one. */
+  availableSpecs: SpecChoice[];
+  /** Raw spec URL currently loaded, when known. */
+  activeSpecUrl: string | null;
   /** Optional Bearer applied to every Run API request when Authorization is unset */
   workspaceDefaultBearer: string;
   endpointSearch: string;
@@ -105,6 +108,8 @@ export interface WorkspaceState {
   setLastAiMeta: (meta: Partial<AIMetadata>) => void;
   setSpecMeta: (title: string | null, version: string | null) => void;
   setSpecUrlInput: (s: string) => void;
+  setSpecAuthHeader: (h: AuthHeader) => void;
+  setSpecChoices: (available: SpecChoice[], activeSpecUrl: string | null) => void;
   setWorkspaceDefaultBearer: (s: string) => void;
   setEndpointSearch: (s: string) => void;
   toggleMethodFilter: (m: MethodFilterKey) => void;
@@ -136,6 +141,9 @@ const initial = {
   specServerUrls: [] as string[],
   specSecuritySchemes: null as Record<string, unknown> | null,
   specUrlInput: "",
+  specAuthHeader: EMPTY_AUTH_HEADER,
+  availableSpecs: [] as SpecChoice[],
+  activeSpecUrl: null as string | null,
   workspaceDefaultBearer: "",
   endpointSearch: "",
   executionMode: "AUTO" as ExecutionMode,
@@ -220,6 +228,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     })),
   setSpecMeta: (specTitle, specVersion) => set({ specTitle, specVersion }),
   setSpecUrlInput: (specUrlInput) => set({ specUrlInput }),
+  setSpecAuthHeader: (specAuthHeader) => set({ specAuthHeader }),
+  setSpecChoices: (availableSpecs, activeSpecUrl) => set({ availableSpecs, activeSpecUrl }),
   setWorkspaceDefaultBearer: (workspaceDefaultBearer) =>
     set({ workspaceDefaultBearer }),
   setEndpointSearch: (endpointSearch) => set({ endpointSearch }),
@@ -256,21 +266,3 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 }));
 
 export { HTTP_METHODS_FILTER };
-
-export function getScopedEndpoints(state: WorkspaceState): Endpoint[] {
-  return computeScopedEndpoints(
-    state.endpoints,
-    state.activeEndpoint,
-    state.generationScope,
-  );
-}
-
-export function getScopeLabel(state: WorkspaceState): string {
-  const scoped = getScopedEndpoints(state);
-  return computeScopeLabel(
-    state.endpoints,
-    state.activeEndpoint,
-    state.generationScope,
-    scoped,
-  );
-}

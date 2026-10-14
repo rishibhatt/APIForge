@@ -12,36 +12,7 @@ export interface AIMetadata {
   attempts: string[];
 }
 
-export function usageFromGenerateTextResult(r: {
-  usage?: unknown;
-}): GroqTokenUsage | undefined {
-  const u = r.usage;
-  if (!u || typeof u !== "object") return undefined;
-  const o = u as Record<string, unknown>;
-  const p =
-    typeof o.promptTokens === "number"
-      ? o.promptTokens
-      : typeof o.inputTokens === "number"
-        ? o.inputTokens
-        : undefined;
-  const c =
-    typeof o.completionTokens === "number"
-      ? o.completionTokens
-      : typeof o.outputTokens === "number"
-        ? o.outputTokens
-        : undefined;
-  const t = typeof o.totalTokens === "number" ? o.totalTokens : undefined;
-  if (p == null && c == null && t == null) return undefined;
-  const promptTokens = p ?? 0;
-  const completionTokens = c ?? 0;
-  const totalTokens =
-    t ?? (promptTokens > 0 || completionTokens > 0
-      ? promptTokens + completionTokens
-      : 0);
-  return { promptTokens, completionTokens, totalTokens };
-}
-
-export function applyUsageHeaders(
+function applyUsageHeaders(
   headers: Headers,
   usage: AITokenUsage | undefined,
 ): void {

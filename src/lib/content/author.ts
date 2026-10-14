@@ -1,3 +1,3 @@
-import { CANONICAL_AUTHOR, AUTHORS_REGISTRY, getAuthor } from "@/content/authors";
+import { CANONICAL_AUTHOR } from "@/content/authors";
 
-export { CANONICAL_AUTHOR, AUTHORS_REGISTRY as AUTHORS, getAuthor };
+export { CANONICAL_AUTHOR };

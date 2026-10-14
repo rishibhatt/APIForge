@@ -199,7 +199,7 @@ function ch(
 }
 
 /** camelCase / PascalCase / snake_case segment → kebab-case */
-export function segmentToKebab(seg: string): string {
+function segmentToKebab(seg: string): string {
   if (seg.includes("-") && !/[A-Z]/.test(seg)) {
     return seg
       .split("-")
@@ -365,7 +365,7 @@ function refineGetAction(
  * Infer REST-style action from HTTP verb + URL segments.
  * Path RPC verbs (e.g. …/Delete) override the method when they disagree (documented inconsistency).
  */
-export function detectAction(intent: {
+function detectAction(intent: {
   path: string;
   method: string;
 }): {
@@ -405,7 +405,7 @@ export function detectAction(intent: {
 }
 
 /** Preferred HTTP verb for a logical REST action. */
-export function getCorrectHttpMethod(
+function getCorrectHttpMethod(
   action: RestAction,
 ): "GET" | "POST" | "PUT" | "PATCH" | "DELETE" {
   switch (action) {
@@ -426,7 +426,7 @@ export function getCorrectHttpMethod(
 /**
  * Strip infrastructure prefixes and RPC verb segments; infer plural kebab resource path tail.
  */
-export function extractResource(pathSegments: string[]): {
+function extractResource(pathSegments: string[]): {
   resource: string;
   isCollection: boolean;
 } {
@@ -492,7 +492,7 @@ function shouldApplySemanticRest(
 /**
  * Semantic REST repair: resource-oriented path + aligned HTTP method.
  */
-export function transformToRest(endpoint: Endpoint): {
+function transformToRest(endpoint: Endpoint): {
   method: string;
   fixed: string;
   changes: FixChange[];
@@ -637,7 +637,7 @@ function hasTemplateId(path: string): boolean {
  * Weighted REST compliance score (0–100) for a concrete method + path.
  * `scoreBefore` uses {@link detectAction} on `input`; `scoreAfter` on `output`.
  */
-export function scoreRestCompliance(
+function scoreRestCompliance(
   input: { method: string; path: string },
   output: { method: string; path: string },
 ): { scoreBefore: number; scoreAfter: number } {
@@ -850,7 +850,7 @@ function applyLegacyTransform(
 /**
  * Full pipeline: semantic REST repair when warranted, otherwise legacy normalization.
  */
-export function transformEndpoint(endpoint: Endpoint): FixItem {
+function transformEndpoint(endpoint: Endpoint): FixItem {
   const originalMethod = (endpoint.method || "GET").trim().toUpperCase();
   const norm = normalizePath(endpoint.path);
   const normPath = norm.value;
@@ -1001,38 +1001,4 @@ export function transformEndpoint(endpoint: Endpoint): FixItem {
 export function generateFixes(endpoints: Endpoint[]): FixItem[] {
   if (endpoints.length === 0) return [];
   return endpoints.map((ep) => transformEndpoint(ep));
-}
-
-/** @internal Asserted by maintainers — deterministic checks for documented examples. */
-export function assertRestExamples(): void {
-  const cases: { ep: Endpoint; expectPath: string; expectMethod: string }[] = [
-    {
-      ep: { method: "POST", path: "/api/Booking/Delete" },
-      expectPath: "/api/bookings/{id}",
-      expectMethod: "DELETE",
-    },
-    {
-      ep: { method: "GET", path: "/getUserData" },
-      expectPath: "/users/{id}",
-      expectMethod: "GET",
-    },
-    {
-      ep: { method: "POST", path: "/createOrder" },
-      expectPath: "/orders",
-      expectMethod: "POST",
-    },
-    {
-      ep: { method: "PUT", path: "/updateProfile" },
-      expectPath: "/profiles/{id}",
-      expectMethod: "PATCH",
-    },
-  ];
-  for (const c of cases) {
-    const r = transformEndpoint(c.ep);
-    if (r.fixed !== c.expectPath || r.method !== c.expectMethod) {
-      throw new Error(
-        `REST example failed: ${c.ep.method} ${c.ep.path} → got ${r.method} ${r.fixed}, expected ${c.expectMethod} ${c.expectPath}`,
-      );
-    }
-  }
 }

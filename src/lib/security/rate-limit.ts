@@ -7,7 +7,7 @@ interface RateLimitRecord {
 
 const windowMs = 60_000; // 1 minute
 const maxRequestsPerWindow = 60;
-export const MAX_CONCURRENT_TESTS = 5;
+const MAX_CONCURRENT_TESTS = 5;
 
 const clientStore = new Map<string, RateLimitRecord>();
 

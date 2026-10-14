@@ -40,7 +40,7 @@ export function extractTypeScriptBlock(raw: string): string {
   return `\`\`\`typescript\n${code}\n\`\`\``;
 }
 
-export const PROMPT_SECTIONS = [
+const PROMPT_SECTIONS = [
   { key: "task", heading: "# Task", match: /^task$/i },
   { key: "context", heading: "## Context", match: /^context$/i },
   { key: "contract", heading: "## Endpoint contract", match: /^endpoint contract/i },

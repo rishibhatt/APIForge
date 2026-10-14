@@ -14,7 +14,3 @@ export function endpointToJsonSafe(ep: Endpoint): Endpoint {
     ...(ep.security !== undefined ? { security: ep.security } : {}),
   };
 }
-
-export function endpointsToJsonSafe(list: Endpoint[]): Endpoint[] {
-  return list.map(endpointToJsonSafe);
-}

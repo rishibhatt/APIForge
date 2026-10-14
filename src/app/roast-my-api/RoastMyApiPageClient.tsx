@@ -177,7 +177,7 @@ export default function RoastMyApiPageClient() {
   }, []);
 
   const startRoastUrl = useCallback(
-    (url: string) => {
+    (url: string, authHeaders?: Record<string, string>) => {
       if (!isHttpUrl(url)) {
         setActiveUrl(url);
         setError("Invalid URL");
@@ -194,7 +194,9 @@ export default function RoastMyApiPageClient() {
       void runAnalysis(
         {
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url, tone: "brutal" }),
+          body: JSON.stringify(
+            authHeaders ? { url, tone: "brutal", headers: authHeaders } : { url, tone: "brutal" },
+          ),
         },
         "Failed to analyze API specification",
       );

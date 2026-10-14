@@ -9,7 +9,7 @@ export const ROAST_MEME_IDS = [
 
 export type RoastMemeId = (typeof ROAST_MEME_IDS)[number];
 
-export const MEME_ASSETS: Record<RoastMemeId, string> = {
+const MEME_ASSETS: Record<RoastMemeId, string> = {
   perfect: "/memes/perfect-v1.mp4",
   slapping: "/memes/slapping-v1.mp4",
   eww: "/memes/eww-v1.mp4",
@@ -25,7 +25,7 @@ export interface RoastMemeStyle {
   style: string;
 }
 
-export const MEME_STYLES: Record<RoastMemeId, RoastMemeStyle> = {
+const MEME_STYLES: Record<RoastMemeId, RoastMemeStyle> = {
   perfect: {
     name: "Perfect",
     mood: "celebratory",

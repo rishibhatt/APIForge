@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { TranslateFn } from "@/context/LanguageContext";
 import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
+import AuthHeaderFields from "@/components/atomic/molecules/AuthHeaderFields/AuthHeaderFields";
 import { toast } from "@/components/providers/Toaster/toast";
 import { useWorkspaceStore } from "@/store/workspaceStore";
 import styles from "./SpecUrlForm.module.css";
@@ -29,6 +30,9 @@ export default function SpecUrlForm({
 }: SpecUrlFormProps) {
   const specUrlInput = useWorkspaceStore((s) => s.specUrlInput);
   const setSpecUrlInput = useWorkspaceStore((s) => s.setSpecUrlInput);
+  const specAuthHeader = useWorkspaceStore((s) => s.specAuthHeader);
+  const setSpecAuthHeader = useWorkspaceStore((s) => s.setSpecAuthHeader);
+  const [authOpen, setAuthOpen] = useState(() => Boolean(specAuthHeader.value));
   const inputRef = useRef<HTMLInputElement>(null);
   const [localError, setLocalError] = useState<string | null>(null);
   const errorId = `${id}-error`;
@@ -62,6 +66,12 @@ export default function SpecUrlForm({
       id: "parse-error",
     });
   }, [error, errorInfo?.title, errorInfo?.fix, busy]);
+
+  // A 401/403 from the docs page: open the header row so the fix is one paste away.
+  const needsAuth = Boolean(errorInfo?.title.toLowerCase().includes("authentication"));
+  useEffect(() => {
+    if (needsAuth) setAuthOpen(true);
+  }, [needsAuth]);
 
   const validateAndForge = () => {
     const value = specUrlInput.trim();
@@ -173,6 +183,12 @@ export default function SpecUrlForm({
           Works with raw JSON or YAML links and hosted Swagger UI pages.
         </p>
       )}
+      <AuthHeaderFields
+        header={specAuthHeader}
+        onChange={setSpecAuthHeader}
+        open={authOpen}
+        onOpenChange={setAuthOpen}
+      />
     </div>
   );
 }

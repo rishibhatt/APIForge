@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { parseSwaggerFile, parseSwaggerUrl } from "@/lib/swagger-parser";
 import { readJsonObject } from "@/lib/http/read-json-body";
 import { consumeRateLimit, getClientIp } from "@/lib/security/rate-limit";
+import { parseSpecFetchHeaders } from "@/lib/security/spec-fetch-headers";
 
 const MAX_SPEC_FILE_BYTES = 10 * 1024 * 1024;
 
@@ -77,7 +78,12 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await parseSwaggerUrl(url);
+    const headers = parseSpecFetchHeaders(body.headers);
+    if (!headers.ok) {
+      return NextResponse.json({ success: false, error: headers.error }, { status: 400 });
+    }
+
+    const result = await parseSwaggerUrl(url, { headers: headers.headers });
     return NextResponse.json({ success: true, ...result });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Parse failed";

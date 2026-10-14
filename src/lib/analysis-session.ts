@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { ApiScoreResult } from "@/lib/api-quality-score/types";
 import { useWorkspaceStore } from "@/store/workspaceStore";
 
-export const ANALYSIS_STORAGE_PREFIX = "apiforge-analysis:";
+const ANALYSIS_STORAGE_PREFIX = "apiforge-analysis:";
 
 /** Serialized operations for downstream tools (e.g. Auto Fix). Optional for older sessions. */
 export type StoredAnalysisEndpoint = {
@@ -24,9 +24,9 @@ export type StoredAnalysisPayload = {
 };
 
 /** Query param the analysis and auto-fix pages carry so the URL alone can reopen the spec. */
-export const SPEC_QUERY_PARAM = "spec";
+const SPEC_QUERY_PARAM = "spec";
 
-export function isHttpSpecUrl(value: unknown): value is string {
+function isHttpSpecUrl(value: unknown): value is string {
   return typeof value === "string" && /^https?:\/\/\S+$/i.test(value.trim());
 }
 
@@ -59,7 +59,7 @@ export function persistAnalysisPayload(payload: StoredAnalysisPayload): string {
   return id;
 }
 
-export function readAnalysisPayload(id: string): StoredAnalysisPayload | null {
+function readAnalysisPayload(id: string): StoredAnalysisPayload | null {
   if (typeof window === "undefined" || typeof sessionStorage === "undefined") {
     return null;
   }

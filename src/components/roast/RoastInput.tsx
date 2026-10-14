@@ -3,6 +3,8 @@
 import type { DragEvent, FormEvent, KeyboardEvent } from "react";
 import { useEffect, useId, useRef, useState } from "react";
 import MaterialIcon from "@/components/atomic/atoms/Icon/MaterialIcon";
+import AuthHeaderFields from "@/components/atomic/molecules/AuthHeaderFields/AuthHeaderFields";
+import { authHeaderToRecord, EMPTY_AUTH_HEADER, type AuthHeader } from "@/lib/spec-auth-header";
 import { toast } from "@/components/providers/Toaster/toast";
 import styles from "./RoastInput.module.css";
 
@@ -11,7 +13,8 @@ export interface RoastInputProps {
   error?: string | null;
   /** HTTP status of the failed request, or 0 when it never got a response. */
   errorStatus?: number | null;
-  onSubmitUrl: (url: string) => void;
+  /** `authHeaders` is set when the user added a header for docs behind auth. */
+  onSubmitUrl: (url: string, authHeaders?: Record<string, string>) => void;
   onFileUpload: (file: File) => void;
 }
 
@@ -39,6 +42,7 @@ export type RoastErrorKind =
   | "offline"
   | "private"
   | "no-operations"
+  | "auth"
   | "file-type"
   | "other";
 
@@ -86,11 +90,25 @@ export function explainRoastError(raw: string, status?: number | null): Explaine
   if (msg.includes("missing")) {
     return { kind: "empty", title: "Nothing to roast yet", hint: "Add a spec URL, paste the spec text, or choose a file." };
   }
-  if (/\bhttp (401|403|404|410|5\d\d)\b|enotfound|econn|etimedout|timed out|timeout|fetch failed|getaddrinfo|unreachable|could not (fetch|reach)|failed to fetch/.test(msg)) {
+  if (/\bhttp 40[13]\b|needs authentication|rejected the auth header/.test(msg)) {
+    return {
+      kind: "auth",
+      title: msg.includes("rejected") ? "The server rejected your auth header" : "This spec needs authentication",
+      hint: "Open \"Docs need auth? Add a header\" under the URL, paste your token or API key, then roast again. Or paste the spec instead.",
+    };
+  }
+  if (msg.includes("found the swagger ui page") || msg.includes("found a swagger ui page")) {
+    return {
+      kind: "not-spec",
+      title: "Found the Swagger UI page, but not its spec",
+      hint: "Open the docs page, copy the openapi.json or swagger.json link it loads, and paste that URL.",
+    };
+  }
+  if (/\bhttp (404|410|5\d\d)\b|enotfound|econn|etimedout|timed out|timeout|fetch failed|getaddrinfo|unreachable|could not (fetch|reach)|failed to fetch/.test(msg)) {
     return {
       kind: "unreachable",
       title: "We couldn't reach that host",
-      hint: "Open the URL in a browser to confirm it is public and returns the spec. If it needs auth, paste the spec instead.",
+      hint: "Open the URL in a browser to confirm it is public and returns the spec. If it needs auth, add a header under the URL or paste the spec instead.",
     };
   }
   if (typeof status === "number" && status >= 500) {
@@ -100,13 +118,13 @@ export function explainRoastError(raw: string, status?: number | null): Explaine
     return {
       kind: "not-spec",
       title: "That isn't an OpenAPI or Swagger document",
-      hint: "Use a link to OpenAPI 3 or Swagger 2 JSON or YAML (a Swagger UI page also works). If it needs auth, paste the spec instead.",
+      hint: "Use a link to OpenAPI 3 or Swagger 2 JSON or YAML (a Swagger UI page also works). If it needs auth, add a header under the URL or paste the spec instead.",
     };
   }
   return {
     kind: "other",
     title: "We couldn't read that spec",
-    hint: "Open the URL in a browser to confirm it returns OpenAPI 3 or Swagger 2 JSON or YAML. If it needs auth, paste the spec instead.",
+    hint: "Open the URL in a browser to confirm it returns OpenAPI 3 or Swagger 2 JSON or YAML. If it needs auth, add a header under the URL or paste the spec instead.",
   };
 }
 
@@ -195,9 +213,17 @@ export default function RoastInput({ initialUrl = "", error, errorStatus, onSubm
   }, [initialUrl]);
 
   const [fieldError, setFieldError] = useState<ExplainedRoastError | null>(null);
+  const [authHeader, setAuthHeader] = useState<AuthHeader>(EMPTY_AUTH_HEADER);
+  const [authOpen, setAuthOpen] = useState(false);
 
   const explained = fieldError ?? (error ? explainRoastError(error, errorStatus) : null);
   const detail = !fieldError && error ? shortDetail(error) : "";
+
+  // A 401/403 from the docs page: open the header row so the fix is one paste away.
+  const needsAuth = explained?.kind === "auth";
+  useEffect(() => {
+    if (needsAuth) setAuthOpen(true);
+  }, [needsAuth]);
 
   const fail = (problem: ExplainedRoastError) => {
     setFieldError(problem);
@@ -224,7 +250,7 @@ export default function RoastInput({ initialUrl = "", error, errorStatus, onSubm
       const problem = checkUrl(url);
       if (problem) return fail(problem);
       setFieldError(null);
-      onSubmitUrl(url.trim());
+      onSubmitUrl(url.trim(), authHeaderToRecord(authHeader));
     } else if (mode === "paste") {
       const problem = checkPaste(rawText);
       if (problem) return fail(problem);
@@ -323,6 +349,9 @@ export default function RoastInput({ initialUrl = "", error, errorStatus, onSubm
               {submitBtn()}
             </div>
           </div>
+        ) : null}
+        {mode === "url" ? (
+          <AuthHeaderFields header={authHeader} onChange={setAuthHeader} open={authOpen} onOpenChange={setAuthOpen} />
         ) : null}
 
         {mode === "paste" ? (

@@ -1,0 +1,76 @@
+/* Binary response: one meta line (type, size, download), then the inline preview when the type allows. */
+.wrap {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-on-surface-variant);
+}
+
+.metaText {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.image {
+  display: block;
+  max-width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+  /* Checkerboard so transparent PNGs stay visible in both themes. */
+  background: repeating-conic-gradient(var(--color-surface-container-low) 0 25%, var(--color-surface-container-lowest) 0 50%) 0 0 / 16px 16px;
+}
+
+.media {
+  display: block;
+  width: 100%;
+  max-height: 420px;
+  border-radius: var(--radius-sm);
+  background: #000;
+}
+
+.audio {
+  width: 100%;
+}
+
+.pdf {
+  width: 100%;
+  height: 480px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-container-lowest);
+}
+
+@media (max-width: 767px) {
+  .wrap {
+    padding: var(--space-2);
+  }
+
+  .image,
+  .media {
+    max-height: 300px;
+  }
+
+  /* Phones often show only the first page of an inline PDF; Download stays the reliable path. */
+  .pdf {
+    height: 360px;
+  }
+}
+
+.note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-on-surface-subtle);
+}

@@ -15,7 +15,7 @@ export const AI_INPUT_LIMITS = {
   responsePreview: 2_000,
 } as const;
 
-export const OFF_TOPIC_MESSAGE =
+const OFF_TOPIC_MESSAGE =
   "Ask about this endpoint: its parameters, an example payload, why a request fails, or how to call it from TypeScript.";
 
 // Control chars except \t \n; zero-width and bidi override characters.

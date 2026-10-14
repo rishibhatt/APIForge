@@ -138,7 +138,3 @@ export const CLUSTERS_REGISTRY: Record<ContentCluster, ClusterInfo> = {
     keywords: ["Developer Experience", "DX", "SDKs", "API Usability"],
   },
 };
-
-export function getClusterInfo(cluster: ContentCluster): ClusterInfo {
-  return CLUSTERS_REGISTRY[cluster] || CLUSTERS_REGISTRY["openapi"];
-}

@@ -34,7 +34,7 @@ export default function WorkspaceShell() {
   const endpoints = useWorkspaceStore((s) => s.endpoints);
   const specUrlInput = useWorkspaceStore((s) => s.specUrlInput);
   const setSpecUrlInput = useWorkspaceStore((s) => s.setSpecUrlInput);
-  const { parseUrl, isLoading, error } = useSwaggerParser();
+  const { parseUrl, selectSpec, isLoading, error } = useSwaggerParser();
 
   const workspaceVisible = endpoints.length > 0;
   const focusMode = useWorkspaceStore((s) => s.focusMode);
@@ -74,6 +74,7 @@ export default function WorkspaceShell() {
           isParsing={isLoading}
           parseError={error}
           onParse={onForge}
+          onSelectSpec={(url) => void selectSpec(url)}
         />
       ) : (
         <LandingHeader t={t} />

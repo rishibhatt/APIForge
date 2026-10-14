@@ -1,7 +1,7 @@
 import { toast } from "@/components/providers/Toaster/toast";
 
 /** Copy text; falls back to a hidden textarea when the async clipboard API is unavailable. */
-export async function copyText(text: string): Promise<boolean> {
+async function copyText(text: string): Promise<boolean> {
   try {
     if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(text);

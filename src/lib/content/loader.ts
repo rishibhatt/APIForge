@@ -1,18 +1,8 @@
 import type { Article, GlossaryEntry, OpenApiExample, Comparison, KnowledgeItem } from "@/content/types";
-import {
-  contentRegistry,
-  getKnowledgeItemBySlug,
-  getKnowledgeItemsByCluster,
-  getKnowledgeItemsByType,
-  getRelatedContentGraph,
-} from "@/content/registry";
+import { contentRegistry, getRelatedContentGraph } from "@/content/registry";
 
 export function getAllGuides(): Article[] {
   return contentRegistry.guides as Article[];
-}
-
-export function getFeaturedGuides(): Article[] {
-  return contentRegistry.guides.filter((g) => g.featured) as Article[];
 }
 
 export function getGuideBySlug(slug: string): Article | undefined {
@@ -125,13 +115,6 @@ export function getReferenceBySlug(slug: string): KnowledgeItem | undefined {
   return contentRegistry.reference.find((r) => r.slug === slug);
 }
 
-export {
-  contentRegistry,
-  getKnowledgeItemBySlug,
-  getKnowledgeItemsByCluster,
-  getKnowledgeItemsByType,
-  getRelatedContentGraph,
-};
 
 export function getRelatedContent(currentSlug: string) {
   const graph = getRelatedContentGraph(currentSlug);

@@ -157,7 +157,7 @@ export const CREDIT_LINES: Line[] = [
 ];
 
 /* —— Short stamp verdicts for the share card (keep under ~36 chars). —— */
-export const VERDICTS: Record<number, string[]> = {
+const VERDICTS: Record<number, string[]> = {
   1: ["Clean. Suspiciously clean.", "Nothing to roast. We're furious.", "Passed. Annoyingly."],
   2: ["Fine. Ish.", "Good bones, bad habits.", "Ships. With a squint."],
   3: ["Works on my machine.", "Technically alive.", "Held together by vibes."],

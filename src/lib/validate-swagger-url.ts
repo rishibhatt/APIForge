@@ -21,7 +21,3 @@ export function getSpecUrlValidationError(input: string): string | null {
   }
   return null;
 }
-
-export function isValidSpecUrl(input: string): boolean {
-  return getSpecUrlValidationError(input) === null;
-}

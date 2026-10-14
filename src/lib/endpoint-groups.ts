@@ -6,7 +6,7 @@ export function primaryTag(ep: Endpoint): string | null {
   return typeof t === "string" && t.trim() ? t.trim() : null;
 }
 
-export function endpointsSharingTag(
+function endpointsSharingTag(
   endpoints: Endpoint[],
   tag: string,
 ): Endpoint[] {
@@ -62,23 +62,4 @@ export function getScopeLabel(
     return `${tag} (${scoped.length} endpoints)`;
   }
   return `Full API (${scoped.length} endpoints)`;
-}
-
-/** @deprecated Prefer `getScopedEndpoints` */
-export function resolveEndpointsForLevel(
-  endpoints: Endpoint[],
-  active: Endpoint | null,
-  level: GenerationScope,
-): Endpoint[] {
-  return getScopedEndpoints(endpoints, active, level);
-}
-
-/** @deprecated Prefer `getScopeLabel` with a scoped list */
-export function levelHeading(
-  endpoints: Endpoint[],
-  active: Endpoint | null,
-  level: GenerationScope,
-): string {
-  const scoped = getScopedEndpoints(endpoints, active, level);
-  return getScopeLabel(endpoints, active, level, scoped);
 }

@@ -18,7 +18,7 @@ import {
 } from "@/lib/security/rate-limit";
 
 /** One bucket per visitor, shared by every AI route (and the usage endpoint). */
-export function aiQuotaKey(req: Request): string {
+function aiQuotaKey(req: Request): string {
   return `ai-quota:${getClientIp(req)}`;
 }
 
@@ -49,7 +49,7 @@ function formatResetTime(resetAt: number | null, now: number): string {
   return `${at} UTC (in about ${rel})`;
 }
 
-export function quotaExhaustedMessage(usage: AiUsageSnapshot, now: number = Date.now()): string {
+function quotaExhaustedMessage(usage: AiUsageSnapshot, now: number = Date.now()): string {
   return `You have used all ${usage.limit} AI requests for this 5-hour window. A slot frees up at ${formatResetTime(usage.resetAt, now)}. These tools run on free models, so each visitor gets ${AI_REQUEST_LIMIT} requests per 5 hours. See ${SUPPORT_PATH}.`;
 }
 

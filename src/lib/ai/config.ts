@@ -5,21 +5,21 @@ import type { AICapability, AICapabilityConfig, AIModelRegistry } from "./types"
  * Groq LPU models (GPT-OSS 120B, Qwen 3.8 27B) provide sub-second (~250-600ms) latency.
  * OpenRouter free models provide secondary failover.
  */
-export const DEFAULT_GROQ_MODELS = [
+const DEFAULT_GROQ_MODELS = [
   "openai/gpt-oss-120b",
   "qwen/qwen3.8-27b",
   "openai/gpt-oss-20b",
 ];
 
-export const DEFAULT_OPENROUTER_FREE_MODELS = [
+const DEFAULT_OPENROUTER_FREE_MODELS = [
   "inclusionai/ling-3.0-flash-vl:free",
   "nvidia/nemotron-3-super-120b-a12b:free",
   "openrouter/free",
 ];
 
-export const DEFAULT_FREE_PRIMARY_MODEL = "openai/gpt-oss-120b";
+const DEFAULT_FREE_PRIMARY_MODEL = "openai/gpt-oss-120b";
 
-export const DEFAULT_FREE_FALLBACK_MODELS = [
+const DEFAULT_FREE_FALLBACK_MODELS = [
   "qwen/qwen3.8-27b",
   "openai/gpt-oss-20b",
   "inclusionai/ling-3.0-flash-vl:free",
@@ -27,7 +27,7 @@ export const DEFAULT_FREE_FALLBACK_MODELS = [
   "openrouter/free",
 ];
 
-export const AI_MODEL_REGISTRY: AIModelRegistry = {
+const AI_MODEL_REGISTRY: AIModelRegistry = {
   general: {
     primary: DEFAULT_FREE_PRIMARY_MODEL,
     fallbacks: DEFAULT_FREE_FALLBACK_MODELS,
@@ -87,11 +87,6 @@ export function resolveCapabilityConfig(
     primary,
     fallbacks: uniqueFallbacks,
   };
-}
-
-export function getModelChain(capability: AICapability = "general"): string[] {
-  const { primary, fallbacks } = resolveCapabilityConfig(capability);
-  return [primary, ...fallbacks];
 }
 
 export interface GatewayEndpoint {

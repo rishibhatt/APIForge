@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import PublicRoastClient from "./PublicRoastClient";
 import { getRoastReport } from "@/lib/roast/roastStorage";
-import { normalizeDescription, resolveTitle } from "@/lib/seo/metadata";
+import { normalizeDescription, resolveTitle, SITE_URL } from "@/lib/seo/metadata";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://apiforge.info";
 
 export async function generateMetadata({
   params,

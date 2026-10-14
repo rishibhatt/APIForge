@@ -1,0 +1,97 @@
+/* Optional auth header under a spec URL field: a quiet disclosure, then one name/value row. */
+.wrap {
+  margin-top: var(--space-2);
+  text-align: inherit;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-on-surface-variant);
+  font-family: var(--font-body);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.toggle:hover {
+  color: var(--color-on-surface);
+}
+
+.panel {
+  margin-top: var(--space-2);
+  text-align: left;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.input {
+  min-width: 0;
+  height: 38px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-field-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-field-bg);
+  color: var(--color-on-surface);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  outline: none;
+}
+
+.input:focus {
+  border-color: var(--color-primary);
+}
+
+.name {
+  flex: 0 0 34%;
+}
+
+.value {
+  flex: 1;
+}
+
+.clear {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-on-surface-subtle);
+  cursor: pointer;
+}
+
+.clear:hover {
+  color: var(--color-on-surface);
+}
+
+.note {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--color-on-surface-subtle);
+}
+
+@media (max-width: 560px) {
+  .row {
+    flex-wrap: wrap;
+  }
+
+  .name,
+  .value {
+    flex: 1 1 100%;
+    height: 44px;
+    font-size: 16px;
+  }
+}

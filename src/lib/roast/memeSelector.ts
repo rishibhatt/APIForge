@@ -100,7 +100,7 @@ function capitalize(text: string): string {
 }
 
 /** Short noun phrase naming a real finding, for meme captions. */
-export function captionSubject(ruleId: string, path: string, count: number): string {
+function captionSubject(ruleId: string, path: string, count: number): string {
   const at = path ? ` ${path}` : "";
   switch (ruleId) {
     case "ACTION_IN_PATH":

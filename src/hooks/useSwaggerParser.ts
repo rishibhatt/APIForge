@@ -2,7 +2,8 @@
 
 import { useCallback, useRef, useState } from "react";
 import { useWorkspaceStore } from "@/store/workspaceStore";
-import type { Endpoint } from "@/types/api";
+import type { Endpoint, SpecChoice } from "@/types/api";
+import { authHeaderToRecord } from "@/lib/spec-auth-header";
 import { getSpecUrlValidationError } from "@/lib/validate-swagger-url";
 import { describeParseError } from "@/lib/parse-error-info";
 import { clearSpecFromAddressBar, setSpecInAddressBar } from "@/lib/spec-deeplink";
@@ -15,6 +16,8 @@ interface ParseResponse {
   version?: string;
   serverUrls?: string[];
   securitySchemes?: Record<string, unknown>;
+  specUrl?: string;
+  availableSpecs?: SpecChoice[];
 }
 
 /** After this long without a response the server is past the download and resolving $refs. */
@@ -29,10 +32,17 @@ export function useSwaggerParser() {
   const setParseError = useWorkspaceStore((s) => s.setParseError);
   const setSpecMeta = useWorkspaceStore((s) => s.setSpecMeta);
   const setParseProgress = useWorkspaceStore((s) => s.setParseProgress);
+  const setSpecChoices = useWorkspaceStore((s) => s.setSpecChoices);
   const runId = useRef(0);
 
   const run = useCallback(
-    async (label: string, request: () => Promise<Response>, specUrl?: string) => {
+    async (
+      label: string,
+      request: () => Promise<Response>,
+      specUrl?: string,
+      /** Switching between specs of one docs page: keep its list instead of replacing it. */
+      keepChoices?: SpecChoice[],
+    ) => {
       const id = ++runId.current;
       const hadWorkspace = useWorkspaceStore.getState().endpoints.length > 0;
       setIsLoading(true);
@@ -78,6 +88,13 @@ export function useSwaggerParser() {
           typeof data.title === "string" ? data.title : null,
           typeof data.version === "string" ? data.version : null,
         );
+        if (data.availableSpecs && data.availableSpecs.length > 1) {
+          setSpecChoices(data.availableSpecs, data.specUrl ?? null);
+        } else if (keepChoices) {
+          setSpecChoices(keepChoices, specUrl ?? null);
+        } else {
+          setSpecChoices([], data.specUrl ?? null);
+        }
         // Refresh reopens this spec; a file upload has no URL to keep.
         if (specUrl) setSpecInAddressBar(specUrl);
         else clearSpecFromAddressBar();
@@ -94,11 +111,11 @@ export function useSwaggerParser() {
         if (runId.current === id) setIsLoading(false);
       }
     },
-    [setEndpoints, setParseError, setSpecMeta, setParseProgress],
+    [setEndpoints, setParseError, setSpecMeta, setParseProgress, setSpecChoices],
   );
 
   const parseUrl = useCallback(
-    async (url: string) => {
+    async (url: string, keepChoices?: SpecChoice[]) => {
       const clientErr = getSpecUrlValidationError(url);
       if (clientErr) {
         setError(clientErr);
@@ -112,16 +129,30 @@ export function useSwaggerParser() {
         return;
       }
       const trimmed = url.trim();
-      await run(trimmed, () =>
-        fetch("/api/swagger/parse", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: trimmed }),
-        }),
+      // The auth header is read at call time so "Try again" after adding one uses it.
+      const headers = authHeaderToRecord(useWorkspaceStore.getState().specAuthHeader);
+      await run(
         trimmed,
+        () =>
+          fetch("/api/swagger/parse", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(headers ? { url: trimmed, headers } : { url: trimmed }),
+          }),
+        trimmed,
+        keepChoices,
       );
     },
     [run, setParseError, setParseProgress],
+  );
+
+  /** Load another spec from the current docs page's definition list. */
+  const selectSpec = useCallback(
+    async (url: string) => {
+      const choices = useWorkspaceStore.getState().availableSpecs;
+      await parseUrl(url, choices.length > 1 ? choices : undefined);
+    },
+    [parseUrl],
   );
 
   const parseFile = useCallback(
@@ -135,5 +166,5 @@ export function useSwaggerParser() {
     [run],
   );
 
-  return { parseUrl, parseFile, isLoading, error };
+  return { parseUrl, parseFile, selectSpec, isLoading, error };
 }

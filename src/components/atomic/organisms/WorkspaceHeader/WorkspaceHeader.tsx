@@ -17,6 +17,8 @@ export interface WorkspaceHeaderProps {
   isParsing?: boolean;
   parseError?: string | null;
   onParse?: () => void;
+  /** Load another spec from the pasted docs page's definition list. */
+  onSelectSpec?: (url: string) => void;
 }
 
 export default function WorkspaceHeader({
@@ -24,6 +26,7 @@ export default function WorkspaceHeader({
   hasWorkspace,
   isParsing = false,
   onParse,
+  onSelectSpec,
 }: WorkspaceHeaderProps) {
   const clearWorkspace = useWorkspaceStore((s) => s.clearWorkspace);
   const setMobileSidebarOpen = useWorkspaceStore((s) => s.setMobileSidebarOpen);
@@ -31,6 +34,8 @@ export default function WorkspaceHeader({
   const toggleFocusMode = useWorkspaceStore((s) => s.toggleFocusMode);
   const specTitle = useWorkspaceStore((s) => s.specTitle);
   const endpoints = useWorkspaceStore((s) => s.endpoints);
+  const availableSpecs = useWorkspaceStore((s) => s.availableSpecs);
+  const activeSpecUrl = useWorkspaceStore((s) => s.activeSpecUrl);
   const progress = useWorkspaceStore((s) => s.parseProgress);
   const setParseProgress = useWorkspaceStore((s) => s.setParseProgress);
   const [showDone, setShowDone] = useState(false);
@@ -140,9 +145,31 @@ export default function WorkspaceHeader({
 
       <div className={styles.center}>
         {hasWorkspace ? (
-          <div className={styles.specBadge} title={specTitle || "Active API Specification"}>
+          <div
+            className={`${styles.specBadge} ${availableSpecs.length > 1 && onSelectSpec ? styles.specBadgePicker : ""}`}
+            title={specTitle || "Active API Specification"}
+          >
             <MaterialIcon name="api" size="xs" className={styles.specIcon} />
-            <span className={styles.specTitleText}>{specTitle || "API Workspace"}</span>
+            {availableSpecs.length > 1 && onSelectSpec ? (
+              <select
+                className={`${styles.specSelect} focusRing`}
+                aria-label="API definition"
+                value={activeSpecUrl ?? ""}
+                disabled={loading}
+                onChange={(e) => onSelectSpec(e.target.value)}
+              >
+                {activeSpecUrl && !availableSpecs.some((s) => s.url === activeSpecUrl) ? (
+                  <option value={activeSpecUrl}>{specTitle || activeSpecUrl}</option>
+                ) : null}
+                {availableSpecs.map((s) => (
+                  <option key={s.url} value={s.url}>
+                    {s.name || s.url}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <span className={styles.specTitleText}>{specTitle || "API Workspace"}</span>
+            )}
             <span className={styles.specCountPill}>
               {endpoints.length} {endpoints.length === 1 ? "endpoint" : "endpoints"}
             </span>

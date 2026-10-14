@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head><title>API docs</title>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XYZ"></script>
+<script>window.dataLayer = window.dataLayer || []; gtag('config', 'G-XYZ', { url: '/should-not-be-picked' });</script>
+</head>
+<body>
+<div id="swagger-ui"></div>
+<script src="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui-bundle.js"></script>
+<script>
+  window.onload = () => {
+    window.ui = SwaggerUIBundle({
+      urls: [
+        { url: "specs/orders.yaml", name: "Orders" },
+        { name: 'Billing', url: '/billing/openapi.json' },
+        { url: `https://cdn.example.com/catalog.json`, name: "Catalog" },
+      ],
+      "urls.primaryName": "Billing",
+      dom_id: '#swagger-ui',
+      oauth2RedirectUrl: window.location.origin + '/docs/oauth2-redirect',
+    });
+  };
+</script>
+</body>
+</html>

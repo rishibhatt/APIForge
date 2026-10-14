@@ -28,6 +28,8 @@
 
 .left {
   display: flex;
+  /* Its buttons cannot shrink, so the group must not either; the center badge gives way instead. */
+  flex-shrink: 0;
   min-width: 0;
   align-items: center;
   gap: var(--space-2);
@@ -80,6 +82,8 @@
 
 .specBadge {
   display: inline-flex;
+  min-width: 0;
+  overflow: hidden;
   align-items: center;
   gap: var(--space-2);
   max-width: min(480px, 100%);
@@ -105,6 +109,28 @@
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--color-on-surface);
+}
+
+/* Docs page with several definitions: the title becomes a picker. */
+.specSelect {
+  min-width: 0;
+  max-width: 260px;
+  height: 24px;
+  padding: 0 4px;
+  border: 1px solid var(--color-field-border);
+  border-radius: var(--radius-xs);
+  background: var(--color-field-bg);
+  color: var(--color-on-surface);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.specSelect:disabled {
+  cursor: progress;
+  opacity: 0.7;
 }
 
 .specCountPill {
@@ -319,14 +345,48 @@
   }
 }
 
+/* `.right` raises specificity over the shared Button display rule. */
 @media (max-width: 639px) {
-  .clearBtn {
+  .right .clearBtn {
     display: none;
+  }
+
+  /* Narrow: the badge carries the spec name; the logo alone marks the app. */
+  .brand {
+    display: none;
+  }
+
+  /* With a definition picker, the picker gets the room; the count is in the explorer anyway. */
+  .specBadgePicker {
+    width: 100%;
+  }
+
+  .specBadgePicker .specCountPill {
+    display: none;
+  }
+
+  .specBadgePicker .specSelect {
+    flex: 1 1 auto;
+    max-width: none;
+    height: 28px;
+  }
+
+  .specCountPill {
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 
 @media (max-width: 480px) {
   .exitText {
+    display: none;
+  }
+
+  /* Phones: menu, back and the spec badge already fill the row. */
+  .brandWrap {
     display: none;
   }
 

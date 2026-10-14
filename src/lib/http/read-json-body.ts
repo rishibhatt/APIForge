@@ -1,5 +1,5 @@
 /** Default cap for JSON request bodies on API routes (App Router handlers have no built-in limit). */
-export const DEFAULT_MAX_JSON_BODY_BYTES = 2 * 1024 * 1024;
+const DEFAULT_MAX_JSON_BODY_BYTES = 2 * 1024 * 1024;
 
 export type ReadJsonObjectResult =
   | { ok: true; body: Record<string, unknown> }

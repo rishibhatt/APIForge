@@ -38,6 +38,16 @@ export interface ParseSwaggerResult {
   serverUrls?: string[];
   /** `components.securitySchemes` (OAS3) or `securityDefinitions` (Swagger 2), JSON-safe. */
   securitySchemes?: Record<string, unknown>;
+  /** Raw spec URL that was parsed, when it differs from or was found behind the pasted URL. */
+  specUrl?: string;
+  /** Every spec a Swagger UI page lists (its definition dropdown), when there is more than one. */
+  availableSpecs?: SpecChoice[];
+}
+
+/** One entry of a Swagger UI definition dropdown. */
+export interface SpecChoice {
+  url: string;
+  name?: string;
 }
 
 export interface TestCase {
@@ -49,10 +59,3 @@ export interface TestCase {
   reason: string;
 }
 
-export function isAIStreamTab(tab: OutputTab): tab is AIStreamTab {
-  return tab === "typescript" || tab === "prompt";
-}
-
-export function isGroqStreamTab(tab: OutputTab): tab is GroqStreamTab {
-  return isAIStreamTab(tab);
-}

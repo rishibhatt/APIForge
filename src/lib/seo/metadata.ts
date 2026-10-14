@@ -41,13 +41,13 @@ export function normalizeDescription(description: string, tail?: string): string
   return text;
 }
 
-export function absoluteUrl(path: string): string {
+function absoluteUrl(path: string): string {
   if (path.startsWith("http")) return path;
   return `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
 /** Dynamic OG card URL rendered by `src/app/api/og/route.tsx`. */
-export function ogImageUrl(title: string, type?: string): string {
+function ogImageUrl(title: string, type?: string): string {
   const params = new URLSearchParams({ title });
   if (type) params.set("type", type);
   return `${SITE_URL}/api/og?${params.toString()}`;

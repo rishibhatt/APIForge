@@ -894,3 +894,39 @@ button.schemaChip:hover {
     height: 32px;
   }
 }
+
+/* Body tab: media type switcher when the operation accepts several types */
+.mediaTypeRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.mediaTypeSelect {
+  width: auto;
+  min-width: 0;
+  max-width: 100%;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+/* Raw file body (octet-stream, image/*, video/*, PDF…) */
+.binaryPick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px dashed var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-container-lowest);
+}
+
+.binaryName {
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-on-surface-variant);
+  overflow-wrap: anywhere;
+}

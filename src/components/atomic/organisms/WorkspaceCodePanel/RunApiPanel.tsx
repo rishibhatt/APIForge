@@ -9,6 +9,11 @@ import MethodBadge from "@/components/atomic/atoms/MethodBadge/MethodBadge";
 import btn from "@/components/atomic/atoms/Button/Button.module.css";
 import HighlightedCode from "@/components/atomic/molecules/HighlightedCode/HighlightedCode";
 import type { HighlightLanguage } from "@/components/atomic/molecules/HighlightedCode/HighlightedCode";
+import FormBodyEditor, {
+  formRowFromSpec,
+  type FormFieldRow,
+} from "@/components/atomic/molecules/FormBodyEditor/FormBodyEditor";
+import BinaryResponseView from "@/components/atomic/molecules/BinaryResponseView/BinaryResponseView";
 import KeyValueEditor, {
   newKeyValueRow,
   type KeyValueRow,
@@ -29,6 +34,8 @@ import {
   checkJson,
   getRequestBodyInfo,
 } from "@/lib/request-body-example";
+import { bodyKindForMediaType, formFieldsFromBody } from "@/lib/request-body-mode";
+import { queryString, serializeQueryRows } from "@/lib/query-params";
 import { endpointToJsonSafe } from "@/lib/serialize-endpoint";
 import type { SchemaValidationIssue } from "@/lib/validate-response-against-schema";
 import { useWorkspaceStore } from "@/store/workspaceStore";
@@ -36,6 +43,7 @@ import type { Endpoint } from "@/types/api";
 import type {
   ApiExecutionRequest,
   ApiExecutionResult,
+  ExecutionFormPart,
   ExecutionMode,
   ExecutionStatusStep,
 } from "@/types/execution";
@@ -91,6 +99,15 @@ function rowsToRecord(rows: KeyValueRow[]): Record<string, string> {
     out[r.key.trim()] = r.value;
   }
   return out;
+}
+
+/**
+ * Content-Type row to prefill for a body media type. None for multipart (fetch adds the boundary)
+ * and none for wildcards like image/* (the chosen file's own type is used).
+ */
+function contentTypeHeaderFor(mediaType: string): string | null {
+  if (/^multipart\//i.test(mediaType) || mediaType.includes("*")) return null;
+  return mediaType;
 }
 
 const HEADER_SUGGESTIONS = [
@@ -183,6 +200,11 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
   const [headersBulkError, setHeadersBulkError] = useState<string | null>(null);
   const [bodyText, setBodyText] = useState("");
   const [bodyNote, setBodyNote] = useState<string | null>(null);
+  /** Chosen request media type when the operation accepts several (JSON vs multipart, …). */
+  const [bodyMediaType, setBodyMediaType] = useState<string | undefined>(undefined);
+  const [formRows, setFormRows] = useState<FormFieldRow[]>([]);
+  const [binaryFile, setBinaryFile] = useState<File | null>(null);
+  const binaryInputRef = useRef<HTMLInputElement>(null);
   const [requestTab, setRequestTab] = useState<RequestTab>("params");
 
   const [authType, setAuthType] = useState<AuthType>("none");
@@ -204,6 +226,8 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
   const [elapsedMs, setElapsedMs] = useState<number | null>(null);
   const [responseText, setResponseText] = useState<string | null>(null);
   const [parsedBody, setParsedBody] = useState<unknown>(null);
+  const [binaryResponse, setBinaryResponse] = useState<Blob | null>(null);
+  const [streamTruncated, setStreamTruncated] = useState(false);
   const [responseHeaders, setResponseHeaders] = useState<[string, string][]>([]);
 
   const [responseTab, setResponseTab] = useState<ResponseTab>("body");
@@ -224,7 +248,11 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
   );
   const hintLine = useMemo(() => authHintSummary(hints), [hints]);
 
-  const bodyInfo = useMemo(() => (endpoint ? getRequestBodyInfo(endpoint) : null), [endpoint]);
+  const bodyInfo = useMemo(
+    () => (endpoint ? getRequestBodyInfo(endpoint, bodyMediaType) : null),
+    [endpoint, bodyMediaType],
+  );
+  const bodyKind = bodyKindForMediaType(bodyInfo?.mediaType);
 
   const wantsBody = useMemo(() => {
     if (!endpoint) return false;
@@ -243,16 +271,19 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
     const m = endpoint.method.toUpperCase();
     const hasBody = info != null && m !== "GET" && m !== "HEAD";
     const hdrs = rows.filter((r) => r.inn === "header").map((r) => specRow(r));
-    if (hasBody) {
-      hdrs.unshift(newKeyValueRow({ key: "Content-Type", value: info.mediaType, enabled: true }));
-    }
+    const contentTypeRow = hasBody ? contentTypeHeaderFor(info.mediaType) : null;
+    if (contentTypeRow) hdrs.unshift(newKeyValueRow({ key: "Content-Type", value: contentTypeRow, enabled: true }));
     setHeaderRows(hdrs);
     setHeadersBulk(false);
     setHeadersText("{}");
     setHeadersBulkError(null);
+    setBodyMediaType(undefined);
+    setBinaryFile(null);
+    setFormRows(hasBody ? formFieldsFromBody(info).map(formRowFromSpec) : []);
     // Prefill the body from the spec example (or a schema skeleton) so a request is sendable at once.
-    const prefill = hasBody ? buildRequestBodyExample(endpoint) : null;
-    setBodyText(hasBody ? (prefill?.text ?? "{}") : "");
+    const textBody = hasBody && ["json", "text"].includes(bodyKindForMediaType(info.mediaType));
+    const prefill = textBody ? buildRequestBodyExample(endpoint) : null;
+    setBodyText(textBody ? (prefill?.text ?? "{}") : "");
     setBodyNote(
       prefill
         ? prefill.source === "spec-example"
@@ -269,6 +300,8 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
     setElapsedMs(null);
     setResponseText(null);
     setParsedBody(null);
+    setBinaryResponse(null);
+    setStreamTruncated(false);
     setResponseHeaders([]);
     setResponseTab("body");
     setBodyView("pretty");
@@ -316,16 +349,47 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
     return p;
   }, [endpoint, pathValues]);
 
-  const queryPreview = useMemo(() => {
-    const q = rowsToRecord(queryRows);
-    const parts = Object.entries(q)
-      .filter(([, v]) => v !== "")
-      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`);
-    return parts.length ? `?${parts.join("&")}` : "";
-  }, [queryRows]);
+  const querySpecs = useMemo(() => {
+    const out: Record<string, Record<string, unknown>> = {};
+    if (endpoint) for (const r of parseParamRows(endpoint)) if (r.inn === "query") out[r.name] = r.spec;
+    return out;
+  }, [endpoint]);
+  const cookieParams = useMemo(
+    () => (endpoint ? parseParamRows(endpoint).filter((r) => r.inn === "cookie").map((r) => r.name) : []),
+    [endpoint],
+  );
+
+  const queryValues = useMemo(() => serializeQueryRows(queryRows, querySpecs), [queryRows, querySpecs]);
+  const queryPreview = useMemo(() => queryString(queryValues), [queryValues]);
+
+  /** Switch between the media types an operation accepts; rebuilds the body editor for that type. */
+  const onChangeBodyMediaType = useCallback(
+    (mt: string) => {
+      if (!endpoint) return;
+      setBodyMediaType(mt);
+      const info = getRequestBodyInfo(endpoint, mt);
+      if (!info) return;
+      const kind = bodyKindForMediaType(info.mediaType);
+      setFormRows(formFieldsFromBody(info).map(formRowFromSpec));
+      setBinaryFile(null);
+      if (kind === "json" || kind === "text") {
+        const ex = buildRequestBodyExample(endpoint, mt);
+        setBodyText(ex?.text ?? "");
+        setBodyNote(ex ? (ex.source === "spec-example" ? t("runApi.bodyFromExample") : t("runApi.bodyFromSchema")) : null);
+      } else {
+        setBodyNote(null);
+      }
+      const ct = contentTypeHeaderFor(info.mediaType);
+      setHeaderRows((rows) => {
+        const rest = rows.filter((r) => r.key.trim().toLowerCase() !== "content-type");
+        return ct ? [newKeyValueRow({ key: "Content-Type", value: ct, enabled: true }), ...rest] : rest;
+      });
+    },
+    [endpoint, t],
+  );
 
   const bodyValidity = useMemo(() => checkJson(bodyText), [bodyText]);
-  const bodyIsJson = !bodyInfo || /json/i.test(bodyInfo.mediaType);
+  const bodyIsJson = bodyKind === "json";
 
   const enterBulkHeaders = useCallback(() => {
     setHeadersText(JSON.stringify(rowsToRecord(headerRows), null, 2));
@@ -442,18 +506,54 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
 
       const fullUrl = joinBaseAndPath(baseUrl.trim(), resolvedPath);
       let parsedBodyReq: unknown = undefined;
-      if (wantsBody && bodyText.trim()) {
+      if (wantsBody && bodyKind === "json" && bodyText.trim()) {
         try {
           parsedBodyReq = JSON.parse(bodyText.trim());
         } catch {
           parsedBodyReq = bodyText.trim();
         }
+      } else if (wantsBody && bodyKind === "text") {
+        parsedBodyReq = bodyText;
       }
 
-      const qValuesClean: Record<string, string> = {};
-      for (const [k, v] of Object.entries(rowsToRecord(queryRows))) {
-        if (v !== "") qValuesClean[k] = v;
+      // Form / multipart fields and files; files travel next to the request, parts point at them.
+      const files: File[] = [];
+      const formParts: ExecutionFormPart[] = [];
+      let binaryFileIndex: number | undefined;
+      if (wantsBody && (bodyKind === "form" || bodyKind === "multipart")) {
+        for (const r of formRows) {
+          const name = r.name.trim();
+          if (!r.enabled || !name) continue;
+          if (r.kind === "file" && bodyKind === "multipart") {
+            if (r.files.length === 0 && r.required) {
+              setSendError(`Choose a file for "${name}".`);
+              setRequestTab("body");
+              setSending(false);
+              setStatusStep("idle");
+              return;
+            }
+            for (const f of r.files) {
+              const exactType = r.accept && !/[*,]/.test(r.accept) ? r.accept : undefined;
+              formParts.push({ name, fileIndex: files.length, fileName: f.name, contentType: f.type ? undefined : exactType });
+              files.push(f);
+            }
+          } else {
+            formParts.push({ name, value: r.value, contentType: bodyKind === "multipart" ? r.contentType : undefined });
+          }
+        }
+      } else if (wantsBody && bodyKind === "binary") {
+        if (!binaryFile) {
+          setSendError("Choose a file to send as the request body.");
+          setRequestTab("body");
+          setSending(false);
+          setStatusStep("idle");
+          return;
+        }
+        binaryFileIndex = 0;
+        files.push(binaryFile);
       }
+
+      const qValuesClean = queryValues;
 
       const wsBearer = workspaceDefaultBearer.trim();
       let auth: NonNullable<ApiExecutionRequest["auth"]> = { type: "none" };
@@ -473,6 +573,9 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
         headers: Object.keys(headers).length > 0 ? headers : undefined,
         queryParams: Object.keys(qValuesClean).length > 0 ? qValuesClean : undefined,
         body: wantsBody ? parsedBodyReq : undefined,
+        ...(wantsBody && bodyKind !== "json" ? { bodyKind } : {}),
+        ...(formParts.length ? { formParts } : {}),
+        ...(binaryFileIndex !== undefined ? { binaryFileIndex } : {}),
         auth,
       };
 
@@ -480,7 +583,7 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
       await new Promise((r) => setTimeout(r, 80));
       setStatusStep("executing");
 
-      const result = await executeTestRequestClient(reqDef, modeToUse);
+      const result = await executeTestRequestClient(reqDef, modeToUse, files);
       setExecutionResult(result);
 
       if (result.success) {
@@ -488,13 +591,26 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
         const code = result.status ?? 200;
         setStatus(code);
         setElapsedMs(result.durationMs ?? 0);
+        setResponseHeaders(result.headers ? Object.entries(result.headers) : []);
+        setStreamTruncated(Boolean(result.streamTruncated));
+        if (result.isBinary) {
+          // Image, PDF, video, zip…: preview + download; no text body and no JSON schema check.
+          setBinaryResponse(result.binaryBody ?? new Blob([], { type: result.contentType }));
+          setResponseText(null);
+          setParsedBody(null);
+          setIssues(null);
+          setSchemaState("idle");
+          setStatusStep("complete");
+          setSending(false);
+          return;
+        }
+        setBinaryResponse(null);
         const rawText =
           result.rawBody ??
           (typeof result.body === "string" ? result.body : JSON.stringify(result.body, null, 2));
         setResponseText(rawText.slice(0, 48_000));
         const pb = result.body !== undefined ? result.body : null;
         setParsedBody(pb);
-        setResponseHeaders(result.headers ? Object.entries(result.headers) : []);
         setStatusStep("complete");
         setSending(false);
         void runValidation(code, pb !== null ? pb : rawText);
@@ -505,6 +621,8 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
       setElapsedMs(null);
       setResponseText(null);
       setParsedBody(null);
+      setBinaryResponse(null);
+      setStreamTruncated(false);
       setResponseHeaders([]);
       setStatusStep("blocked");
 
@@ -529,12 +647,15 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
       endpoint,
       baseUrl,
       resolvedPath,
-      queryRows,
+      queryValues,
       headerRows,
       headersBulk,
       headersText,
       wantsBody,
       bodyText,
+      bodyKind,
+      formRows,
+      binaryFile,
       authType,
       bearer,
       workspaceDefaultBearer,
@@ -835,7 +956,20 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
                     keyPlaceholder={t("runApi.keyPlaceholder")}
                     valuePlaceholder={t("runApi.valuePlaceholder")}
                   />
+                  {Object.keys(querySpecs).some((k) => /array|object/.test(JSON.stringify(querySpecs[k]?.schema ?? querySpecs[k]?.type ?? ""))) ? (
+                    <p className={styles.muted}>
+                      Lists: type 1,2,3 or a JSON array. Objects: type JSON. They are sent the way the spec says
+                      (repeated keys, comma list or key[field]).
+                    </p>
+                  ) : null}
                 </div>
+                {cookieParams.length ? (
+                  <p className={styles.muted}>
+                    Cookie parameters ({cookieParams.join(", ")}) cannot be set here: browsers block the Cookie
+                    header and the proxy strips it. Sign in to the API in the same browser, or send the value
+                    another way the API accepts.
+                  </p>
+                ) : null}
               </div>
             ) : null}
 
@@ -883,6 +1017,55 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
 
             {requestTab === "body" && wantsBody ? (
               <div className={styles.stack}>
+                {bodyInfo && bodyInfo.mediaTypes.length > 1 ? (
+                  <label className={styles.mediaTypeRow}>
+                    <span className={styles.muted}>Body type</span>
+                    <select
+                      className={`${styles.select} ${styles.mediaTypeSelect} focusRing`}
+                      value={bodyInfo.mediaType}
+                      onChange={(e) => onChangeBodyMediaType(e.target.value)}
+                    >
+                      {bodyInfo.mediaTypes.map((mt) => (
+                        <option key={mt} value={mt}>
+                          {mt}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+
+                {bodyKind === "form" || bodyKind === "multipart" ? (
+                  <FormBodyEditor rows={formRows} onChange={setFormRows} allowFiles={bodyKind === "multipart"} />
+                ) : null}
+
+                {bodyKind === "binary" ? (
+                  <div className={styles.binaryPick}>
+                    <button
+                      type="button"
+                      className={`${btn.btn} ${btn.secondary} ${btn.sm} focusRing`}
+                      onClick={() => binaryInputRef.current?.click()}
+                    >
+                      <MaterialIcon name="upload_file" size="xs" />
+                      {binaryFile ? "Change file" : "Choose file"}
+                    </button>
+                    <span className={styles.binaryName}>
+                      {binaryFile ? `${binaryFile.name} · ${formatBytes(binaryFile.size)}` : "The file is sent as the raw request body."}
+                    </span>
+                    <input
+                      ref={binaryInputRef}
+                      type="file"
+                      hidden
+                      accept={bodyInfo && bodyInfo.mediaType !== "application/octet-stream" ? bodyInfo.mediaType : undefined}
+                      onChange={(e) => {
+                        setBinaryFile(e.target.files?.[0] ?? null);
+                        e.target.value = "";
+                      }}
+                    />
+                  </div>
+                ) : null}
+
+                {bodyKind === "json" || bodyKind === "text" ? (
+                <>
                 <div className={styles.toolbarRow}>
                   <div className={styles.btnGroup}>
                     <button
@@ -897,7 +1080,7 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
                       type="button"
                       className={`${btn.btn} ${btn.ghost} ${btn.sm} focusRing`}
                       onClick={onFormatBody}
-                      disabled={bodyValidity.state !== "valid"}
+                      disabled={!bodyIsJson || bodyValidity.state !== "valid"}
                     >
                       <MaterialIcon name="format_align_left" size="xs" />
                       {t("runApi.formatJson")}
@@ -946,11 +1129,13 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
                     setBodyNote(null);
                   }}
                   spellCheck={false}
-                  placeholder="{}"
+                  placeholder={bodyIsJson ? "{}" : bodyInfo?.mediaType ?? ""}
                   aria-label={t("runApi.body")}
                   aria-invalid={bodyIsJson && bodyValidity.state === "invalid"}
                   aria-describedby="run-body-meta"
                 />
+                </>
+                ) : null}
                 <p id="run-body-meta" className={styles.muted}>
                   {bodyIsJson && bodyValidity.state === "invalid" && bodyValidity.message
                     ? bodyValidity.message
@@ -1311,7 +1496,20 @@ export default function RunApiPanel({ t }: { t: TranslateFn }) {
                 ) : null}
               </div>
 
-              {responseTab === "body" ? (
+              {responseTab === "body" && streamTruncated ? (
+                <p className={styles.muted}>
+                  Streaming response: showing what arrived in the first 5 seconds, then the connection was closed.
+                </p>
+              ) : null}
+              {responseTab === "body" && binaryResponse ? (
+                <div className={styles.codeBox}>
+                  <BinaryResponseView
+                    blob={binaryResponse}
+                    contentType={responseHeaders.find(([k]) => k.toLowerCase() === "content-type")?.[1]}
+                    contentDisposition={responseHeaders.find(([k]) => k.toLowerCase() === "content-disposition")?.[1]}
+                  />
+                </div>
+              ) : responseTab === "body" ? (
                 <div className={styles.codeBox}>
                   {responseBodyForView ? (
                     <HighlightedCode

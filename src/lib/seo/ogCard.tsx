@@ -5,12 +5,12 @@ import { getAppLogoBase64, FIRE_LOGO_DATA_URI } from "@/lib/seo/brandLogo";
 type ImageResponseOptions = NonNullable<ConstructorParameters<typeof ImageResponse>[1]>;
 
 export const OG_SIZE = { width: 1200, height: 630 };
-export const OG_SUBLINE = "Free online OpenAPI and Swagger validator, API tester, and 0–100 quality score.";
+const OG_SUBLINE = "Free online OpenAPI and Swagger validator, API tester, and 0–100 quality score.";
 export const OG_DEFAULT_TITLE = "Parse, test, and grade any OpenAPI or Swagger spec";
 export const OG_ALT = `APIForge: ${OG_DEFAULT_TITLE}`;
 
-export const ROAST_DEFAULT_TITLE = "SHIP IT. WE'LL JUDGE IT.";
-export const ROAST_SUBLINE = "Paste an OpenAPI spec. Get a score, a roast, and a meme.";
+const ROAST_DEFAULT_TITLE = "SHIP IT. WE'LL JUDGE IT.";
+const ROAST_SUBLINE = "Paste an OpenAPI spec. Get a score, a roast, and a meme.";
 export const ROAST_ALT = "APIForge Roast My API: paste an OpenAPI spec, get a score, a roast, and a meme";
 
 const FONT = "PlusJakarta, sans-serif";
@@ -82,7 +82,7 @@ function GridLines({ color }: { color: string }) {
   );
 }
 
-export function clampOgTitle(title: string, max = MAX_TITLE): string {
+function clampOgTitle(title: string, max = MAX_TITLE): string {
   const t = title.trim().replace(/\s+/g, " ");
   if (t.length <= max) return t;
   const cut = t.slice(0, max - 1);

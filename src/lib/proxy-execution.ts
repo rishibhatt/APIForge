@@ -15,10 +15,29 @@ import {
   sanitizeRequestHeaders,
 } from "./security/header-sanitization";
 import { generateRequestId, logSsrfSecurityEvent } from "./security/ssrf-logger";
+import {
+  applyBodyContentType,
+  applyQueryParams,
+  buildRequestBody,
+  RequestBodyError,
+  type BuiltBody,
+  type RequestFile,
+} from "./http/request-body";
+import {
+  bytesToBase64,
+  isTextContentType,
+  readResponseBytes,
+  STREAM_WINDOW_MS,
+} from "./http/response-body";
 
 const MAX_URL_BYTES = 8 * 1024; // 8 KB
-const MAX_REQUEST_BODY_BYTES = 2 * 1024 * 1024; // 2 MB
+export const MAX_REQUEST_BODY_BYTES = 2 * 1024 * 1024; // 2 MB
 const MAX_RESPONSE_BYTES = 5 * 1024 * 1024; // 5 MB
+/**
+ * Binary responses travel base64-encoded (+33%) inside the JSON envelope, and Netlify Functions
+ * cap a response at 6MB. 4MB of bytes stays under that.
+ */
+const MAX_BINARY_RESPONSE_BYTES = 4 * 1024 * 1024;
 const DEFAULT_TIMEOUT_MS = 10_000;
 const MAX_TIMEOUT_MS = 30_000;
 const MAX_REDIRECT_COUNT = 3;
@@ -44,6 +63,8 @@ export function getProxySecurityOptions(): IpValidationOptions {
 export async function executeProxyRequest(
   reqDef: ApiExecutionRequest,
   clientId = "anonymous",
+  /** Files from the multipart envelope, referenced by `formParts[].fileIndex` / `binaryFileIndex`. */
+  files: RequestFile[] = [],
 ): Promise<ApiExecutionResult> {
   const requestId = generateRequestId();
   const t0 = performance.now();
@@ -80,22 +101,25 @@ export async function executeProxyRequest(
     timeoutMs = MAX_TIMEOUT_MS;
   }
 
-  // 3. Request Body Size Limit
-  let requestBodyData: string | undefined;
-  if (reqDef.body !== undefined && reqDef.body !== null) {
-    requestBodyData =
-      typeof reqDef.body === "string"
-        ? reqDef.body
-        : JSON.stringify(reqDef.body);
-
-    if (Buffer.byteLength(requestBodyData, "utf-8") > MAX_REQUEST_BODY_BYTES) {
-      return makeErrorResult(
-        "REQUEST_TOO_LARGE",
-        "Request body exceeds 2MB limit.",
-        requestId,
-      );
-    }
+  // 3. Request Body (JSON, text, urlencoded, multipart or raw file) and Size Limit
+  let built: BuiltBody;
+  try {
+    built = buildRequestBody(reqDef, files);
+  } catch (e) {
+    return makeErrorResult(
+      "INVALID_URL",
+      e instanceof RequestBodyError ? e.message : "Could not build the request body.",
+      requestId,
+    );
   }
+  if (built.size > MAX_REQUEST_BODY_BYTES) {
+    return makeErrorResult(
+      "REQUEST_TOO_LARGE",
+      `Request body exceeds the ${MAX_REQUEST_BODY_BYTES / (1024 * 1024)}MB proxy limit. Use Browser mode for larger uploads.`,
+      requestId,
+    );
+  }
+  let requestBodyData: BodyInit | undefined = built.body;
 
   // 4. Initial Destination Security Validation (SSRF guard)
   const currentUrl = reqDef.url;
@@ -167,19 +191,15 @@ export async function executeProxyRequest(
     }
   }
 
-  // Apply Query Params if provided
-  if (reqDef.queryParams) {
-    for (const [k, v] of Object.entries(reqDef.queryParams)) {
-      if (v !== undefined && v !== null && !containsControlCharacters(k) && !containsControlCharacters(v)) {
-        targetValidation.url.searchParams.set(k, v);
-      }
-    }
-  }
+  // Apply Query Params if provided (array values become repeated keys)
+  applyQueryParams(
+    targetValidation.url,
+    reqDef.queryParams,
+    (k, v) => containsControlCharacters(k) || containsControlCharacters(v),
+  );
 
-  // Set default Content-Type if body present
-  if (requestBodyData && !outboundHeaders.has("Content-Type") && !outboundHeaders.has("content-type")) {
-    outboundHeaders.set("Content-Type", "application/json");
-  }
+  // Content-Type follows the body: JSON default, urlencoded, file type, or removed for multipart (boundary).
+  applyBodyContentType(outboundHeaders, built);
 
   // 6. Manual Redirect Execution Loop
   let redirectCount = 0;
@@ -274,42 +294,21 @@ export async function executeProxyRequest(
         continue; // Loop to execute redirect
       }
 
-      // 7. Enforce Response Size Limit (Layer 10)
+      // 7. Enforce Response Size Limit (Layer 10). Binary bodies get a lower cap (base64 envelope);
+      //    SSE / NDJSON streams are read for a short window and returned as truncated.
       const durationMs = Math.round(performance.now() - t0);
-      let responseBodyBuffer: Buffer;
-
-      if (res.body) {
-        const reader = res.body.getReader();
-        const chunks: Uint8Array[] = [];
-        let totalBytes = 0;
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          if (value) {
-            totalBytes += value.byteLength;
-            if (totalBytes > MAX_RESPONSE_BYTES) {
-              await reader.cancel();
-              return makeErrorResult(
-                "RESPONSE_TOO_LARGE",
-                `Response size exceeded maximum allowed limit of ${MAX_RESPONSE_BYTES / (1024 * 1024)}MB.`,
-                requestId,
-              );
-            }
-            chunks.push(value);
-          }
-        }
-        responseBodyBuffer = Buffer.concat(chunks);
-      } else {
-        responseBodyBuffer = Buffer.from([]);
-      }
-
-      const rawText = responseBodyBuffer.toString("utf-8");
-      let parsedBody: unknown = null;
-      try {
-        parsedBody = rawText ? JSON.parse(rawText) : null;
-      } catch {
-        parsedBody = null;
+      const contentType = res.headers.get("content-type") || undefined;
+      const binary = !isTextContentType(contentType);
+      const limit = binary ? MAX_BINARY_RESPONSE_BYTES : MAX_RESPONSE_BYTES;
+      const read = await readResponseBytes(res, { maxBytes: limit, streamWindowMs: STREAM_WINDOW_MS });
+      if (read.kind === "too-large") {
+        return makeErrorResult(
+          "RESPONSE_TOO_LARGE",
+          binary
+            ? `Binary response exceeded the ${limit / (1024 * 1024)}MB proxy limit. Use Browser mode to download larger files.`
+            : `Response size exceeded maximum allowed limit of ${limit / (1024 * 1024)}MB.`,
+          requestId,
+        );
       }
 
       // Collect normalized headers
@@ -320,20 +319,33 @@ export async function executeProxyRequest(
 
       const redactedHeaders = redactSensitiveHeaders(responseHeaders);
 
-      return {
+      const base: ApiExecutionResult = {
         success: true,
         executionMode: "apiforge-proxy",
         status: res.status,
         statusText: res.statusText,
         headers: redactedHeaders,
-        body: parsedBody !== null ? parsedBody : rawText,
-        rawBody: rawText,
-        contentType: res.headers.get("content-type") || undefined,
+        contentType,
         durationMs,
-        responseSizeBytes: responseBodyBuffer.byteLength,
+        responseSizeBytes: read.bytes.byteLength,
         redirectCount,
         requestId,
+        ...(read.truncated ? { streamTruncated: true } : {}),
       };
+
+      if (binary) {
+        return { ...base, isBinary: true, bodyBase64: bytesToBase64(read.bytes) };
+      }
+
+      const rawText = Buffer.from(read.bytes).toString("utf-8");
+      let parsedBody: unknown = null;
+      try {
+        parsedBody = rawText ? JSON.parse(rawText) : null;
+      } catch {
+        parsedBody = null;
+      }
+
+      return { ...base, body: parsedBody !== null ? parsedBody : rawText, rawBody: rawText };
     } catch (err: unknown) {
       clearTimeout(timer);
       if (err instanceof Error && err.name === "AbortError") {

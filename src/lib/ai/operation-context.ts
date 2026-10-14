@@ -49,7 +49,7 @@ export function operationTypeBase(ep: Pick<Endpoint, "method" | "path">): string
   return `${method}${segs.join("")}` || method;
 }
 
-export function schemaLabel(schema: unknown, depth = 0): string {
+function schemaLabel(schema: unknown, depth = 0): string {
   if (!isObj(schema) || depth > 4) return "unknown";
   if (Array.isArray(schema.enum) && schema.enum.length > 0) {
     return schema.enum
@@ -85,7 +85,7 @@ const DROP_KEYS = new Set(["example", "examples", "externalDocs", "xml", "x-code
  * Compact schema JSON that KEEPS names, types, required, enums and short descriptions (needed for
  * JSDoc), drops examples/vendor keys, guards against cycles and hard-caps the size.
  */
-export function compactSchemaJson(value: unknown, maxChars: number): string {
+function compactSchemaJson(value: unknown, maxChars: number): string {
   const seen = new WeakSet<object>();
   const prune = (v: unknown, depth: number): unknown => {
     if (v == null || typeof v === "number" || typeof v === "boolean") return v;
@@ -133,7 +133,7 @@ export interface ParamInfo {
   description: string;
 }
 
-export function collectParams(ep: Endpoint): ParamInfo[] {
+function collectParams(ep: Endpoint): ParamInfo[] {
   if (!Array.isArray(ep.parameters)) return [];
   const out: ParamInfo[] = [];
   for (const p of ep.parameters) {
@@ -158,7 +158,7 @@ export interface BodyInfo {
   required: boolean;
 }
 
-export function collectRequestBodies(ep: Endpoint): BodyInfo[] {
+function collectRequestBodies(ep: Endpoint): BodyInfo[] {
   const out: BodyInfo[] = [];
   const rb = ep.requestBody;
   if (isObj(rb)) {
@@ -194,7 +194,7 @@ export interface ResponseInfo {
   schemas: Array<{ contentType: string; schema: unknown }>;
 }
 
-export function collectResponses(ep: Endpoint): ResponseInfo[] {
+function collectResponses(ep: Endpoint): ResponseInfo[] {
   if (!isObj(ep.responses)) return [];
   const out: ResponseInfo[] = [];
   for (const [status, r] of Object.entries(ep.responses)) {

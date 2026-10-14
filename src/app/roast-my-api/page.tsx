@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import RoastMyApiPageClient from "./RoastMyApiPageClient";
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://apiforge.info";
+import { SITE_URL } from "@/lib/seo/metadata";
 
 export const metadata: Metadata = {
   title: "Roast My API: Free OpenAPI and Swagger Spec Review",

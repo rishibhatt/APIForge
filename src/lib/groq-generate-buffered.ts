@@ -1,5 +1,5 @@
 import { ai } from "./ai/service";
-import { groqErrorMessage } from "./groq-errors";
+import { getAIErrorMessage } from "./ai/errors";
 import type { GroqTokenUsage } from "./groq-token-usage";
 
 export type BufferedGroqParams = {
@@ -38,6 +38,6 @@ export async function generateGroqTextBuffered(
       usage: res.usage,
     };
   } catch (err) {
-    throw new Error(groqErrorMessage(err));
+    throw new Error(getAIErrorMessage(err));
   }
 }

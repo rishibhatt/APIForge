@@ -36,7 +36,7 @@ type RoastTextInput = Pick<
 >;
 
 /** Stable per-spec seed: same API → same roast; different APIs → different picks. */
-export function roastSeed(summary: RoastTextInput, title = ""): number {
+function roastSeed(summary: RoastTextInput, title = ""): number {
   const top = summary.topPatterns[0];
   return hashSeed(
     [

@@ -6,6 +6,11 @@ const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 export interface SafeFetchOptions {
   security: IpValidationOptions;
   headers?: Record<string, string>;
+  /**
+   * Credentials (Authorization, API keys) sent only while the request stays on the origin of `url`.
+   * A redirect to another origin drops them so a hostile server cannot bounce them elsewhere.
+   */
+  credentialHeaders?: Record<string, string>;
   timeoutMs?: number;
   maxBytes?: number;
   maxRedirects?: number;
@@ -43,6 +48,12 @@ export async function safeFetchText(
   const maxRedirects = options.maxRedirects ?? 5;
 
   let current = url;
+  let credentialOrigin: string | null = null;
+  try {
+    credentialOrigin = new URL(url).origin;
+  } catch {
+    /* the guard below rejects it */
+  }
   for (let hop = 0; hop <= maxRedirects; hop++) {
     const check = await resolveAndValidateDestination(current, options.security);
     if (!check.allowed || !check.url) {
@@ -58,7 +69,10 @@ export async function safeFetchText(
       try {
         res = await fetch(check.url.toString(), {
           method: "GET",
-          headers: options.headers,
+          headers:
+            options.credentialHeaders && check.url.origin === credentialOrigin
+              ? { ...options.headers, ...options.credentialHeaders }
+              : options.headers,
           redirect: "manual",
           signal: controller.signal,
         });
