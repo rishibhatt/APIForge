@@ -5,6 +5,9 @@ export const ROAST_MEME_IDS = [
   "confused",
   "classic",
   "who_are_you",
+  "mai_aa_jau",
+  "batman",
+  "singham",
 ] as const;
 
 export type RoastMemeId = (typeof ROAST_MEME_IDS)[number];
@@ -16,11 +19,22 @@ const MEME_ASSETS: Record<RoastMemeId, string> = {
   confused: "/memes/confused-v1.mp4",
   classic: "/memes/this-is-classic-v1.mp4",
   who_are_you: "/memes/wait-a-minute-who-are-you-v1.mp4",
+  mai_aa_jau: "/memes/mai-aajau-kya.mp4",
+  batman: "/memes/man-turning-batman.mp4",
+  singham: "/memes/singham-slapping-man.mp4",
 };
 
 export interface RoastMemeStyle {
   name: string;
-  mood: "aggressive" | "confused" | "disgusted" | "celebratory" | "ironic" | "suspicious";
+  mood:
+    | "aggressive"
+    | "confused"
+    | "disgusted"
+    | "celebratory"
+    | "ironic"
+    | "suspicious"
+    | "threatening"
+    | "dramatic";
   tone: string;
   style: string;
 }
@@ -61,6 +75,24 @@ const MEME_STYLES: Record<RoastMemeId, RoastMemeStyle> = {
     mood: "suspicious",
     tone: "suspicious, investigative, absurd",
     style: "question the existence, identity, documentation or purpose of the endpoint",
+  },
+  mai_aa_jau: {
+    name: "Main Aa Jaun Kya?",
+    mood: "threatening",
+    tone: "calm, menacing, last-warning host energy",
+    style: "warn the team that APIForge is one more bad decision away from stepping in",
+  },
+  batman: {
+    name: "Batman Turn",
+    mood: "dramatic",
+    tone: "brooding, cinematic, origin-story",
+    style: "turn a painful API moment into the developer's dark origin story",
+  },
+  singham: {
+    name: "Singham Slap",
+    mood: "aggressive",
+    tone: "gleeful, merciless, enjoying it too much",
+    style: "deliver justice to API crimes with a big smile, one slap per finding",
   },
 };
 
@@ -162,6 +194,48 @@ export const ROAST_MEMES: RoastMemeConfig[] = [
       "When the developer actually read the REST API design specification...",
       "Inspecting schemas and finding zero naming flaws be like...",
       "Rare footage of a pristine, enterprise-ready OpenAPI 3.1 document...",
+    ],
+  },
+  {
+    id: "mai_aa_jau",
+    src: MEME_ASSETS.mai_aa_jau,
+    ...MEME_STYLES.mai_aa_jau,
+    tags: ["warning", "repeat-offender", "breaking-change", "ignored-review", "last-chance"],
+    scoreRange: [0, 100],
+    captionTemplates: [
+      "APIForge watching you return 200 OK with error: true: Main aa jaun kya?",
+      "When the PR adds /getUserDataNew right next to /getUserData: Main aa jaun kya?",
+      "Team says the API docs are 'self-explanatory'. Main aa jaun kya?",
+      "Third hotfix on the same endpoint this week. Main aa jaun kya?",
+      "Shipping a breaking change without bumping the version: Main aa jaun kya?",
+    ],
+  },
+  {
+    id: "batman",
+    src: MEME_ASSETS.batman,
+    ...MEME_STYLES.batman,
+    tags: ["origin-story", "transformation", "auto-fix", "redemption", "dark-turn"],
+    scoreRange: [0, 100],
+    captionTemplates: [
+      "Junior dev before the first API review vs. after the 40th comment...",
+      "Me after the frontend team blamed my API for the third time this sprint...",
+      "The backend dev who documented every endpoint after one 3 AM incident...",
+      "When you decide the 200 OK with error: true ends tonight...",
+      "Mild-mannered developer by day. Schema enforcer by night.",
+    ],
+  },
+  {
+    id: "singham",
+    src: MEME_ASSETS.singham,
+    ...MEME_STYLES.singham,
+    tags: ["many-issues", "high-severity", "security", "justice", "repeat-offender"],
+    scoreRange: [0, 100],
+    captionTemplates: [
+      "APIForge serving justice to every undocumented endpoint, one slap at a time...",
+      "When the same naming bug shows up in 12 endpoints and you get to fix all of them...",
+      "Code reviewer smiling through every slap on a GET with a request body...",
+      "APIForge vs. 500 errors that return an HTML page, round 7...",
+      "When the endpoint has no auth and you're the one doing the security review...",
     ],
   },
 ];

@@ -216,6 +216,27 @@ export function generateMemeCaption(
           : [`Looking at ${subject}: wait a minute… who are you?`, `Finding ${subject} in a ${score}/100 spec: who are you?`]),
       );
       break;
+    case "mai_aa_jau":
+      rawCandidates.push(
+        ...(clean
+          ? [`${score}/100. Nothing to step in on. Yet.`, `${totalEndpoints} clean endpoints. APIForge still standing by: main aa jaun kya?`]
+          : [`${capitalize(subject)} in production. Main aa jaun kya?`, `APIForge watching ${subject} from the review panel: main aa jaun kya?`, `${totalFindings} findings and the team says it's fine. Main aa jaun kya?`]),
+      );
+      break;
+    case "batman":
+      rawCandidates.push(
+        ...(clean
+          ? [`A ${score}/100 spec. Gotham is safe tonight.`, `${totalEndpoints} endpoints, zero findings. The bat signal stays off.`]
+          : [`The developer after reading about ${subject}.`, `Me opening the spec vs. me after ${subject}.`, `${totalFindings} findings later, the code reviewer has a new identity.`]),
+      );
+      break;
+    case "singham":
+      rawCandidates.push(
+        ...(clean
+          ? [`APIForge rolling up its sleeves for a ${score}/100 spec. Nobody to slap.`, `${totalEndpoints} clean endpoints. Singham goes home early today.`]
+          : [`APIForge handling ${subject}, one slap per endpoint.`, `${totalFindings} findings. APIForge is enjoying this a little too much.`, `Code review for ${subject}, Singham edition.`]),
+      );
+      break;
   }
 
   // Generic per-meme lines only when the switch produced nothing.

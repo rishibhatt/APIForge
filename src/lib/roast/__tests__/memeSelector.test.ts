@@ -42,7 +42,7 @@ function createMockSummary(score: number, category = "naming", personality = "CO
 }
 
 describe("APIForge Meme Selection Engine — Master Specification Audit", () => {
-  it("Score Independence: All 6 memes can be selected for any API score", () => {
+  it("Score Independence: All memes can be selected for any API score", () => {
     const scores = [5, 25, 50, 75, 95];
 
     for (const score of scores) {
@@ -56,8 +56,8 @@ describe("APIForge Meme Selection Engine — Master Specification Audit", () => 
 
       assert.strictEqual(
         selectedMemes.size,
-        6,
-        `Score ${score} failed to make all 6 memes eligible! Found: ${Array.from(selectedMemes).join(", ")}`,
+        ROAST_MEME_IDS.length,
+        `Score ${score} failed to make all ${ROAST_MEME_IDS.length} memes eligible! Found: ${Array.from(selectedMemes).join(", ")}`,
       );
     }
   });
@@ -81,7 +81,7 @@ describe("APIForge Meme Selection Engine — Master Specification Audit", () => 
 
       assert.strictEqual(
         selectedMemes.size,
-        6,
+        ROAST_MEME_IDS.length,
         `Personality ${p} excluded memes! Found: ${Array.from(selectedMemes).join(", ")}`,
       );
     }
@@ -103,7 +103,7 @@ describe("APIForge Meme Selection Engine — Master Specification Audit", () => 
     }
   });
 
-  it("Fair Distribution: Long-term distribution across 10,000 iterations is balanced (~16.7% each)", () => {
+  it("Fair Distribution: Long-term distribution across 10,000 iterations is balanced (~11.1% each)", () => {
     const counts: Record<RoastMemeId, number> = {
       perfect: 0,
       slapping: 0,
@@ -111,6 +111,9 @@ describe("APIForge Meme Selection Engine — Master Specification Audit", () => 
       confused: 0,
       classic: 0,
       who_are_you: 0,
+      mai_aa_jau: 0,
+      batman: 0,
+      singham: 0,
     };
 
     const TOTAL_RUNS = 10000;
@@ -122,8 +125,8 @@ describe("APIForge Meme Selection Engine — Master Specification Audit", () => 
     for (const memeId of ROAST_MEME_IDS) {
       const percentage = (counts[memeId] / TOTAL_RUNS) * 100;
       assert.ok(
-        percentage >= 12 && percentage <= 22,
-        `Meme ${memeId} distribution was ${percentage.toFixed(2)}%, outside expected 12-22% fair range!`,
+        percentage >= 8 && percentage <= 15,
+        `Meme ${memeId} distribution was ${percentage.toFixed(2)}%, outside expected 8-15% fair range!`,
       );
     }
   });
