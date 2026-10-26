@@ -1,0 +1,372 @@
+{
+  "slug": "openapi-to-typescript",
+  "title": "How to Generate TypeScript Types from an OpenAPI Spec",
+  "description": "Generate TypeScript types from an OpenAPI spec with openapi-typescript, orval or openapi-generator, plus a worked example and the pitfalls generated types hide.",
+  "excerpt": "One command turns an OpenAPI file into types. This guide shows which generator to use, real output from a sample spec, and the six places generated types go wrong.",
+  "category": "openapi",
+  "cluster": "openapi",
+  "primaryKeyword": "openapi to typescript",
+  "keywords": [
+    "generate typescript types from openapi",
+    "openapi typescript generator",
+    "swagger to typescript",
+    "openapi-typescript vs orval"
+  ],
+  "tags": [
+    "OpenAPI",
+    "TypeScript",
+    "Code Generation",
+    "Frontend"
+  ],
+  "author": "rishab",
+  "publishedAt": "2026-10-26",
+  "updatedAt": "2026-10-26",
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "To generate TypeScript types from an OpenAPI spec, run npx openapi-typescript openapi.yaml -o src/api/schema.d.ts. The command reads an OpenAPI 3.0 or 3.1 document, from a local file or a URL, in JSON or YAML, and writes a single .d.ts file with a type for every schema, path and operation. It adds no runtime code to your bundle. If you also want generated fetch functions or React Query hooks, use orval. If your team already runs openapi-generator for Java or Go clients, its typescript-fetch generator fits that pipeline. If you need types for one or two endpoints right now, paste the spec URL into APIForge and generate them in the browser. Whichever tool you choose, read the pitfalls section before you trust the output: nullable fields, discriminators and readOnly properties are where generated types most often disagree with what the API returns."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Why generate types instead of writing them",
+      "id": "why-generate"
+    },
+    {
+      "type": "paragraph",
+      "text": "A hand-written interface is a copy of the contract, and copies drift. The backend team adds a cancelled status, renames total to totalAmount, or makes note nullable, and your interface keeps compiling against the old shape. The bug shows up at runtime, usually as undefined in a place TypeScript promised a string."
+    },
+    {
+      "type": "paragraph",
+      "text": "Generated types move that failure to compile time. When the spec changes, you regenerate, and every component that reads the renamed field fails tsc with a file and line number. Hand-writing still makes sense for a two-endpoint integration with a third party that publishes no spec. Past that, the generator is faster and more accurate than a person copying YAML into interfaces."
+    },
+    {
+      "type": "paragraph",
+      "text": "Generation is only as good as the spec. A response documented as type: object with no properties produces a type that tells you nothing. If you are unsure whether your spec is complete, run it through the [OpenAPI validator](/openapi-validator) first, and see the [response schema best practices](/guides/openapi-response-schema-best-practices) for what a useful response schema contains."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "OpenAPI TypeScript generators compared",
+      "id": "tools"
+    },
+    {
+      "type": "paragraph",
+      "text": "Four options cover most teams. They differ mainly in how much code they produce: types only, types plus a client, or a full SDK."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Tool",
+        "Output",
+        "Runtime code",
+        "Spec versions",
+        "Best for"
+      ],
+      "rows": [
+        [
+          "openapi-typescript",
+          "One .d.ts file with paths, components and operations",
+          "None (pair with openapi-fetch if you want a client)",
+          "OpenAPI 3.0 and 3.1",
+          "Teams that want types and keep their own fetch layer"
+        ],
+        [
+          "orval",
+          "Models plus a client per operation (fetch, axios, React Query, SWR, Vue Query, Angular, Zod and more)",
+          "Yes, one function or hook per operation",
+          "OpenAPI 3.x and Swagger 2.0",
+          "React or Vue apps that want generated hooks"
+        ],
+        [
+          "openapi-generator (typescript-fetch)",
+          "Model files plus API classes in many files",
+          "Yes, a full SDK with runtime helpers",
+          "Swagger 2.0, OpenAPI 3.0, 3.1 support still marked beta",
+          "Organisations already generating SDKs in several languages"
+        ],
+        [
+          "APIForge",
+          "Interfaces, request and response types, and fetch helpers for one endpoint or a whole collection",
+          "Optional fetch helpers in the same file",
+          "OpenAPI 3.0, 3.1 and Swagger 2.0",
+          "Getting types for a few endpoints without installing anything"
+        ]
+      ],
+      "caption": "Versions checked: openapi-typescript 7.13.0, orval 8.45.0, @openapitools/openapi-generator-cli 2.42.0."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "openapi-typescript",
+      "id": "openapi-typescript"
+    },
+    {
+      "type": "paragraph",
+      "text": "openapi-typescript is the smallest step from spec to types. It needs Node and TypeScript 5, and nothing ships to the browser because the output is declarations only. Useful flags: --root-types exports each schema as a top-level type such as SchemaOrder (add --root-types-no-schema-prefix to get plain Order), --enum emits TypeScript enums instead of unions, --immutable marks every property readonly, and --check fails when the file on disk is stale. Version 7 rejects Swagger 2.0 files with \"Unsupported Swagger version: 2.x\", so convert those to OpenAPI 3 first. The [Swagger vs OpenAPI guide](/guides/swagger-vs-openapi) explains the differences between the two formats."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "orval",
+      "id": "orval"
+    },
+    {
+      "type": "paragraph",
+      "text": "orval generates models and a callable client from a config file. Set client to fetch for plain async functions, or to react-query, swr or vue-query for hooks. It also accepts Swagger 2.0 input directly, which openapi-typescript does not."
+    },
+    {
+      "type": "code",
+      "language": "typescript",
+      "filename": "orval.config.ts",
+      "code": "import { defineConfig } from \"orval\";\n\nexport default defineConfig({\n  orders: {\n    input: \"./openapi.yaml\",\n    output: {\n      target: \"./src/api/orders.ts\",\n      client: \"fetch\",\n    },\n  },\n});"
+    },
+    {
+      "type": "paragraph",
+      "text": "Run npx orval and it writes the target file. Running it against the example spec later in this guide produced enums as a const object plus a type, which gives you both a union type and a runtime list of values:"
+    },
+    {
+      "type": "code",
+      "language": "typescript",
+      "filename": "src/api/orders.ts (excerpt)",
+      "code": "export type OrderStatus = typeof OrderStatus[keyof typeof OrderStatus];\n\nexport const OrderStatus = {\n  pending: 'pending',\n  paid: 'paid',\n  shipped: 'shipped',\n  cancelled: 'cancelled',\n} as const;\n\nexport interface Order {\n  readonly id: string;\n  status: OrderStatus;\n  total: number;\n  /** @nullable */\n  note?: string | null;\n  createdAt: string;\n  payment: CardPayment | BankPayment;\n  metadata?: OrderMetadata;\n}\n\nexport const getOrder = async (orderId: string, options?: RequestInit): Promise<getOrderResponse> => {\n  // fetch call, status handling and JSON parsing generated here\n};"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "openapi-typescript vs orval",
+      "id": "openapi-typescript-vs-orval"
+    },
+    {
+      "type": "paragraph",
+      "text": "Pick openapi-typescript when you already have an HTTP layer (a fetch wrapper with auth and retries, TanStack Query written by hand, tRPC alongside REST) and want the compiler to check it against the spec. Pair it with openapi-fetch and the URL, path params, query params and response body are all checked against the paths type. Pick orval when you would otherwise write one hook per endpoint by hand. It writes those hooks for you, and with --mock it can also generate MSW handlers for tests. The trade-off is ownership. orval's generated client is code you ship and debug, while openapi-typescript's output disappears at build time."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "openapi-generator typescript-fetch",
+      "id": "openapi-generator"
+    },
+    {
+      "type": "paragraph",
+      "text": "The npm package @openapitools/openapi-generator-cli is a wrapper that downloads the Java generator, so it needs a Java runtime on the machine and in CI. The command is npx @openapitools/openapi-generator-cli generate -i openapi.yaml -g typescript-fetch -o src/generated. It produces a models folder, an apis folder and a runtime.ts. That is a lot of files for a frontend that only needs types, so reach for it when the same pipeline already generates Kotlin, Swift or Go clients from one spec."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "APIForge in the browser",
+      "id": "apiforge"
+    },
+    {
+      "type": "paragraph",
+      "text": "In the [APIForge workspace](/#parse-api), paste a spec URL, a Swagger UI page or a JSON file, pick an endpoint, and open the TypeScript tab. Switch the scope to Collection to cover every operation at once. The output is an interface per schema, a Request type holding pathParams, queryParams, headers and body, a Response type for the 2xx bodies, an ErrorResponse type when error bodies are documented, and a small fetch helper per operation. Enums come out as string-literal unions and spec descriptions become JSDoc comments. An AI model writes the types from the resolved spec, so review them before you commit them. For a long-lived project, wire up openapi-typescript or orval as well so regeneration is repeatable. If your spec lives behind Swagger UI, [extract the OpenAPI JSON from Swagger UI](/guides/get-openapi-json-from-swagger-ui) first."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Worked example: from schema to types",
+      "id": "worked-example"
+    },
+    {
+      "type": "paragraph",
+      "text": "This spec has one operation and the schema features that cause most surprises: a readOnly id, an enum, a nullable field written the 3.1 way, a date-time, a discriminated oneOf and a map."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "filename": "openapi.yaml",
+      "code": "openapi: 3.1.0\ninfo:\n  title: Orders API\n  version: 1.0.0\npaths:\n  /orders/{orderId}:\n    get:\n      operationId: getOrder\n      parameters:\n        - name: orderId\n          in: path\n          required: true\n          schema:\n            type: string\n            format: uuid\n      responses:\n        \"200\":\n          description: The order\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/Order\"\n        \"404\":\n          description: Not found\ncomponents:\n  schemas:\n    Order:\n      type: object\n      required: [id, status, total, createdAt, payment]\n      properties:\n        id:\n          type: string\n          format: uuid\n          readOnly: true\n        status:\n          type: string\n          enum: [pending, paid, shipped, cancelled]\n        total:\n          type: number\n        note:\n          type: [string, \"null\"]\n        createdAt:\n          type: string\n          format: date-time\n        payment:\n          oneOf:\n            - $ref: \"#/components/schemas/CardPayment\"\n            - $ref: \"#/components/schemas/BankPayment\"\n          discriminator:\n            propertyName: method\n            mapping:\n              card: \"#/components/schemas/CardPayment\"\n              bank: \"#/components/schemas/BankPayment\"\n        metadata:\n          type: object\n          additionalProperties:\n            type: string\n    CardPayment:\n      type: object\n      required: [method, last4]\n      properties:\n        method:\n          type: string\n          const: card\n        last4:\n          type: string\n    BankPayment:\n      type: object\n      required: [method, iban]\n      properties:\n        method:\n          type: string\n          const: bank\n        iban:\n          type: string"
+    },
+    {
+      "type": "paragraph",
+      "text": "Running npx openapi-typescript openapi.yaml -o src/api/schema.d.ts with version 7.13.0 produced the following. The paths interface and the empty never entries are trimmed."
+    },
+    {
+      "type": "code",
+      "language": "typescript",
+      "filename": "src/api/schema.d.ts (trimmed)",
+      "code": "export interface components {\n    schemas: {\n        Order: {\n            /** Format: uuid */\n            readonly id: string;\n            /** @enum {string} */\n            status: \"pending\" | \"paid\" | \"shipped\" | \"cancelled\";\n            total: number;\n            note?: string | null;\n            /** Format: date-time */\n            createdAt: string;\n            payment: components[\"schemas\"][\"CardPayment\"] | components[\"schemas\"][\"BankPayment\"];\n            metadata?: {\n                [key: string]: string;\n            };\n        };\n        CardPayment: {\n            /**\n             * @description discriminator enum property added by openapi-typescript\n             * @enum {string}\n             */\n            method: \"card\";\n            last4: string;\n        };\n        BankPayment: {\n            /** ... */\n            method: \"bank\";\n            iban: string;\n        };\n    };\n}\nexport interface operations {\n    getOrder: {\n        parameters: {\n            path: {\n                orderId: string;\n            };\n            /* query, header, cookie: never */\n        };\n        responses: {\n            200: {\n                content: {\n                    \"application/json\": components[\"schemas\"][\"Order\"];\n                };\n            };\n            404: {\n                content?: never;\n            };\n        };\n    };\n}"
+    },
+    {
+      "type": "paragraph",
+      "text": "Each line traces back to the spec. id is readonly, status is a union of four strings, note is optional because it is missing from required and accepts null because of the type array, createdAt is a plain string with the format kept as a comment, and metadata became an index signature. To use the types, import them directly or let openapi-fetch infer everything from the path:"
+    },
+    {
+      "type": "code",
+      "language": "typescript",
+      "filename": "src/api/orders.ts",
+      "code": "import createClient from \"openapi-fetch\";\nimport type { paths, components } from \"./schema\";\n\nexport type Order = components[\"schemas\"][\"Order\"];\n\nconst api = createClient<paths>({ baseUrl: \"https://api.example.com\" });\n\nexport async function loadOrder(orderId: string): Promise<Order> {\n  const { data, response } = await api.GET(\"/orders/{orderId}\", {\n    params: { path: { orderId } },\n  });\n  if (!response.ok || !data) {\n    throw new Error(`GET /orders/${orderId} failed with ${response.status}`);\n  }\n  return data;\n}\n\nfunction paymentLabel(payment: Order[\"payment\"]): string {\n  // The discriminator narrows the union: last4 exists only on card payments.\n  return payment.method === \"card\" ? `Card ending ${payment.last4}` : `Bank ${payment.iban}`;\n}",
+      "caption": "Type-checks with tsc --strict against openapi-fetch 0.17.0."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Pitfalls that make generated types lie",
+      "id": "pitfalls"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "nullable in 3.0 vs type arrays in 3.1",
+      "id": "nullable"
+    },
+    {
+      "type": "paragraph",
+      "text": "OpenAPI 3.0 marks a nullable field with nullable: true. OpenAPI 3.1 aligned with JSON Schema 2020-12 and dropped that keyword: you list \"null\" in a type array instead. openapi-typescript 7.13 maps both forms to string | null, and in our test it even honoured nullable: true inside a 3.1 file. Do not rely on that. A JSON Schema validator treats nullable as an unknown keyword and ignores it, so your response validation and your types will disagree. When you bump the openapi field from 3.0.3 to 3.1.0, convert every nullable: true in the same commit."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "code": "# OpenAPI 3.0\nnote:\n  type: string\n  nullable: true\n\n# OpenAPI 3.1 (JSON Schema 2020-12)\nnote:\n  type: [string, \"null\"]\n\n# Both generate:\n#   note?: string | null;"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "oneOf with a discriminator but no mapping",
+      "id": "discriminator"
+    },
+    {
+      "type": "paragraph",
+      "text": "This one surprised us while writing the example. With a discriminator that has only propertyName, openapi-typescript 7.13 replaced the const values with the schema names. CardPayment.method became the literal \"CardPayment\", although the schema says const: card. Code that checks payment.method === \"card\" then fails to compile, or worse, compiles against a cast and never matches at runtime. Adding an explicit mapping fixed it."
+    },
+    {
+      "type": "badExample",
+      "title": "Discriminator without mapping",
+      "language": "yaml",
+      "code": "payment:\n  oneOf:\n    - $ref: \"#/components/schemas/CardPayment\"\n    - $ref: \"#/components/schemas/BankPayment\"\n  discriminator:\n    propertyName: method\n\n# openapi-typescript 7.13 output for CardPayment:\n#   method: \"CardPayment\";\n# The server sends \"card\", so payment.method === \"card\" never matches.",
+      "explanation": "Without mapping, OpenAPI's rule is that the discriminator value equals the schema name, so the generator is following the spec. The mismatch comes from the server sending \"card\"."
+    },
+    {
+      "type": "goodExample",
+      "title": "Discriminator with explicit mapping",
+      "language": "yaml",
+      "code": "payment:\n  oneOf:\n    - $ref: \"#/components/schemas/CardPayment\"\n    - $ref: \"#/components/schemas/BankPayment\"\n  discriminator:\n    propertyName: method\n    mapping:\n      card: \"#/components/schemas/CardPayment\"\n      bank: \"#/components/schemas/BankPayment\"\n\n# Output for CardPayment is now:\n#   method: \"card\";",
+      "explanation": "The mapping states the wire values, and the generated union narrows correctly on payment.method."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Enums as unions or TypeScript enums",
+      "id": "enums"
+    },
+    {
+      "type": "paragraph",
+      "text": "By default openapi-typescript emits \"pending\" | \"paid\" | \"shipped\" | \"cancelled\", a string-literal union that costs nothing at runtime. The --enum flag switches to a TypeScript enum, which does emit JavaScript and is not supported by the type-stripping mode Node uses to run .ts files directly. Unions are the safer default. If you need the list of values at runtime for a select menu, use --enum-values, or orval's const-object output shown earlier."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "additionalProperties and empty objects",
+      "id": "additional-properties"
+    },
+    {
+      "type": "paragraph",
+      "text": "In JSON Schema an object allows extra properties unless additionalProperties is false, but the generated type lists only the declared properties. For maps, declare additionalProperties with a schema, as metadata does above, and you get a typed index signature; additionalProperties: true gives [key: string]: unknown. An object schema with no properties at all becomes Record<string, never>, which rejects every key. If your spec has many of those placeholders, pass --empty-objects-unknown, then fix the spec so they describe real fields."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "readOnly and writeOnly",
+      "id": "read-write"
+    },
+    {
+      "type": "paragraph",
+      "text": "readOnly: true on id became readonly id: string, which stops you reassigning the field. It still requires id when you build a create request from the same type. writeOnly is weaker: in our test a writeOnly password came out as a plain required password: string, so the type claims responses contain it. Fix it in the spec by splitting the shape into separate OrderCreate and Order schemas. Without that, use Omit<Order, \"id\"> for request bodies, or try --read-write-markers, which wraps those properties in $Read<T> and $Write<T> marker types."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "date-time is a string, int64 is a number",
+      "id": "formats"
+    },
+    {
+      "type": "paragraph",
+      "text": "JSON has no date type, so format: date-time arrives as a string and the generated type says string. Parse it at the boundary with new Date() or Temporal and keep the conversion in one place. format: int64 maps to number, which loses precision above 2^53 - 1. If your IDs are 64-bit integers, ask the backend to send them as strings. format: uuid and format: email are also plain strings; the format survives only as a comment."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Keep generated types in sync in CI",
+      "id": "ci"
+    },
+    {
+      "type": "paragraph",
+      "text": "Commit the generated file so reviewers see the type diff next to the spec diff, then check it in CI. The --check flag regenerates in memory, compares with the file on disk, and exits with code 1 and \"Generated types are not up-to-date!\" when they differ."
+    },
+    {
+      "type": "code",
+      "language": "json",
+      "filename": "package.json",
+      "code": "{\n  \"scripts\": {\n    \"api:types\": \"openapi-typescript openapi.yaml -o src/api/schema.d.ts\",\n    \"api:types:check\": \"openapi-typescript openapi.yaml -o src/api/schema.d.ts --check\"\n  }\n}"
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "filename": ".github/workflows/api-types.yml",
+      "code": "name: api-types\non:\n  pull_request:\n    paths: [\"openapi.yaml\", \"src/api/schema.d.ts\"]\njobs:\n  types-in-sync:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-node@v4\n        with:\n          node-version: 22\n      - run: npm ci\n      - run: npx openapi-typescript openapi.yaml -o src/api/schema.d.ts --check\n      - run: npx tsc --noEmit",
+      "caption": "The tsc step catches code that no longer matches the regenerated types."
+    },
+    {
+      "type": "paragraph",
+      "text": "If the spec lives in a backend repository, point the input at its raw URL and run the job on a schedule as well as on pull requests, so a backend change that lands without a frontend update shows up as a red build. orval has no --check flag; run npx orval and then git diff --exit-code on the output folder to get the same result. Types catch shape changes at compile time, and the server can still return something the spec never promised. To catch that drift, [validate API responses against your OpenAPI schema](/guides/validate-api-response-against-openapi-schema) in your tests."
+    },
+    {
+      "type": "cta",
+      "title": "Generate TypeScript types from your spec",
+      "description": "Paste an OpenAPI or Swagger URL, pick an endpoint or the whole collection, and get interfaces, request and response types, and fetch helpers in the browser.",
+      "buttonText": "Open the workspace",
+      "href": "/#parse-api"
+    },
+    {
+      "type": "relatedContent",
+      "slugs": [
+        "validate-api-response-against-openapi-schema",
+        "openapi-response-schema-best-practices",
+        "swagger-vs-openapi",
+        "get-openapi-json-from-swagger-ui"
+      ]
+    },
+    {
+      "type": "externalReference",
+      "title": "openapi-typescript CLI documentation",
+      "url": "https://openapi-ts.dev/cli",
+      "source": "openapi-ts.dev"
+    },
+    {
+      "type": "externalReference",
+      "title": "orval documentation",
+      "url": "https://orval.dev",
+      "source": "orval.dev"
+    },
+    {
+      "type": "externalReference",
+      "title": "typescript-fetch generator options",
+      "url": "https://openapi-generator.tech/docs/generators/typescript-fetch",
+      "source": "OpenAPI Generator"
+    },
+    {
+      "type": "externalReference",
+      "title": "OpenAPI Specification 3.1.0, Discriminator Object",
+      "url": "https://spec.openapis.org/oas/v3.1.0#discriminator-object",
+      "source": "OpenAPI Initiative"
+    }
+  ],
+  "faqs": [
+    {
+      "question": "What is the best OpenAPI to TypeScript generator?",
+      "answer": "For types alone, openapi-typescript: one .d.ts file, no runtime code, and a --check flag for CI. For generated fetch functions or React Query hooks, orval. For a multi-language SDK pipeline, openapi-generator's typescript-fetch generator."
+    },
+    {
+      "question": "Can I generate TypeScript types from a Swagger 2.0 file?",
+      "answer": "Yes. orval and openapi-generator read Swagger 2.0 directly, and APIForge parses it in the browser. openapi-typescript 7 rejects 2.0 files, so convert them to OpenAPI 3 first or use one of the other tools."
+    },
+    {
+      "question": "Should generated types be committed to git?",
+      "answer": "Usually yes. Reviewers see type changes next to spec changes, builds do not depend on a generator, and openapi-typescript --check in CI fails the build when someone edits the spec without regenerating."
+    },
+    {
+      "question": "Why is my date-time field typed as string?",
+      "answer": "JSON has no date type, so the API sends an ISO 8601 string and the type reflects that. Convert it to a Date where the data enters your app rather than changing the generated type."
+    }
+  ]
+}

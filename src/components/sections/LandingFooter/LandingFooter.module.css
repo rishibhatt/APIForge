@@ -117,7 +117,6 @@
 
 .link:focus-visible,
 .baseLink:focus-visible,
-.author:focus-visible,
 .oss:focus-visible,
 .brand:focus-visible {
   outline: 2px solid var(--color-primary);
@@ -176,10 +175,6 @@
 .author strong {
   font-weight: 600;
   color: var(--color-on-surface);
-}
-
-.author:hover strong {
-  color: var(--color-text-accent);
 }
 
 .avatar {

@@ -6,13 +6,13 @@ import type {
 } from "@/types/api";
 import { getScopeLabel } from "@/lib/endpoint-groups";
 import {
-  buildOperationContract,
-  describeContext,
+  buildCrispOperation,
   operationForModel,
   operationTypeBase,
+  operationTypeNames,
+  sharedAuth,
   type ApiMeta,
 } from "@/lib/ai/operation-context";
-import type { PromptOverrides } from "@/lib/ai/output";
 
 /** Hard cap on test-case user prompt (Groq free/on-demand TPM is tight; ~4 chars ≈ 1 token). */
 const MAX_TEST_PROMPT_CHARS = 9_000;
@@ -114,16 +114,26 @@ const TYPESCRIPT_SYSTEM = `You are APIForge's TypeScript generator for OpenAPI o
 
 ${GUARD_LINES}
 
-OUTPUT CONTRACT: your whole reply is exactly ONE fenced block that starts with \`\`\`typescript and ends with \`\`\`. No text before or after it, no second code block, no explanations. Put explanations only as comments inside the code. No imports from external packages, no \`any\`.`;
+OUTPUT CONTRACT: your whole reply is exactly ONE fenced block that starts with \`\`\`typescript and ends with \`\`\`. No text before or after it, no second code block, no explanations. No imports from external packages, no \`any\`.`;
 
-const IDE_PROMPT_SYSTEM = `You are APIForge's prompt writer. You write a prompt that a developer will paste into Cursor, Copilot or Claude so that the assistant integrates with the supplied API operations.
+const IDE_TYPES_SYSTEM = `You are APIForge's type writer. You write the TypeScript types section of a prompt that a developer pastes into Cursor, Copilot or Claude Code.
 
 ${GUARD_LINES}
 
-OUTPUT CONTRACT: reply with markdown only, no preamble such as "Here is your prompt", and no outer code fence. Use exactly the headings the user message lists, in that order, each as its own markdown heading. Do not write application code other than the TypeScript types asked for.`;
+OUTPUT CONTRACT: your whole reply is exactly ONE fenced block that starts with \`\`\`typescript and ends with \`\`\`. Types only: no functions, no classes, no fetch code, no imports, no \`any\`, no text outside the block.`;
+
+/** Type-mapping rules shared by the TypeScript tab and the Types block of the IDE prompt. */
+const TYPE_RULES = `TYPE RULES
+1. Object schemas become \`export interface PascalCaseName\`, named after the schema title when given, else after the usage (\`Pet\`, \`Order\`). Enums, unions and primitives use \`export type\`. Declare a shared schema once and reuse it by name.
+2. Optionality is exact: add \`?\` only to properties that are NOT in the schema's \`required\` list. \`nullable: true\` or a type list containing "null" adds \`| null\` and keeps the optionality.
+3. Enums are string-literal unions (\`"available" | "sold"\`); numeric enums are numeric literal unions. No TypeScript \`enum\`.
+4. integer and number map to \`number\`; string formats (date-time, uuid, email) stay \`string\`; binary maps to \`Blob\`; arrays are \`T[]\`; \`oneOf\`/\`anyOf\` are unions; \`allOf\` is an intersection or \`extends\`; \`additionalProperties\` is \`Record<string, T>\`; an object with no properties is \`Record<string, unknown>\`.
+5. Comments: add a one-line JSDoc (\`/** ... */\`) ONLY when the spec has a description for that type or property, shortened to one sentence. Put the format there when useful (\`/** ISO 8601 date-time. */\`). Never write placeholder comments such as "No description".
+6. Per operation emit \`<Base>Request\` (only the parts that exist: \`pathParams\`, \`queryParams\`, \`headers\`, \`body\`; a part is optional only when none of its members is required) and \`<Base>Response\` (the 2xx body type, a union when several differ; \`void\` when no body is documented). If non-2xx responses document a body, also emit \`<Base>ErrorResponse\`. Skip \`<Base>Request\` when the operation has no parameters and no body.
+7. Never add fields, endpoints or status codes that are not in the input. Use \`unknown\` for an undocumented shape.`;
 
 export function buildGroqSystem(type: GroqStreamTab): string {
-  return type === "prompt" ? IDE_PROMPT_SYSTEM : TYPESCRIPT_SYSTEM;
+  return type === "prompt" ? IDE_TYPES_SYSTEM : TYPESCRIPT_SYSTEM;
 }
 
 function operationNamingTable(ops: Endpoint[]): string {
@@ -169,14 +179,7 @@ ${rest.length > 0 ? `\nAlso in scope but NOT detailed (do not generate types for
 REQUIRED NAMES (use exactly these):
 ${operationNamingTable(detailed)}
 
-TYPE RULES
-1. Object schemas become \`export interface PascalCaseName\`; named after the schema title when given, else after the usage (\`Pet\`, \`PostPetBody\`). Enums, unions and primitives use \`export type\`.
-2. Optionality is exact: add \`?\` only to properties that are NOT in the schema's \`required\` list. A \`nullable: true\` (or type including "null") property gets \`| null\` and keeps its optionality.
-3. Enums are string-literal unions (\`"available" | "sold"\`); numeric enums are numeric literal unions. No TypeScript \`enum\`.
-4. integer and number map to \`number\`; string formats (date-time, uuid, email) stay \`string\` and the format goes in the JSDoc; binary maps to \`Blob\`; arrays are \`T[]\`; \`oneOf\`/\`anyOf\` are unions; \`allOf\` is an intersection (\`A & B\`) or \`extends\`; \`additionalProperties\` is \`Record<string, T>\`; an object with no properties is \`Record<string, unknown>\`.
-5. EVERY interface and EVERY property has a JSDoc comment (\`/** ... */\`) taken from the spec's \`description\`. If the spec gives none write \`/** No description in the spec. */\`. Add \`@example\` only if the spec has an example value.
-6. Per operation emit: \`<Base>Request\` (an interface that contains only the parts that exist: \`pathParams\`, \`queryParams\`, \`headers\`, \`body\`; a part is optional in the interface only when none of its members is required) and \`<Base>Response\` (union of the success 2xx body types; \`void\` when no body is documented). If non-2xx responses document a body also emit \`<Base>ErrorResponse\`. If something is not documented, use \`unknown\` and a comment saying "Not specified in the spec".
-7. Do not add fields, endpoints or status codes that are not in the input.
+${TYPE_RULES}
 
 FETCH HELPER RULES
 - Emit once: \`export class ApiError extends Error\` with \`status: number\` and \`body: unknown\`.
@@ -188,90 +191,102 @@ FETCH HELPER RULES
 Output exactly one \`\`\`typescript block and nothing else.`;
 }
 
-function endpointsInScopeList(ops: Endpoint[]): string {
-  return compactInventory(ops);
-}
-
-/** Deterministic markdown for the "Endpoint contract" section (all facts come from the spec). */
-function buildPromptContract(ops: Endpoint[], meta?: PromptApiMeta): string {
-  const shown = ops.slice(0, MAX_CONTRACT_OPERATIONS);
-  const single = shown.length === 1;
-  const body = shown
-    .map((ep) =>
-      buildOperationContract(ep, meta, {
-        heading: single ? undefined : "###",
-        maxSchemaChars: single ? 2_200 : 1_200,
-      }),
-    )
-    .join("\n\n");
-  const rest = ops.slice(MAX_CONTRACT_OPERATIONS);
-  return rest.length > 0
-    ? `${body}\n\n**Other operations in scope (details not included)**\n\n${compactInventory(rest)}`
-    : body;
-}
-
-/** Deterministic overrides applied by normalizePromptMarkdown (Context and Endpoint contract). */
-export function buildPromptOverrides(ops: Endpoint[], meta?: PromptApiMeta): PromptOverrides {
-  return {
-    context: describeContext(meta),
-    contract: buildPromptContract(ops, meta),
-  };
-}
-
-function buildIdePastePrompt(
-  primary: Endpoint,
-  ide: IdePromptScope,
-  allEndpointsForHeading: Endpoint[],
-  meta?: PromptApiMeta,
-): string {
-  const scopeSummary = getScopeLabel(
-    allEndpointsForHeading,
-    primary,
-    ide.scope,
-    ide.operations,
-  );
-  const ops = ide.operations.length > 0 ? ide.operations : [primary];
+/** Request the model for the Types block of the IDE prompt (the rest of the prompt is built in code). */
+function buildIdeTypesPrompt(ops: Endpoint[]): string {
   const detailed = ops.slice(0, MAX_DETAILED_OPERATIONS);
-  const contract = buildPromptContract(ops, meta);
   const specBlocks = detailed
     .map(
       (ep) =>
         `### ${ep.method.toUpperCase()} ${ep.path}\n${operationForModel(ep, detailed.length === 1 ? 7_000 : 2_800)}`,
     )
     .join("\n\n");
+  const names = detailed
+    .map((ep) => {
+      const n = operationTypeNames(ep);
+      return `- ${ep.method.toUpperCase()} ${ep.path} -> ${[n.request, n.response, n.error].filter(Boolean).join(", ")}`;
+    })
+    .join("\n");
 
-  return `Write the paste-ready prompt for a developer's IDE assistant.
+  return `Write the TypeScript types for ${detailed.length === 1 ? "this OpenAPI operation" : `these ${detailed.length} OpenAPI operations`}.
 
-SCOPE: ${ide.scope} (${scopeSummary})
-PRIMARY OPERATION: ${primary.method.toUpperCase()} ${primary.path}
-
-Operations in scope:
-${endpointsInScopeList(ops)}
-
-CONTEXT (APIForge inserts the "## Context" and "## Endpoint contract" sections itself; do NOT write them):
-${describeContext(meta)}
-
-ENDPOINT CONTRACT (authoritative, for your reference):
-${contract}
-
-OPERATION JSON (authoritative, for your reference when writing types):
+OPERATIONS (compact OpenAPI JSON; $ref pointers are already resolved):
 ${specBlocks}
 
-Write ONLY these three sections, in this order, using these exact headings:
+REQUIRED NAMES (use exactly these; the rest of the prompt refers to them):
+${names}
 
-# Task
-One short paragraph, addressed to the IDE assistant, saying what to build: a typed client and its usage for ${ide.scope === "endpoint" ? `${primary.method.toUpperCase()} ${primary.path}` : "the operations listed above"}. Mention the API purpose only if the spec's summary or description states it.
+${TYPE_RULES}
 
-## Types
-One \`\`\`typescript block (max 70 lines) with the request and response types for the operation(s), using PascalCase names derived from schema titles or usage and names like ${operationTypeBase(primary)}Request / ${operationTypeBase(primary)}Response. Optional (\`?\`) only for properties that are not required, enums as string-literal unions, JSDoc from spec descriptions. Types only: no functions, no fetch code.
+Keep it tight: no duplicate types, no helper types that are not used. Output exactly one \`\`\`typescript block and nothing else.`;
+}
 
-## Requirements
-A bullet list, specific to these operations: how to send auth (only what the contract says), handling of each documented non-2xx status code, validating required fields and constraints from the schema before sending, loading / empty / error states in the UI, typed errors, no invented fields.
+function apiName(meta?: PromptApiMeta): string {
+  return meta?.specTitle?.trim() || "this API";
+}
 
-## Acceptance criteria
-A markdown checklist (\`- [ ] ...\`) of 6 to 10 testable items tied to the contract: correct method and path, required parameters, response typing per status code, error handling per documented status, no use of undocumented fields.
+/**
+ * The paste-ready IDE prompt. Every fact comes from the spec; the model only supplies the Types
+ * block (already extracted to one ```typescript fence). Lines with nothing to say are left out.
+ */
+export function assembleIdePrompt(
+  ops: Endpoint[],
+  typesBlock: string,
+  meta?: PromptApiMeta,
+): string {
+  const shown = ops.slice(0, MAX_CONTRACT_OPERATIONS);
+  const rest = ops.slice(MAX_CONTRACT_OPERATIONS);
+  const single = ops.length === 1;
+  const first = ops[0]!;
+  const name = apiName(meta);
+  const auth = sharedAuth(ops, meta);
 
-Use "Not specified in the spec" for anything the contract lacks. Output only the three sections.`;
+  const task = single
+    ? `Integrate \`${first.method.toUpperCase()} ${first.path}\` from ${name} into this codebase: a typed client function and its call site.`
+    : `Integrate these ${ops.length} endpoints from ${name} into this codebase: one typed client module with a function per endpoint.`;
+
+  const api: string[] = [];
+  const urls = meta?.serverUrls?.filter(Boolean) ?? [];
+  api.push(`- Base URL: ${urls.length ? urls.map((u) => `\`${u}\``).join(" or ") : "not in the spec, ask me"}`);
+  if (auth) api.push(`- Auth: ${auth}`);
+
+  const endpoints = shown.map((ep) => buildCrispOperation(ep, meta, { includeAuth: auth === undefined }));
+  if (rest.length > 0) {
+    endpoints.push(
+      `Also in scope (ask me for details before using):\n${rest.map((ep) => `- ${ep.method.toUpperCase()} \`${ep.path}\``).join("\n")}`,
+    );
+  }
+
+  const errorCodes = Array.from(
+    new Set(
+      shown.flatMap((ep) =>
+        Object.keys(ep.responses && typeof ep.responses === "object" ? ep.responses : {}).filter(
+          (s) => !/^2/.test(s) && s !== "default",
+        ),
+      ),
+    ),
+  ).sort();
+
+  const rules = [
+    "- Use only the endpoints, fields and status codes listed here. Do not invent others.",
+    "- Read the base URL from config; do not hardcode it in each call.",
+    auth || auth === undefined ? "- Send the auth listed above on every request; read secrets from env, never hardcode them." : null,
+    "- Validate required params before sending.",
+    `- On a non-2xx response throw a typed error with the status and parsed body${errorCodes.length ? `; handle ${errorCodes.map((c) => `\`${c}\``).join(", ")} explicitly` : ""}.`,
+    "- Follow this project's existing HTTP client, folder layout and naming.",
+  ].filter(Boolean);
+
+  const typesNote =
+    ops.length > MAX_DETAILED_OPERATIONS
+      ? `\n\nTypes cover the first ${MAX_DETAILED_OPERATIONS} endpoints.`
+      : "";
+
+  return [
+    `# Task\n\n${task}`,
+    `## API\n\n${api.join("\n")}`,
+    `## ${single ? "Endpoint" : "Endpoints"}\n\n${endpoints.join("\n\n")}`,
+    `## Types\n\n${typesBlock}${typesNote}`,
+    `## Rules\n\n${rules.join("\n")}`,
+  ].join("\n\n") + "\n";
 }
 
 export function buildGroqPrompt(
@@ -291,8 +306,7 @@ export function buildGroqPrompt(
         scope: generationScope,
         operations: scoped,
       } satisfies IdePromptScope);
-    const all = allEndpoints?.length ? allEndpoints : ideScope.operations;
-    return buildIdePastePrompt(primary, ideScope, all, opts?.meta);
+    return buildIdeTypesPrompt(ideScope.operations.length > 0 ? ideScope.operations : [primary]);
   }
 
   return buildTypeScriptPrompt(primary, scoped, generationScope);

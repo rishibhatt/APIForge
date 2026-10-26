@@ -1,4 +1,3 @@
-import Script from "next/script";
 import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import localFont from "next/font/local";
@@ -10,6 +9,7 @@ import { RoastTransition } from "@/components/providers/RoastTransition/RoastTra
 import { Toaster } from "@/components/providers/Toaster/Toaster";
 import GlobalSupport from "@/components/atomic/organisms/SupportFab/GlobalSupport";
 import { MicrosoftClarity } from "@/components/analytics/MicrosoftClarity";
+import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
 import bodyStyles from "./layout.module.css";
 import "./globals.css";
 
@@ -137,25 +137,6 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${jakarta.variable} ${jetbrains.variable} ${iconFont.variable}`}
     >
-      <head>
-        {/* Google Analytics (gtag.js) */}
-        <Script
-          async
-          src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
-          strategy="lazyOnload"
-        />
-        <Script id="google-analytics" strategy="lazyOnload">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-
-            gtag('config', '${gaId}', {
-              page_path: window.location.pathname,
-            });
-          `}
-        </Script>
-      </head>
       <body className={bodyStyles.body}>
         <PostHogProvider>
           <AppThemeProvider>
@@ -168,6 +149,7 @@ export default function RootLayout({
             </LanguageProvider>
           </AppThemeProvider>
         </PostHogProvider>
+        <GoogleAnalytics gaId={gaId} />
         <MicrosoftClarity />
       </body>
     </html>

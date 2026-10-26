@@ -1,5 +1,3 @@
-import { NOT_SPECIFIED } from "./operation-context";
-
 /** Post-processors that turn raw model text into the exact output formats we promise. */
 
 function stripThinking(text: string): string {
@@ -38,78 +36,4 @@ export function extractTypeScriptBlock(raw: string): string {
   }
   code = code.replace(/^\s*```\w*\s*$/gm, "").trim();
   return `\`\`\`typescript\n${code}\n\`\`\``;
-}
-
-const PROMPT_SECTIONS = [
-  { key: "task", heading: "# Task", match: /^task$/i },
-  { key: "context", heading: "## Context", match: /^context$/i },
-  { key: "contract", heading: "## Endpoint contract", match: /^endpoint contract/i },
-  { key: "types", heading: "## Types", match: /^types?$/i },
-  { key: "requirements", heading: "## Requirements", match: /^requirements?$/i },
-  { key: "acceptance", heading: "## Acceptance criteria", match: /^acceptance criteria$/i },
-] as const;
-
-type SectionKey = (typeof PROMPT_SECTIONS)[number]["key"];
-
-export interface PromptOverrides {
-  /** Deterministic bodies that REPLACE whatever the model wrote (facts must not come from the model). */
-  context?: string;
-  contract?: string;
-}
-
-function splitSections(text: string): Partial<Record<SectionKey, string>> {
-  const out: Partial<Record<SectionKey, string>> = {};
-  let current: SectionKey | null = null;
-  let buf: string[] = [];
-  let inFence = false;
-  const flush = () => {
-    if (current) {
-      const body = buf.join("\n").trim();
-      out[current] = out[current] ? `${out[current]}\n\n${body}` : body;
-    }
-    buf = [];
-  };
-  for (const line of text.split("\n")) {
-    if (/^\s*```/.test(line)) inFence = !inFence;
-    const h = !inFence ? /^(#{1,2})\s+(.+?)\s*#*\s*$/.exec(line) : null;
-    if (h) {
-      const title = h[2]!.replace(/[*_`]/g, "").trim();
-      const sec = PROMPT_SECTIONS.find((s) => s.match.test(title));
-      if (sec) {
-        flush();
-        current = sec.key;
-        continue;
-      }
-    }
-    if (current) buf.push(line);
-  }
-  flush();
-  return out;
-}
-
-/**
- * Normalises the AI-prompt output to the fixed markdown skeleton: strips preamble/outer fences,
- * orders the six sections, injects deterministic Context/Endpoint contract, and fills anything
- * missing with "Not specified in the spec".
- */
-export function normalizePromptMarkdown(raw: string, overrides: PromptOverrides = {}): string {
-  let text = stripThinking(raw).replace(/\r\n?/g, "\n").trim();
-  // Remove an outer ```markdown fence wrapped around the whole answer (with or without preamble).
-  const open = /^```(?:markdown|md)\s*$/im.exec(text);
-  if (open) {
-    text = (text.slice(0, open.index) + text.slice(open.index + open[0].length)).trim();
-    text = text.replace(/\n```\s*$/, "").trim();
-  }
-
-  const parsed = splitSections(text);
-  const parts: string[] = [];
-  for (const sec of PROMPT_SECTIONS) {
-    let body = parsed[sec.key]?.trim() ?? "";
-    if (sec.key === "context" && overrides.context) body = overrides.context.trim();
-    if (sec.key === "contract" && overrides.contract) body = overrides.contract.trim();
-    if (sec.key === "task" && !body) body = NOT_SPECIFIED + ".";
-    if (!body) body = `${NOT_SPECIFIED}.`;
-    parts.push(`${sec.heading}\n\n${body}`);
-  }
-  return `${parts.join("\n\n")}\n`;
 }

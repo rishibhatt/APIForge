@@ -1,29 +1,34 @@
 "use client";
 
-import Script from "next/script";
+import { useEffect } from "react";
+import { whenHuman } from "@/lib/analytics/human-gate";
 
 interface MicrosoftClarityProps {
   projectId?: string;
 }
 
+type ClarityWindow = Window & { clarity?: ((...args: unknown[]) => void) & { q?: unknown[] } };
+
+/** Clarity tag, injected only after the visitor passes the human gate. */
 export function MicrosoftClarity({
   projectId = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID || "yp9y7a2gei",
 }: MicrosoftClarityProps) {
-  if (!projectId) return null;
+  useEffect(() => {
+    if (!projectId) return;
+    void whenHuman().then(() => {
+      const w = window as ClarityWindow;
+      if (w.clarity) return;
+      const clarity = ((...args: unknown[]) => {
+        (clarity.q = clarity.q || []).push(args);
+      }) as NonNullable<ClarityWindow["clarity"]>;
+      w.clarity = clarity;
 
-  return (
-    <Script
-      id="microsoft-clarity"
-      strategy="lazyOnload"
-      dangerouslySetInnerHTML={{
-        __html: `
-          (function(c,l,a,r,i,t,y){
-              c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-              t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-              y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-          })(window, document, "clarity", "script", "${projectId}");
-        `,
-      }}
-    />
-  );
+      const script = document.createElement("script");
+      script.async = true;
+      script.src = `https://www.clarity.ms/tag/${projectId}`;
+      document.head.appendChild(script);
+    });
+  }, [projectId]);
+
+  return null;
 }

@@ -1,0 +1,439 @@
+{
+  "slug": "api-context-for-ai-coding-assistants",
+  "title": "OpenAPI Context for Cursor, Claude Code and Copilot",
+  "description": "Stop AI coding assistants from inventing endpoints: what API context to give Cursor, Claude Code and Copilot, what to leave out, and an example prompt.",
+  "excerpt": "Assistants invent endpoints when the contract is missing or buried. Give them the base URL, auth, params, schemas and errors for the calls they make, and little else.",
+  "category": "developer-tools",
+  "cluster": "developer-experience",
+  "primaryKeyword": "openapi spec for ai coding assistant",
+  "keywords": [
+    "cursor api documentation context",
+    "claude code openapi",
+    "ai hallucinated api endpoints",
+    "prompt for api integration"
+  ],
+  "tags": [
+    "OpenAPI",
+    "AI Coding Assistants",
+    "Cursor",
+    "Claude Code",
+    "GitHub Copilot",
+    "Prompting"
+  ],
+  "author": "rishab",
+  "publishedAt": "2026-10-26",
+  "updatedAt": "2026-10-26",
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "To stop Cursor, Claude Code or GitHub Copilot from inventing endpoints, give the assistant the contract for the operations it is about to call: the base URL, the auth scheme, the method and path, every parameter, the request and response schemas, and the documented error statuses. For a one-off task, paste a trimmed contract for just those operations into the prompt. For ongoing work, commit the OpenAPI file and point a project rules file (.cursor/rules, CLAUDE.md or .github/copilot-instructions.md) at it, or connect an MCP server that returns operations on demand. Leave out the rest of the spec, long prose and unrelated endpoints."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Why assistants invent endpoints and fields",
+      "id": "why-hallucinate"
+    },
+    {
+      "type": "paragraph",
+      "text": "A coding assistant writes the code that looks most likely given what is in its context window. When your API's contract is missing, the most likely code is whatever similar APIs looked like in the model's training data. That code compiles and reads well, which is why the mistakes tend to surface at runtime as 404s, 401s and undefined fields. The guesses follow a few familiar patterns."
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Paths: `/api/orders/:id/cancel` or `DELETE /orders/:id` when the API serves `POST /v1/orders/{orderId}/cancel`.",
+        "Field names and casing: `createdAt` when the JSON says `created_at`, or `userId` when the parameter is `customer_id`.",
+        "Response envelopes: reading `res.data.items` when the list sits at the top level of the body.",
+        "Auth: an `Authorization: Bearer` header when the API expects an `X-API-Key` header or an OAuth scope the token lacks.",
+        "Errors: a generic catch for 404 and 500, while the API documents 409 and 422 with a structured body the UI should show.",
+        "Old versions: for well-known public APIs, the model may remember endpoints or fields from an earlier version than the one you use."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Two causes sit on your side of the prompt. The first is a spec with gaps. If a 200 response has no schema, or an object schema has no required list, the assistant has nothing to copy and fills the hole with a plausible shape. The [response schema guide](/guides/openapi-response-schema-best-practices) shows what a complete response looks like, and the [API score](/api-score) flags operations with undocumented responses. The second cause is too much context. A full spec for a large API buries the twenty lines that matter under thousands that do not, and the assistant can pick up a field from the wrong operation."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The context that prevents guessing",
+      "id": "what-matters"
+    },
+    {
+      "type": "paragraph",
+      "text": "Everything the assistant needs to write a correct call is already in your [API contract](/glossary/api-contract). The table maps each piece to where it lives in an OpenAPI document. If you only remember one row, make it the response schema: request mistakes fail loudly with a 400, but a misread response field fails quietly as `undefined` in the UI."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Include",
+        "What the assistant gets wrong without it",
+        "Where it lives in OpenAPI"
+      ],
+      "rows": [
+        [
+          "Base URL",
+          "Hardcodes localhost or invents a host",
+          "servers"
+        ],
+        [
+          "Auth scheme",
+          "Wrong header name, wrong token type, missing scopes",
+          "components.securitySchemes plus the operation's security"
+        ],
+        [
+          "Method and path",
+          "Wrong verb, wrong path template, renamed path parameters",
+          "paths"
+        ],
+        [
+          "Parameters",
+          "Misspelled query names, missing required headers, unknown enum values",
+          "parameters (path, query, header)"
+        ],
+        [
+          "Request body schema",
+          "Missing required fields, wrong types, values outside min/max",
+          "requestBody.content.*.schema"
+        ],
+        [
+          "Success response schema",
+          "Wrong field names, wrong nesting, missing null checks",
+          "responses 2xx"
+        ],
+        [
+          "Error responses",
+          "No handling for 409 or 422, wrong error body shape",
+          "responses 4xx, 5xx and default"
+        ],
+        [
+          "The task",
+          "Builds the wrong thing in the wrong file",
+          "Not in the spec; you write it"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "What to leave out",
+      "id": "noise"
+    },
+    {
+      "type": "paragraph",
+      "text": "These parts of a spec rarely help with a single integration task, and each one competes with your instructions for the model's attention:"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Operations the task does not touch. Listing them invites the assistant to call a neighbor endpoint it thinks is related.",
+        "Long Markdown in info.description and tag descriptions: onboarding tutorials, changelogs, rate limit essays.",
+        "Vendor extensions such as x-codegen-* or x-internal, which are written for other tools.",
+        "Several examples per schema. One realistic example helps; five near-copies add length.",
+        "Schemas under components that the chosen operations never reference."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "title": "Keep secrets out of prompts",
+      "text": "Describe the auth scheme and where the code reads the credential (an environment variable, a session helper). Do not paste a real token or API key. Prompts are sent to the model provider and stay in chat history."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "How much context is enough",
+      "id": "token-budget"
+    },
+    {
+      "type": "paragraph",
+      "text": "Context windows are large, but a bigger input is slower, costs more quota, and is harder for the model to use well. In the paper \"Lost in the Middle\", Liu et al. found that language models used information placed at the start or end of a long input more reliably than information in the middle. A spec for a large API can be several times the size of the files the assistant is editing, so the contract you care about can end up in that middle."
+    },
+    {
+      "type": "paragraph",
+      "text": "OpenAI's rule of thumb is about four characters per token for English text. The single-endpoint prompt later in this guide is about 2,600 characters, roughly 650 tokens, and it contains every fact needed to call that endpoint correctly. Aim for that density: every line should be a fact the code depends on. To cut a spec down to one operation, resolve its $ref pointers first so the schemas arrive inline, then drop what the call does not need."
+    },
+    {
+      "type": "steps",
+      "title": "Trim a spec to one operation",
+      "steps": [
+        {
+          "title": "Pick the operations",
+          "description": "List the method and path of every call the task makes. Usually that is one, sometimes two or three."
+        },
+        {
+          "title": "Resolve references for those operations only",
+          "description": "Inline the schemas they use so nothing points at a component the model cannot see."
+        },
+        {
+          "title": "Remove noise",
+          "description": "Drop x- extensions, extra examples and multi-paragraph descriptions. Keep one-line descriptions; they become useful JSDoc."
+        },
+        {
+          "title": "Keep every constraint",
+          "description": "required, enum, nullable, format, minLength, maxLength, minimum and maximum all change the code the assistant writes."
+        },
+        {
+          "title": "Add the error responses",
+          "description": "Include each documented 4xx with its body schema, so the assistant writes a branch for each one."
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "The script below does the first four steps for an OpenAPI 3.x file using swagger-parser. Swagger 2.0 files keep the base URL in host and basePath instead of servers, so convert them first or adjust the script. If you only have a Swagger UI page, [get the raw spec from Swagger UI](/guides/get-openapi-json-from-swagger-ui) first."
+    },
+    {
+      "type": "code",
+      "language": "javascript",
+      "filename": "extract-operation.mjs",
+      "code": "import SwaggerParser from \"@apidevtools/swagger-parser\";\n\n// Usage: node extract-operation.mjs openapi.yaml POST /v1/orders/{orderId}/cancel\nconst [file, method, path] = process.argv.slice(2);\nconst api = await SwaggerParser.dereference(file, { dereference: { circular: \"ignore\" } });\nconst item = api.paths?.[path];\nconst op = item?.[method.toLowerCase()];\nif (!op) {\n  console.error(`No ${method} ${path} in ${file}`);\n  process.exit(1);\n}\n\n// Drop vendor extensions (x-*) at every level; keep everything else.\nconst strip = (v) =>\n  Array.isArray(v) ? v.map(strip)\n  : v && typeof v === \"object\"\n    ? Object.fromEntries(Object.entries(v).filter(([k]) => !k.startsWith(\"x-\")).map(([k, x]) => [k, strip(x)]))\n    : v;\n\nconst contract = {\n  baseUrls: (api.servers ?? []).map((s) => s.url),\n  auth: { required: op.security ?? api.security ?? [], schemes: api.components?.securitySchemes ?? {} },\n  method: method.toUpperCase(),\n  path,\n  summary: op.summary,\n  parameters: [...(item.parameters ?? []), ...(op.parameters ?? [])],\n  requestBody: op.requestBody,\n  responses: op.responses,\n};\n\nconsole.log(JSON.stringify(strip(contract), null, 2));",
+      "caption": "Install with npm i @apidevtools/swagger-parser. Circular schemas stay as $ref pointers, so check the output for any that remain."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "One endpoint or a whole collection",
+      "id": "endpoint-vs-collection"
+    },
+    {
+      "type": "paragraph",
+      "text": "Match the scope of the context to the scope of the task. A prompt that covers one form should carry one operation. A prompt that asks for a client module should carry every operation that module wraps, because the assistant needs to see the shared types and naming across them."
+    },
+    {
+      "type": "decisionTree",
+      "title": "Choose the prompt scope",
+      "nodes": [
+        {
+          "condition": "You are building one form, hook, handler or test against a single call.",
+          "recommendation": "Use an endpoint prompt with one operation's full contract.",
+          "alternative": "Add a second operation only when the task really calls both, such as create followed by fetch."
+        },
+        {
+          "condition": "You are writing a client module for one resource, such as list, get, create and cancel for orders.",
+          "recommendation": "Use a collection prompt with every operation under that tag, so shared types like Order are defined once.",
+          "alternative": "If the tag holds dozens of operations, split it by the screens or features you are building."
+        },
+        {
+          "condition": "You are generating an SDK or working across most of the API over days or weeks.",
+          "recommendation": "Stop pasting. Commit the spec, reference it from a rules file, and let the agent read operations as it needs them, or use an MCP server.",
+          "alternative": "Generate the types with a code generator and give the assistant the generated file instead of the raw spec."
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Four ways to give the assistant your contract",
+      "id": "options"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Method",
+        "Best for",
+        "Watch out for"
+      ],
+      "rows": [
+        [
+          "Paste a trimmed contract into the prompt",
+          "One-off tasks on one endpoint or one resource",
+          "Goes stale if you reuse an old prompt after the spec changes"
+        ],
+        [
+          "Project rules file pointing at the spec",
+          "Every session in a repo that calls the API",
+          "Rules load on every request in their scope, so keep them short and link to the spec"
+        ],
+        [
+          "Attach or mention the spec file",
+          "Small specs and quick questions",
+          "Agents may read a large file in parts or search it, and miss a schema"
+        ],
+        [
+          "MCP server that serves the spec",
+          "Large APIs used across many tasks",
+          "It runs on your machine with your credentials, so review it before installing"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Project rules files",
+      "id": "rules-files"
+    },
+    {
+      "type": "paragraph",
+      "text": "Each assistant reads a project-level instruction file into its context. Cursor uses rule files in .cursor/rules, written as .mdc files with frontmatter that controls when they apply. Claude Code reads CLAUDE.md from the project root at the start of a session. GitHub Copilot reads .github/copilot-instructions.md, and also supports path-specific files in .github/instructions/ whose applyTo glob limits where they apply. Several agents, Cursor among them, also read an AGENTS.md file."
+    },
+    {
+      "type": "paragraph",
+      "text": "Put the location of the spec and your conventions in these files, and keep the spec itself out. A rule file that inlines a 5,000-line spec pays that cost on every request it applies to. In CLAUDE.md, the @path syntax imports a file's contents into memory, so write the spec's path as plain text if you want Claude Code to open it only when needed."
+    },
+    {
+      "type": "code",
+      "language": "markdown",
+      "filename": ".cursor/rules/orders-api.mdc",
+      "code": "---\ndescription: Rules for code that calls the Orders API\nglobs: src/api/**,src/features/orders/**\nalwaysApply: false\n---\n\nThe Orders API contract is docs/openapi.yaml. It is the only source of truth.\n\n- Before calling an endpoint, find its operation in docs/openapi.yaml and use\n  the exact path, parameter names and schema field names it declares.\n- JSON fields are snake_case. Do not convert them to camelCase.\n- Never call an endpoint that is not in docs/openapi.yaml. If one seems\n  missing, say so and stop.\n- Handle every documented 4xx status for the operation. Error bodies follow\n  the ProblemDetails schema.\n- Generated types live in src/api/types.ts. Do not redefine them inline."
+    },
+    {
+      "type": "code",
+      "language": "markdown",
+      "filename": "CLAUDE.md",
+      "code": "## Orders API\n\n- Contract: docs/openapi.yaml (OpenAPI 3.1). Read the operation you need from it\n  before writing client code. Do not import the whole file into context.\n- Base URL comes from ORDERS_API_URL. Auth is a bearer token from getSession().\n- Never invent endpoints or fields. If the spec lacks something, ask.\n- Run `npm run test:api` after changing anything in src/api/."
+    },
+    {
+      "type": "code",
+      "language": "markdown",
+      "filename": ".github/copilot-instructions.md",
+      "code": "# Copilot instructions\n\nCode in src/api/ calls the Orders API. Its contract is docs/openapi.yaml.\nUse only the paths, parameters and fields declared there, keep JSON fields\nsnake_case, and handle each documented error status for an operation.\nAsk instead of guessing when the spec does not cover something."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Mentioning the spec file in chat",
+      "id": "mention-file"
+    },
+    {
+      "type": "paragraph",
+      "text": "All three tools let you attach a file to a single request: @openapi.yaml in Cursor and Claude Code, #file:openapi.yaml in Copilot Chat in VS Code. This works well for small specs. For large ones, attach the extracted contract from the script above, so the assistant reads 150 lines instead of 15,000."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "MCP servers",
+      "id": "mcp"
+    },
+    {
+      "type": "paragraph",
+      "text": "The Model Context Protocol lets an assistant call tools that a local or remote server provides. An OpenAPI MCP server can expose tools such as list operations or get an operation's schema, so the agent fetches the contract for the endpoint it is working on instead of loading the whole spec. Cursor reads MCP configuration from .cursor/mcp.json, Claude Code from a project .mcp.json (or claude mcp add), and VS Code from .vscode/mcp.json for Copilot agent mode. Several open-source OpenAPI MCP servers exist. Some can also send live requests, so check what one does and which credentials it can reach before you connect it."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Example: a prompt for one endpoint",
+      "id": "example-prompt"
+    },
+    {
+      "type": "paragraph",
+      "text": "Here is the same task asked two ways. The endpoint cancels an order in a fictional Shop Orders API."
+    },
+    {
+      "type": "badExample",
+      "title": "A prompt that invites guessing",
+      "language": "text",
+      "code": "Add a cancel order function using our orders API and wire it to the Cancel button.",
+      "explanation": "The assistant has to pick a path, a verb, an auth header, a body shape and an error format. Each guess will compile, and you find out which ones are wrong when the button fails in the browser."
+    },
+    {
+      "type": "code",
+      "language": "markdown",
+      "filename": "cancel-order-prompt.md",
+      "code": "# Task\nAdd a typed `cancelOrder()` function to `src/api/orders.ts` and call it from the Cancel button in `src/features/orders/OrderActions.tsx`. Use only the contract below. If you need something it does not contain, stop and ask.\n\n## Context\n- API name: Shop Orders API\n- Base URL: https://api.example.com (read it from `process.env.ORDERS_API_URL`)\n\n## Endpoint contract\n- Method: POST\n- Path: `/v1/orders/{orderId}/cancel`\n- Summary: Cancel an order that has not shipped\n- Auth: bearerAuth (http bearer). Send `Authorization: Bearer <token>` using the token from `getSession()`.\n\n**Parameters**\n\n| Name | In | Type | Required | Description |\n| --- | --- | --- | --- | --- |\n| `orderId` | path | string (uuid) | yes | Order to cancel |\n| `Idempotency-Key` | header | string | no | Makes retries safe |\n\n**Request body** (`application/json`, required)\n\n- `reason`: `\"customer_request\" | \"fraud\" | \"out_of_stock\"`, required\n- `note`: string, max 500 characters, optional\n\n**Responses**\n\n- `200`: the updated order (`Order` below)\n- `401`: missing or expired token, no body\n- `404`: order not found, `ProblemDetails` body\n- `409`: order already shipped or cancelled, `ProblemDetails` body\n- `422`: body failed validation, `ProblemDetails` body with `errors`\n\n## Types\n```ts\nexport type CancelReason = \"customer_request\" | \"fraud\" | \"out_of_stock\";\n\nexport interface CancelOrderBody {\n  reason: CancelReason;\n  /** Max 500 characters. */\n  note?: string;\n}\n\nexport interface Order {\n  id: string;\n  status: \"pending\" | \"paid\" | \"shipped\" | \"cancelled\";\n  total_cents: number;\n  currency: string;\n  /** ISO 8601 date-time. Null until the order is cancelled. */\n  cancelled_at: string | null;\n}\n\nexport interface ProblemDetails {\n  type: string;\n  title: string;\n  status: number;\n  detail?: string;\n  errors?: { field: string; message: string }[];\n}\n```\n\n## Requirements\n- Use the exact path, header and field names above. JSON fields are snake_case.\n- Call no other endpoint and send no field that is not listed.\n- Disable the Cancel button while the request is in flight.\n- On 409, show `detail` and refetch the order. On 401, redirect to sign-in.\n- Throw an `ApiError` with `status` and the parsed body for every non-2xx response.\n\n## Acceptance criteria\n- [ ] Sends POST {base}/v1/orders/{orderId}/cancel with `orderId` URL-encoded\n- [ ] Body has `reason`, and `note` only when the user typed one\n- [ ] Success is typed as `Order`, with `cancelled_at` as `string | null`\n- [ ] 401, 404, 409 and 422 each have a handled branch\n- [ ] No field outside the contract is read or sent",
+      "caption": "About 2,600 characters. Every line is either a fact from the spec or a decision the developer made."
+    },
+    {
+      "type": "paragraph",
+      "text": "A few details make this prompt work. The Task names the files, which the spec cannot know. The contract spells out the path template and the header name, so there is nothing to infer. The Types block marks `cancelled_at` as `string | null`, which forces a null check the assistant would otherwise skip. The 409 line tells the assistant an already-shipped order is a normal outcome with its own UI, and the [error handling guide](/guides/rest-api-error-handling) covers the ProblemDetails shape it relies on. The acceptance criteria double as your review checklist for the diff."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Generate the prompt from your spec in APIForge",
+      "id": "apiforge"
+    },
+    {
+      "type": "paragraph",
+      "text": "Writing that contract by hand is slow, and hand-copied field names bring back the typos you are trying to avoid. APIForge builds the prompt from your OpenAPI or Swagger spec. Paste a spec URL in the [workspace](/#parse-api), select an operation, open the AI prompt tab and choose a scope: Endpoint for the selected operation, or Collection for every operation that shares its first tag."
+    },
+    {
+      "type": "paragraph",
+      "text": "The output is a short Markdown prompt with five sections: Task, API, Endpoint (or Endpoints for a collection), Types and Rules. Everything except Types is built directly from the spec: the base URL from servers, auth resolved from the security schemes, each parameter with its location, type and required flag, and the success and error status codes. Shapes are not repeated as schema JSON; the endpoint lines point to type names such as GetPetByPetIdResponse, and the model writes those types in the Types block under rules that forbid invented fields. Pick one endpoint and the prompt covers only that endpoint. Pick a collection and it covers every operation in it, with up to ten described in full and the rest listed by method and path. Copy it, add your file paths to the Task line, and paste it into Cursor, Claude Code or Copilot."
+    },
+    {
+      "type": "paragraph",
+      "text": "Lines the spec has nothing for are left out instead of padded. The one exception is a missing base URL: the prompt then says \"not in the spec, ask me\", so the assistant asks you instead of guessing a host. If auth or error responses are missing from the prompt, the spec does not document them. A fix there removes the guess for every developer and every tool; the [OpenAPI best practices](/guides/openapi-best-practices) guide covers what to add."
+    },
+    {
+      "type": "cta",
+      "title": "Turn your spec into a paste-ready prompt",
+      "description": "Paste an OpenAPI or Swagger URL, pick an endpoint or collection, and copy the AI prompt with its contract and TypeScript types. Free, no signup.",
+      "buttonText": "Open the workspace",
+      "href": "/#parse-api"
+    },
+    {
+      "type": "tool",
+      "tool": "api-score",
+      "title": "Find the gaps your assistant would guess at",
+      "description": "Score your spec and see operations with missing response schemas, undocumented errors and missing descriptions.",
+      "buttonText": "Score my API",
+      "href": "/api-score"
+    },
+    {
+      "type": "relatedContent",
+      "slugs": [
+        "openapi-response-schema-best-practices",
+        "get-openapi-json-from-swagger-ui",
+        "rest-api-error-handling",
+        "generate-test-cases-from-openapi"
+      ]
+    },
+    {
+      "type": "externalReference",
+      "title": "Rules",
+      "url": "https://docs.cursor.com/context/rules",
+      "source": "Cursor documentation"
+    },
+    {
+      "type": "externalReference",
+      "title": "Manage Claude's memory (CLAUDE.md)",
+      "url": "https://docs.anthropic.com/en/docs/claude-code/memory",
+      "source": "Anthropic documentation"
+    },
+    {
+      "type": "externalReference",
+      "title": "Adding repository custom instructions for GitHub Copilot",
+      "url": "https://docs.github.com/en/copilot/how-tos/configure-custom-instructions/add-repository-instructions",
+      "source": "GitHub Docs"
+    },
+    {
+      "type": "externalReference",
+      "title": "Model Context Protocol: introduction",
+      "url": "https://modelcontextprotocol.io/introduction",
+      "source": "modelcontextprotocol.io"
+    },
+    {
+      "type": "externalReference",
+      "title": "Lost in the Middle: How Language Models Use Long Contexts",
+      "url": "https://arxiv.org/abs/2307.03172",
+      "source": "arXiv"
+    },
+    {
+      "type": "externalReference",
+      "title": "What are tokens and how to count them?",
+      "url": "https://help.openai.com/en/articles/4936856-what-are-tokens-and-how-to-count-them",
+      "source": "OpenAI Help Center"
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Can I commit openapi.yaml and tell the assistant to read it?",
+      "answer": "Yes, and for ongoing work in agent modes (Claude Code, Cursor's agent, Copilot agent mode) it is a good default. Reference the file from your rules file so every session knows where it is. Two limits apply: an agent may read a large spec in parts or search it, so it can miss a schema defined far from the path, and it will faithfully copy a stale spec. For a specific task, still give it the trimmed contract."
+    },
+    {
+      "question": "Is an MCP server better than pasting the contract?",
+      "answer": "For a large API used across many tasks, often yes, because the agent fetches only the operations it asks for. For one endpoint, pasting is faster and you can see exactly what the model was given, which makes a wrong answer easier to debug."
+    },
+    {
+      "question": "Why does the assistant still invent fields after I gave it the spec?",
+      "answer": "Check the spec first. Responses without schemas, objects with no properties, and missing required lists all leave room to guess. Then check the prompt: say explicitly that it must not use fields outside the contract and should ask when something is missing. Running the spec through the API score shows the operations with gaps."
+    },
+    {
+      "question": "Should the prompt include a real API key so the assistant can test the call?",
+      "answer": "No. Describe the scheme and where the code reads the credential, such as an environment variable. If you want to confirm the endpoint behaves as documented, send a test request yourself from an API client and paste the response shape, with any personal data removed."
+    }
+  ]
+}

@@ -8,9 +8,7 @@
   "primaryKeyword": "swagger vs openapi",
   "keywords": [
     "swagger 2.0 vs openapi 3",
-    "openapi 3.0 vs 3.1",
-    "is swagger the same as openapi",
-    "convert swagger 2 to openapi 3"
+    "is swagger the same as openapi"
   ],
   "tags": [
     "Swagger",
@@ -185,6 +183,10 @@
         "Describe binary uploads with contentMediaType or an empty schema instead of format: binary, and base64 data with contentEncoding: base64.",
         "Change the version field to openapi: 3.1.0 or 3.1.1."
       ]
+    },
+    {
+      "type": "paragraph",
+      "text": "For every change with before and after YAML, see [OpenAPI 3.0 vs 3.1](/guides/openapi-3-0-vs-3-1). To move a Swagger 2.0 file forward first, follow [how to convert Swagger 2.0 to OpenAPI 3](/guides/convert-swagger-2-to-openapi-3)."
     },
     {
       "type": "paragraph",

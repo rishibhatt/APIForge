@@ -1,7 +1,9 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { extractTypeScriptBlock, normalizePromptMarkdown } from "../output";
+import { extractTypeScriptBlock } from "../output";
+import { assembleIdePrompt } from "@/lib/groq-prompts";
 import {
+  buildCrispOperation,
   buildOperationContract,
   operationTypeBase,
   describeAuth,
@@ -49,48 +51,6 @@ describe("extractTypeScriptBlock", () => {
   });
 });
 
-describe("normalizePromptMarkdown", () => {
-  const overrides = { context: "- API name: Petstore\n- Base URL: Not specified in the spec", contract: "CONTRACT BODY" };
-
-  it("orders the six sections, strips preamble and fences, injects deterministic parts", () => {
-    const raw =
-      "Here is your prompt:\n```markdown\n# Task\nBuild a client.\n## Types\n```typescript\nexport interface A {}\n```\n## Requirements\n- handle 404\n## Acceptance criteria\n- [ ] works\n```";
-    const out = normalizePromptMarkdown(raw, overrides);
-    const headings = out.split("\n").filter((l) => /^#{1,2} /.test(l));
-    assert.deepStrictEqual(headings, [
-      "# Task",
-      "## Context",
-      "## Endpoint contract",
-      "## Types",
-      "## Requirements",
-      "## Acceptance criteria",
-    ]);
-    assert.ok(out.includes("- API name: Petstore"));
-    assert.ok(out.includes("CONTRACT BODY"));
-    assert.ok(out.includes("export interface A"));
-    assert.ok(!out.includes("Here is your prompt"));
-  });
-
-  it("overrides model-written context/contract and fills missing sections", () => {
-    const out = normalizePromptMarkdown(
-      "# Task\nDo it\n\n## Context\nmade up\n\n## Endpoint contract\ninvented endpoint",
-      overrides,
-    );
-    assert.ok(!out.includes("made up") && !out.includes("invented endpoint"));
-    assert.ok(out.includes("## Types\n\nNot specified in the spec."));
-    assert.ok(out.includes("## Acceptance criteria\n\nNot specified in the spec."));
-  });
-
-  it("does not treat headings inside code fences as sections", () => {
-    const out = normalizePromptMarkdown(
-      "# Task\nx\n## Types\n```typescript\n// ## Requirements\nexport type A = 1;\n```\n## Requirements\n- r\n## Acceptance criteria\n- [ ] a",
-      overrides,
-    );
-    assert.ok(out.includes("// ## Requirements"));
-    assert.strictEqual(out.match(/^## Requirements$/gm)?.length, 1);
-  });
-});
-
 describe("operation-context", () => {
   const ep: Endpoint = {
     id: "1",
@@ -124,5 +84,64 @@ describe("operation-context", () => {
 
   it("reports unspecified auth", () => {
     assert.strictEqual(describeAuth({ ...ep, security: undefined }), "Not specified in the spec");
+  });
+
+  it("renders a crisp endpoint block without schema JSON or filler", () => {
+    const md = buildCrispOperation(ep);
+    assert.ok(md.startsWith("### POST `/pet/{petId}/photos`: Upload"));
+    assert.ok(md.includes("`petId` (path, integer (int64), required). Pet id"));
+    assert.ok(md.includes("`tag` (query, string, optional)"));
+    assert.ok(md.includes("shape in `PostPetByPetIdPhotosRequest.body`"));
+    assert.ok(md.includes("- Errors: `404` missing"));
+    assert.ok(!md.includes("Not specified") && !md.includes("{\""));
+  });
+});
+
+describe("assembleIdePrompt", () => {
+  const types = "```typescript\nexport interface Pet { id: number }\n```";
+  const getPet: Endpoint = {
+    id: "g",
+    method: "GET",
+    path: "/pet/{petId}",
+    summary: "Find pet by ID",
+    security: [{ api_key: [] }],
+    parameters: [{ name: "petId", in: "path", required: true, schema: { type: "integer" } }],
+    responses: {
+      "200": { description: "ok", content: { "application/json": { schema: { type: "object" } } } },
+      "404": { description: "Pet not found" },
+    },
+  };
+  const meta = {
+    specTitle: "Petstore",
+    serverUrls: ["https://petstore3.swagger.io/api/v3"],
+    securitySchemes: { api_key: { type: "apiKey", in: "header", name: "api_key" } },
+  };
+
+  it("builds a single-endpoint prompt with only the relevant facts", () => {
+    const out = assembleIdePrompt([getPet], types, meta);
+    const headings = out.split("\n").filter((l) => /^#{1,2} /.test(l));
+    assert.deepStrictEqual(headings, ["# Task", "## API", "## Endpoint", "## Types", "## Rules"]);
+    assert.ok(out.includes("Integrate `GET /pet/{petId}` from Petstore"));
+    assert.ok(out.includes("- Base URL: `https://petstore3.swagger.io/api/v3`"));
+    assert.ok(out.includes("- Auth: api_key (apiKey header api_key)"));
+    assert.ok(out.includes("- Success: `200` `GetPetByPetIdResponse`"));
+    assert.ok(out.includes("handle `404` explicitly"));
+    assert.ok(out.includes("export interface Pet"));
+    assert.ok(!out.includes("Not specified"));
+  });
+
+  it("covers every endpoint for a collection and lists auth per endpoint when it differs", () => {
+    const listPets: Endpoint = { id: "l", method: "GET", path: "/pet", security: [], responses: { "200": { description: "ok" } } };
+    const out = assembleIdePrompt([getPet, listPets], types, meta);
+    assert.ok(out.includes("Integrate these 2 endpoints"));
+    assert.ok(out.includes("## Endpoints"));
+    assert.ok(out.includes("### GET `/pet`"));
+    assert.ok(out.includes("- Auth: None (operation is explicitly public)"));
+    assert.ok(out.includes("- Success: `200` no body"));
+  });
+
+  it("asks instead of guessing when the base URL is missing", () => {
+    const out = assembleIdePrompt([getPet], types, { specTitle: "Petstore" });
+    assert.ok(out.includes("- Base URL: not in the spec, ask me"));
   });
 });

@@ -9,7 +9,6 @@ import styles from "./LandingFooter.module.css";
 const LINKEDIN_HREF = "https://www.linkedin.com/in/rishab-bhatt-7ba7111ab/";
 const X_HREF = "https://x.com/Rishi_o07";
 const GITHUB_REPO_HREF = "https://github.com/rishibhatt/APIForge";
-const AUTHOR_HREF = "https://rishieee.netlify.app";
 
 export interface LandingFooterProps {
   t?: TranslateFn;
@@ -122,7 +121,7 @@ export default function LandingFooter(_props: LandingFooterProps) {
         <span className={styles.legal}>
           © {year} APIForge
         </span>
-        <a className={styles.author} href={AUTHOR_HREF} target="_blank" rel="noopener noreferrer">
+        <span className={styles.author}>
           <Image
             src="/images/RishabPFP.png"
             alt=""
@@ -133,7 +132,7 @@ export default function LandingFooter(_props: LandingFooterProps) {
           <span>
             Built by <strong>Rishab Bhatt</strong>
           </span>
-        </a>
+        </span>
       </div>
     </footer>
   );

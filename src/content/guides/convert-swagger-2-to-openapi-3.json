@@ -1,0 +1,400 @@
+{
+  "slug": "convert-swagger-2-to-openapi-3",
+  "title": "How to Convert Swagger 2.0 to OpenAPI 3 and Fix the Output",
+  "description": "Convert Swagger 2.0 to OpenAPI 3 with swagger2openapi or converter.swagger.io, then fix what converters miss: auth, media types, examples and discriminators.",
+  "excerpt": "One command converts the file. These are the edits to make afterwards, with the real converter output for a sample API.",
+  "category": "swagger",
+  "cluster": "openapi",
+  "primaryKeyword": "convert swagger 2.0 to openapi 3",
+  "keywords": [
+    "swagger 2 to openapi 3 converter",
+    "swagger2openapi",
+    "migrate swagger to openapi 3",
+    "swagger 2.0 to 3.0 differences",
+    "swagger2openapi patch warnOnly"
+  ],
+  "tags": [
+    "Swagger",
+    "OpenAPI",
+    "Migration",
+    "Tooling"
+  ],
+  "author": "rishab",
+  "publishedAt": "2026-10-26",
+  "updatedAt": "2026-10-26",
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "To convert Swagger 2.0 to OpenAPI 3, run `npx swagger2openapi swagger.yaml -o openapi.yaml`. The command reads the 2.0 file and writes an OpenAPI 3.0.0 document: host, basePath and schemes become a servers entry, definitions move to components/schemas, body and formData parameters become a requestBody, and every $ref is rewritten. That takes seconds. The output is valid, but it is a literal translation, so it keeps 2.0 workarounds you no longer need and copies schemas into places where they may be wrong. Plan a short review pass after the command: fix the security scheme, trim media types, check uploads and array parameters, then validate. This guide covers the conversion tools, a worked example with the converter's real output, and the checklist for that review."
+    },
+    {
+      "type": "callout",
+      "variant": "info",
+      "title": "New to the version names?",
+      "text": "If you are not sure which version your file is, or what changed between 2.0, 3.0 and 3.1, read [Swagger vs OpenAPI](/guides/swagger-vs-openapi) first. This guide assumes you already know you have a `swagger: \"2.0\"` file and need a 3.x one."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Run swagger2openapi from the command line",
+      "id": "swagger2openapi-cli"
+    },
+    {
+      "type": "paragraph",
+      "text": "swagger2openapi is an MIT-licensed npm package from the Mermade oas-kit project. The commands below were run against version 7.0.8. You can run it once with npx, or install it as a dev dependency so the version is pinned for your team."
+    },
+    {
+      "type": "code",
+      "language": "bash",
+      "filename": "terminal",
+      "code": "# One-off conversion (output format follows the file extension)\nnpx swagger2openapi swagger.yaml -o openapi.yaml\n\n# Convert a hosted spec and print YAML to stdout\nnpx swagger2openapi https://petstore.swagger.io/v2/swagger.json --yaml\n\n# Pin it in the project\nnpm install --save-dev swagger2openapi\nnpx swagger2openapi swagger.json -o openapi.json --patch",
+      "caption": "swagger2openapi writes JSON by default. An -o path ending in .yaml, or the --yaml flag, switches the output to YAML."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Flag",
+        "What it does",
+        "When to use it"
+      ],
+      "rows": [
+        [
+          "-o, --outfile",
+          "Writes the result to a file instead of stdout",
+          "Almost always"
+        ],
+        [
+          "-y, --yaml",
+          "Writes YAML instead of JSON",
+          "When printing to stdout and you want YAML"
+        ],
+        [
+          "-p, --patch",
+          "Fixes small errors in the source while converting",
+          "Older 2.0 files that never passed strict validation"
+        ],
+        [
+          "-w, --warnOnly",
+          "Adds x-s2o-warning extensions instead of failing on problems it cannot patch",
+          "To see every problem in one run instead of stopping at the first"
+        ],
+        [
+          "-r, --resolve",
+          "Resolves external $ref files",
+          "Specs split across several files"
+        ],
+        [
+          "-b, --rbname",
+          "Stores each body parameter's name in an extension you name",
+          "When generated client code used the 2.0 body parameter name"
+        ],
+        [
+          "-t, --targetVersion",
+          "Overrides the default target of 3.0.0",
+          "Rarely; see the 3.1 note below"
+        ]
+      ],
+      "caption": "Flags from swagger2openapi --help, version 7.0.8."
+    },
+    {
+      "type": "paragraph",
+      "text": "The package also exposes a Node API, which is handy in a build script. convertObj takes the parsed 2.0 document and an options object, and resolves with the same options object; the converted document is on its openapi property."
+    },
+    {
+      "type": "code",
+      "language": "javascript",
+      "filename": "convert.js",
+      "code": "const fs = require(\"node:fs\");\nconst YAML = require(\"yaml\");\nconst converter = require(\"swagger2openapi\");\n\nconst swagger = YAML.parse(fs.readFileSync(\"swagger.yaml\", \"utf8\"));\n\nconverter\n  .convertObj(swagger, { patch: true, warnOnly: true })\n  .then((options) => {\n    fs.writeFileSync(\"openapi.yaml\", YAML.stringify(options.openapi));\n  });"
+    },
+    {
+      "type": "warning",
+      "title": "-t 3.1.0 only relabels the file",
+      "text": "Passing --targetVersion 3.1.0 changed the version line in our run, but schemas kept 3.0 keywords such as nullable: true, which OpenAPI 3.1 dropped. Convert to 3.0 first, then apply the 3.0 to 3.1 edits listed in the OpenAPI Initiative's upgrade guide."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Use a hosted converter instead of npx",
+      "id": "online-converters"
+    },
+    {
+      "type": "paragraph",
+      "text": "SmartBear runs a hosted converter at converter.swagger.io, built on the Java swagger-parser. It has an HTTP API, so you can convert from curl without installing Node. POST the file, or pass a public URL as a query parameter. Set the Accept header to choose JSON or YAML output."
+    },
+    {
+      "type": "code",
+      "language": "bash",
+      "filename": "terminal",
+      "code": "# Upload a local file\ncurl -X POST https://converter.swagger.io/api/convert \\\n  -H \"Content-Type: application/yaml\" \\\n  -H \"Accept: application/yaml\" \\\n  --data-binary @swagger.yaml > openapi.yaml\n\n# Convert a public URL\ncurl \"https://converter.swagger.io/api/convert?url=https://petstore.swagger.io/v2/swagger.json\" \\\n  -H \"Accept: application/json\" > openapi.json"
+    },
+    {
+      "type": "paragraph",
+      "text": "Two cautions apply. The upload sends your spec to a third-party server, so do not use it for internal APIs your company has not cleared for that. Its output also differs from swagger2openapi in small ways: it targets openapi 3.0.1, adds an x-original-swagger-version extension, keeps the body parameter name as x-codegen-request-body-name, and writes `content: {}` on responses that have no body. The classic Swagger Editor at editor.swagger.io has an Edit menu entry, Convert to OpenAPI 3, that uses the same service. For anything you run in CI, prefer swagger2openapi so the conversion happens on your machine with a pinned version."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Where each 2.0 field ends up",
+      "id": "field-mapping"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Swagger 2.0",
+        "OpenAPI 3.0 after conversion",
+        "Review needed"
+      ],
+      "rows": [
+        [
+          "host, basePath, schemes",
+          "servers: one URL per scheme",
+          "Add staging or regional servers; with no host, swagger2openapi writes no servers and converter.swagger.io writes url: /"
+        ],
+        [
+          "definitions",
+          "components/schemas, with $refs rewritten",
+          "Rarely"
+        ],
+        [
+          "parameters with in: body",
+          "requestBody with one content entry per consumes type",
+          "Body parameter name is lost unless you keep it in an extension"
+        ],
+        [
+          "parameters with in: formData",
+          "requestBody with multipart/form-data or application/x-www-form-urlencoded",
+          "Yes, check file fields and per-part encoding"
+        ],
+        [
+          "consumes, produces",
+          "Media type keys under content",
+          "Yes, every type gets a copy of the same schema"
+        ],
+        [
+          "securityDefinitions",
+          "components/securitySchemes",
+          "Yes, the 2.0 types are copied as they are"
+        ],
+        [
+          "Response schema",
+          "content, one entry per produces type",
+          "Same as produces"
+        ],
+        [
+          "Response examples keyed by media type",
+          "examples or example under each media type",
+          "Rename the generated keys"
+        ],
+        [
+          "collectionFormat",
+          "style and explode",
+          "tsv has no 3.0 equivalent"
+        ],
+        [
+          "type: file",
+          "type: string, format: binary",
+          "Check the media type"
+        ],
+        [
+          "x-nullable: true",
+          "nullable: true",
+          "Other vendor extensions are left as they are"
+        ]
+      ],
+      "caption": "Mapping observed with swagger2openapi 7.0.8 and converter.swagger.io."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Converting a sample Pets API",
+      "id": "worked-example"
+    },
+    {
+      "type": "paragraph",
+      "text": "The sample below has the features that cause most review work: a global produces list with two types, an Authorization header described as an apiKey, a body parameter, a multipart upload, a csv array parameter, a response example and an x-nullable field."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "filename": "pets.swagger2.yaml",
+      "code": "swagger: \"2.0\"\ninfo:\n  title: Pets API\n  version: 1.0.0\nhost: api.example.com\nbasePath: /v1\nschemes:\n  - https\nconsumes:\n  - application/json\nproduces:\n  - application/json\n  - application/xml\nsecurityDefinitions:\n  bearerAuth:\n    type: apiKey\n    in: header\n    name: Authorization\nsecurity:\n  - bearerAuth: []\npaths:\n  /pets:\n    get:\n      operationId: listPets\n      parameters:\n        - name: tags\n          in: query\n          type: array\n          items:\n            type: string\n          collectionFormat: csv\n      responses:\n        \"200\":\n          description: A list of pets\n          schema:\n            type: array\n            items:\n              $ref: \"#/definitions/Pet\"\n          examples:\n            application/json:\n              - id: 1\n                name: Rex\n                tag: null\n    post:\n      operationId: createPet\n      parameters:\n        - in: body\n          name: pet\n          required: true\n          schema:\n            $ref: \"#/definitions/Pet\"\n      responses:\n        \"201\":\n          description: Created\n          schema:\n            $ref: \"#/definitions/Pet\"\n  /pets/{id}/photo:\n    post:\n      operationId: uploadPhoto\n      consumes:\n        - multipart/form-data\n      parameters:\n        - name: id\n          in: path\n          required: true\n          type: integer\n        - name: file\n          in: formData\n          type: file\n          required: true\n        - name: caption\n          in: formData\n          type: string\n      responses:\n        \"204\":\n          description: Uploaded\ndefinitions:\n  Pet:\n    type: object\n    required: [id, name]\n    properties:\n      id:\n        type: integer\n        format: int64\n      name:\n        type: string\n      tag:\n        type: string\n        x-nullable: true",
+      "caption": "The Swagger 2.0 source."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "filename": "pets.openapi3.yaml",
+      "code": "openapi: 3.0.0\ninfo:\n  title: Pets API\n  version: 1.0.0\nsecurity:\n  - bearerAuth: []\npaths:\n  /pets:\n    get:\n      operationId: listPets\n      parameters:\n        - name: tags\n          in: query\n          style: form\n          explode: false\n          schema:\n            type: array\n            items:\n              type: string\n      responses:\n        \"200\":\n          description: A list of pets\n          content:\n            application/json:\n              schema:\n                type: array\n                items:\n                  $ref: \"#/components/schemas/Pet\"\n              examples:\n                response:\n                  value:\n                    - id: 1\n                      name: Rex\n                      tag: null\n            application/xml:\n              schema:\n                type: array\n                items:\n                  $ref: \"#/components/schemas/Pet\"\n    post:\n      operationId: createPet\n      requestBody:\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/Pet\"\n        required: true\n      responses:\n        \"201\":\n          description: Created\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/Pet\"\n            application/xml:\n              schema:\n                $ref: \"#/components/schemas/Pet\"\n  \"/pets/{id}/photo\":\n    post:\n      operationId: uploadPhoto\n      parameters:\n        - name: id\n          in: path\n          required: true\n          schema:\n            type: integer\n      requestBody:\n        content:\n          multipart/form-data:\n            schema:\n              type: object\n              properties:\n                file:\n                  type: string\n                  format: binary\n                caption:\n                  type: string\n              required:\n                - file\n        required: true\n      responses:\n        \"204\":\n          description: Uploaded\nservers:\n  - url: https://api.example.com/v1\ncomponents:\n  securitySchemes:\n    bearerAuth:\n      type: apiKey\n      in: header\n      name: Authorization\n  schemas:\n    Pet:\n      type: object\n      required:\n        - id\n        - name\n      properties:\n        id:\n          type: integer\n          format: int64\n        name:\n          type: string\n        tag:\n          type: string\n          nullable: true",
+      "caption": "Unedited output of npx swagger2openapi pets.swagger2.yaml -o pets.openapi3.yaml (version 7.0.8). It passes validation."
+    },
+    {
+      "type": "paragraph",
+      "text": "The mechanical work is correct. The csv array became style: form with explode: false, which serializes the same way. The upload became a multipart/form-data requestBody with the file as type: string, format: binary, and the required list moved into the schema. x-nullable became nullable: true. Four things still need a person."
+    },
+    {
+      "type": "list",
+      "ordered": true,
+      "items": [
+        "bearerAuth is still type: apiKey on the Authorization header, the usual 2.0 workaround for bearer tokens. Clients generated from it will not add the Bearer prefix.",
+        "Every response now lists application/xml with the same schema as JSON. If the API returns XML for real, the Pet schema probably needs xml settings; if it never did, the entry is noise.",
+        "The response example became a named example called response under examples. That works, but a single example reads better as example.",
+        "The body parameter name, pet, is gone. Code generators that named the method argument after it will now pick their own name."
+      ]
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "filename": "pets.openapi3.yaml (edited, excerpt)",
+      "code": "openapi: 3.0.3\ninfo:\n  title: Pets API\n  version: 1.0.0\nservers:\n  - url: https://api.example.com/v1\nsecurity:\n  - bearerAuth: []\npaths:\n  /pets:\n    get:\n      operationId: listPets\n      parameters:\n        - name: tags\n          in: query\n          style: form\n          explode: false\n          schema:\n            type: array\n            items:\n              type: string\n      responses:\n        \"200\":\n          description: A list of pets\n          content:\n            application/json:\n              schema:\n                type: array\n                items:\n                  $ref: \"#/components/schemas/Pet\"\n              example:\n                - id: 1\n                  name: Rex\n                  tag: null\n    post:\n      operationId: createPet\n      x-codegen-request-body-name: pet\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/Pet\"\n      responses:\n        \"201\":\n          description: Created\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/Pet\"\ncomponents:\n  securitySchemes:\n    bearerAuth:\n      type: http\n      scheme: bearer",
+      "caption": "After review: bearer scheme, JSON only, a plain example, the body name kept for codegen, and the version raised to 3.0.3. The upload path and schemas are unchanged and omitted here."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Nine fixes to make after the converter runs",
+      "id": "checklist"
+    },
+    {
+      "type": "paragraph",
+      "text": "Work through this list on any converted file. Each item comes from a difference between what the 2.0 file said and what you probably meant, which no converter can infer."
+    },
+    {
+      "type": "checklist",
+      "title": "Review after converting Swagger 2.0 to OpenAPI 3",
+      "items": [
+        {
+          "text": "Replace apiKey bearer workarounds with an http scheme",
+          "detail": "An apiKey named Authorization in the header nearly always means a bearer token. Change it to type: http, scheme: bearer, and add bearerFormat: JWT if that is what you issue. Basic auth converts to type: http, scheme: basic on its own."
+        },
+        {
+          "text": "Trim or split media types copied from produces and consumes",
+          "detail": "Converters give every listed type the same schema. Remove types the endpoint does not serve, and give XML or CSV their own schema where the body differs."
+        },
+        {
+          "text": "Check vendor extensions beyond x-nullable",
+          "detail": "Both converters turned x-nullable into nullable: true in our test. Extensions specific to a generator or gateway, such as x-omitempty or x-ms-* keys, pass through untouched. Search for x- and decide what each one should become."
+        },
+        {
+          "text": "Fix collectionFormat values with no 3.0 equivalent",
+          "detail": "csv maps to style: form, explode: false, multi to explode: true, and pipes to pipeDelimited. tsv has no 3.0 style. swagger2openapi stops with an error on it, or with --warnOnly leaves an x-collectionFormat key and an x-s2o-warning for you to resolve."
+        },
+        {
+          "text": "Review file uploads and downloads",
+          "detail": "formData file fields become format: binary properties in a multipart schema. Add an encoding entry if a part needs a specific contentType. A 2.0 response with type: file becomes a binary string under each produces type, so make sure that type is the real one, such as application/pdf."
+        },
+        {
+          "text": "Tidy examples",
+          "detail": "swagger2openapi turns response examples into named examples called response; converter.swagger.io uses example. Rename them or switch to a single example. x-example on a parameter becomes example."
+        },
+        {
+          "text": "Add discriminator mappings",
+          "detail": "A 2.0 discriminator is a property name, and the value had to equal the schema name. Converters write discriminator: { propertyName } and nothing more. If your payloads send values like cat instead of Cat, add a mapping, and consider a oneOf so clients know the allowed subtypes."
+        },
+        {
+          "text": "Restore body parameter names if codegen depends on them",
+          "detail": "Use swagger2openapi -b x-codegen-request-body-name, or add the extension by hand, so generated method signatures stay stable."
+        },
+        {
+          "text": "Set servers and the version line",
+          "detail": "Add every environment to servers, remove a bare url: / if the converter wrote one, and raise openapi: 3.0.0 to 3.0.3 to get the clarified spec text. Remove content: {} from bodyless responses."
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Validate the converted file",
+      "id": "validate"
+    },
+    {
+      "type": "paragraph",
+      "text": "Validate twice: once to prove the file is valid OpenAPI 3, and once to prove nothing went missing. For the first, swagger2openapi ships an oas-validate command, and Redocly CLI adds lint rules on top of structural checks. Both run without installing anything globally."
+    },
+    {
+      "type": "code",
+      "language": "bash",
+      "filename": "terminal",
+      "code": "# Structural validation, from the same package\nnpx -p swagger2openapi oas-validate openapi.yaml\n\n# Structural checks plus lint rules\nnpx @redocly/cli lint openapi.yaml"
+    },
+    {
+      "type": "paragraph",
+      "text": "oas-validate passed the converted sample. Redocly's recommended ruleset failed it, on missing operation summaries and missing 4xx responses. Those gaps were already in the 2.0 file. Conversion changes the format and leaves design problems exactly where they were, so expect lint failures on a file that never had a linter, and fix or ignore them as a separate task."
+    },
+    {
+      "type": "paragraph",
+      "text": "For the second check, load the old and new files side by side and compare operation counts, parameters and response codes. Paste each into the [Swagger 2.0 validator](/swagger-validator) and the [OpenAPI validator](/openapi-validator); APIForge reads both versions, lists every operation, and lets you send a real request to confirm the server URL and the auth header still work. If the parser complains, [common OpenAPI errors](/guides/common-openapi-errors) has fixes for the usual messages, and [how to validate an OpenAPI or Swagger spec](/guides/validate-swagger-openapi-spec) shows how to run these checks in CI so later edits stay valid. The glossary entry on [OpenAPI](/glossary/openapi) covers the terms used here."
+    },
+    {
+      "type": "tool",
+      "tool": "openapi-validator",
+      "title": "Check your converted OpenAPI 3 file",
+      "description": "Parse the new spec, compare its operations with the 2.0 original, and send test requests from the browser.",
+      "buttonText": "Open the OpenAPI validator",
+      "href": "/openapi-validator"
+    },
+    {
+      "type": "cta",
+      "title": "Load the converted spec into APIForge",
+      "description": "Paste a URL or file to get a request playground, a design score, TypeScript types and AI IDE prompts for the new OpenAPI 3 document.",
+      "buttonText": "Parse your API",
+      "href": "/#parse-api"
+    },
+    {
+      "type": "relatedContent",
+      "slugs": [
+        "swagger-vs-openapi",
+        "validate-swagger-openapi-spec",
+        "common-openapi-errors",
+        "swagger-ui-authorize-bearer-token-not-working"
+      ]
+    },
+    {
+      "type": "externalReference",
+      "title": "swagger2openapi (oas-kit)",
+      "url": "https://github.com/Mermade/oas-kit/tree/main/packages/swagger2openapi",
+      "source": "GitHub"
+    },
+    {
+      "type": "externalReference",
+      "title": "Swagger Converter",
+      "url": "https://github.com/swagger-api/swagger-converter",
+      "source": "GitHub"
+    },
+    {
+      "type": "externalReference",
+      "title": "OpenAPI Specification 2.0",
+      "url": "https://spec.openapis.org/oas/v2.0.html",
+      "source": "OpenAPI Initiative"
+    },
+    {
+      "type": "externalReference",
+      "title": "OpenAPI Specification 3.0.3",
+      "url": "https://spec.openapis.org/oas/v3.0.3",
+      "source": "OpenAPI Initiative"
+    },
+    {
+      "type": "externalReference",
+      "title": "Upgrading from OpenAPI 3.0 to 3.1",
+      "url": "https://learn.openapis.org/upgrading/v3.0-to-v3.1.html",
+      "source": "OpenAPI Initiative"
+    }
+  ],
+  "faqs": [
+    {
+      "question": "What is the best Swagger 2 to OpenAPI 3 converter?",
+      "answer": "For most teams, swagger2openapi. It runs locally through npx, has a Node API for build scripts, and offers --patch and --warnOnly for messy files. converter.swagger.io gives similar output without installing anything, but it uploads your spec to a hosted service."
+    },
+    {
+      "question": "Can I convert Swagger 2.0 directly to OpenAPI 3.1?",
+      "answer": "Not cleanly with the common tools. swagger2openapi -t 3.1.0 changes the version line but leaves 3.0 keywords such as nullable. Convert to 3.0, review the output, then apply the 3.0 to 3.1 changes: type arrays for null, examples arrays and numeric exclusiveMinimum."
+    },
+    {
+      "question": "Will converting break my generated client code?",
+      "answer": "It can. Body parameter names disappear unless you keep them with x-codegen-request-body-name, apiKey to bearer changes alter auth handling, and new media types can add method overloads. Regenerate clients from the converted file and diff them before you merge."
+    },
+    {
+      "question": "Does APIForge convert Swagger 2.0 to OpenAPI 3?",
+      "answer": "No. APIForge reads Swagger 2.0, OpenAPI 3.0 and 3.1 as they are, so you can load the original and the converted file and compare their operations, but the conversion itself needs swagger2openapi or converter.swagger.io."
+    }
+  ]
+}

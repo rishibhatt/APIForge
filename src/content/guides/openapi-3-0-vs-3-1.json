@@ -1,0 +1,509 @@
+{
+  "slug": "openapi-3-0-vs-3-1",
+  "title": "OpenAPI 3.0 vs 3.1: What Changed and Should You Upgrade",
+  "description": "OpenAPI 3.0 vs 3.1: nullable, exclusiveMinimum, examples, webhooks and JSON Schema 2020-12, with before/after YAML and a checklist to upgrade 3.0 to 3.1.",
+  "excerpt": "OpenAPI 3.1 swaps 3.0's schema subset for full JSON Schema 2020-12. Each change with 3.0 and 3.1 YAML side by side, plus a migration checklist.",
+  "category": "openapi",
+  "cluster": "openapi",
+  "primaryKeyword": "openapi 3.0 vs 3.1",
+  "keywords": [
+    "openapi 3.1 changes",
+    "openapi 3.1 nullable",
+    "openapi 3.1 json schema",
+    "upgrade openapi 3.0 to 3.1",
+    "openapi 3.1 exclusiveminimum",
+    "openapi 3.1 webhooks"
+  ],
+  "tags": [
+    "OpenAPI",
+    "OpenAPI 3.1",
+    "JSON Schema",
+    "Migration"
+  ],
+  "author": "rishab",
+  "publishedAt": "2026-10-26",
+  "updatedAt": "2026-10-26",
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "OpenAPI 3.1 keeps the 3.0 document structure and replaces the schema language. In 3.0, a Schema Object is an extended subset of JSON Schema with OpenAPI-only keywords such as nullable. In 3.1, schemas are full [JSON Schema](/glossary/json-schema) draft 2020-12. That one decision drives most of the edits you will make: nullable: true becomes a type array, exclusiveMinimum takes a number, example becomes examples, and binary uploads use contentMediaType. 3.1 also adds top-level webhooks, makes paths optional, and allows siblings next to $ref. Upgrade when your code generator, gateway and docs renderer all read 3.1, or when you need webhooks or plain JSON Schema validators. If one tool in the pipeline only reads 3.0, stay on 3.0.3 or 3.0.4 for now; the conversion is a short, mechanical list you can run later."
+    },
+    {
+      "type": "paragraph",
+      "text": "This guide covers each change with the 3.0 version and the 3.1 version side by side, then gives a migration checklist. If you are still deciding between Swagger 2.0 and OpenAPI 3, start with [Swagger vs OpenAPI](/guides/swagger-vs-openapi), which covers the naming and the 2.0 to 3.0 move."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Every change in one table",
+      "id": "at-a-glance"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Area",
+        "OpenAPI 3.0",
+        "OpenAPI 3.1"
+      ],
+      "rows": [
+        [
+          "Version field",
+          "openapi: 3.0.3 (or 3.0.4)",
+          "openapi: 3.1.0 (or 3.1.1)"
+        ],
+        [
+          "Schema language",
+          "Extended subset of JSON Schema Wright draft 00",
+          "JSON Schema draft 2020-12, plus the OpenAPI base vocabulary"
+        ],
+        [
+          "Null values",
+          "nullable: true",
+          "type: [string, \"null\"] or a \"null\" branch in oneOf/anyOf"
+        ],
+        [
+          "Exclusive bounds",
+          "exclusiveMinimum: true next to minimum",
+          "exclusiveMinimum: 0 (the bound itself)"
+        ],
+        [
+          "Schema examples",
+          "example: single value",
+          "examples: array of values (example is deprecated)"
+        ],
+        [
+          "$ref siblings",
+          "Ignored",
+          "Allowed in schemas; summary and description allowed on other references"
+        ],
+        [
+          "Binary uploads",
+          "type: string, format: binary",
+          "contentMediaType, or no schema for a raw body"
+        ],
+        [
+          "Base64 strings",
+          "type: string, format: byte",
+          "type: string, contentEncoding: base64"
+        ],
+        [
+          "Webhooks",
+          "Not available (callbacks only)",
+          "Top-level webhooks map"
+        ],
+        [
+          "Required root fields",
+          "openapi, info, paths",
+          "openapi, info, and at least one of paths, components, webhooks"
+        ],
+        [
+          "Default schema dialect",
+          "Fixed",
+          "jsonSchemaDialect at the root"
+        ],
+        [
+          "info and license",
+          "title, description, license.url",
+          "Adds info.summary and license.identifier (SPDX)"
+        ],
+        [
+          "Reusable path items",
+          "Not in components",
+          "components.pathItems"
+        ],
+        [
+          "Security schemes",
+          "apiKey, http, oauth2, openIdConnect",
+          "Adds mutualTLS"
+        ]
+      ],
+      "caption": "Changes from OpenAPI 3.0.x to 3.1.x. Operations, parameters, responses, servers and security requirements keep the same shape."
+    },
+    {
+      "type": "paragraph",
+      "text": "One note on version numbers. 3.1 is a minor release that breaks compatibility, and the 3.1 specification says so directly: the OpenAPI Initiative may make non-backwards-compatible changes in minor versions when the benefit outweighs the impact. A 3.0 file with a boolean exclusiveMinimum fails 3.1 validation, and a leftover nullable: true is silently ignored, so changing the version string alone is a bug."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Schemas are now JSON Schema 2020-12",
+      "id": "json-schema"
+    },
+    {
+      "type": "paragraph",
+      "text": "In 3.0, the Schema Object borrowed keywords from an old JSON Schema draft, dropped some, and changed the meaning of others. type had to be a single string. There was no const, no if/then/else, no prefixItems. A standard JSON Schema validator could not read a 3.0 schema without an adapter, because nullable, and the boolean form of exclusiveMinimum, meant something it did not know."
+    },
+    {
+      "type": "paragraph",
+      "text": "In 3.1, any keyword from JSON Schema 2020-12 is valid inside a Schema Object. That includes const, if, then and else, dependentRequired, unevaluatedProperties, prefixItems, contentMediaType and contentEncoding, and $schema, $id and $anchor. The OpenAPI-specific keywords that remain, such as discriminator, xml and externalDocs, live in the OpenAPI base vocabulary. Reuse is the practical gain. A schema you already maintain for request validation in your backend can be referenced from the OpenAPI document without a second copy in a different dialect."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "code": "openapi: 3.1.1\njsonSchemaDialect: https://spec.openapis.org/oas/3.1/dialect/base\ninfo:\n  title: Orders API\n  version: 2.0.0\ncomponents:\n  schemas:\n    Shipment:\n      type: object\n      required: [method]\n      properties:\n        method:\n          enum: [pickup, courier]\n        address:\n          $ref: \"#/components/schemas/Address\"\n      if:\n        properties:\n          method:\n            const: courier\n      then:\n        required: [address]",
+      "filename": "orders.openapi31.yaml",
+      "caption": "jsonSchemaDialect sets the default $schema for every Schema Object. The value shown is the OpenAPI default, so you only need the field when you use a different dialect. if/then makes address required only for courier shipments, which 3.0 cannot express."
+    },
+    {
+      "type": "callout",
+      "variant": "info",
+      "title": "format is an annotation by default",
+      "text": "Under JSON Schema 2020-12, format is an annotation unless a validator turns on format assertion. A 3.1 schema with format: email documents intent; whether a value like \"not-an-email\" fails depends on the validator and its settings. Check that before relying on format for input validation."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Replace nullable with a type array",
+      "id": "nullable"
+    },
+    {
+      "type": "paragraph",
+      "text": "This is the change that touches the most files. OpenAPI 3.1 has no nullable keyword at all. JSON Schema skips keywords it does not know, so most 3.1 tools ignore a leftover nullable: true without an error, and the field quietly stops accepting null. In JSON Schema, null is a type of its own, and a property that accepts a string or null lists both types."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "code": "nickname:\n  type: string\n  nullable: true\nstatus:\n  type: string\n  enum: [active, paused]\n  nullable: true",
+      "filename": "3.0",
+      "caption": "OpenAPI 3.0: nullable on the schema."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "code": "nickname:\n  type: [string, \"null\"]\nstatus:\n  type: [string, \"null\"]\n  enum: [active, paused, null]",
+      "filename": "3.1",
+      "caption": "OpenAPI 3.1: \"null\" in the type array. Quote it in YAML, or the parser reads a real null value."
+    },
+    {
+      "type": "paragraph",
+      "text": "Two details trip people up. First, enum still restricts the value on its own, so a nullable enum needs null in the enum list as well as in type, written unquoted because it is the null value itself. Leave it out and null fails validation. Second, the 3.0 workaround for a nullable reference, allOf with one $ref plus nullable: true, has a direct 3.1 replacement that says what it means:"
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "code": "billingAddress:\n  oneOf:\n    - $ref: \"#/components/schemas/Address\"\n    - type: \"null\"",
+      "filename": "3.1",
+      "caption": "A property that is either an Address object or null."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "exclusiveMinimum and exclusiveMaximum take numbers",
+      "id": "exclusive-bounds"
+    },
+    {
+      "type": "paragraph",
+      "text": "In 3.0, exclusiveMinimum and exclusiveMaximum are booleans that change how minimum and maximum behave. In 3.1 they hold the bound itself, as JSON Schema defines them. A schema with both minimum and exclusiveMinimum is still valid in 3.1, but the two keywords now apply independently, so the old pair turns into one keyword."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "code": "quantity:\n  type: integer\n  minimum: 0\n  exclusiveMinimum: true\ndiscount:\n  type: number\n  maximum: 1\n  exclusiveMaximum: true",
+      "filename": "3.0"
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "code": "quantity:\n  type: integer\n  exclusiveMinimum: 0\ndiscount:\n  type: number\n  exclusiveMaximum: 1",
+      "filename": "3.1",
+      "caption": "quantity must be greater than 0 and discount less than 1 in both versions."
+    },
+    {
+      "type": "paragraph",
+      "text": "A converted file that still says exclusiveMinimum: true is an invalid 3.1 schema, because 2020-12 requires a number there."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "example becomes examples inside schemas",
+      "id": "examples"
+    },
+    {
+      "type": "paragraph",
+      "text": "JSON Schema has an examples keyword that takes an array, and 3.1 schemas use it. The singular example on a Schema Object still parses in 3.1 but is deprecated. This only applies to schemas. The example field and the examples map on Parameter and Media Type Objects are unchanged, so leave those alone during the migration."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "code": "Order:\n  type: object\n  properties:\n    id:\n      type: string\n      example: ord_8f2k1\n    total:\n      type: number\n      example: 49.5",
+      "filename": "3.0"
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "code": "Order:\n  type: object\n  properties:\n    id:\n      type: string\n      examples: [ord_8f2k1, ord_77xq0]\n    total:\n      type: number\n      examples: [49.5]",
+      "filename": "3.1",
+      "caption": "Each value in the array is a complete example of that schema."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "$ref can have siblings",
+      "id": "ref-siblings"
+    },
+    {
+      "type": "paragraph",
+      "text": "In 3.0, any field next to $ref is ignored. Writing a description beside a reference was common and did nothing, which is why many 3.0 files wrap a single $ref in allOf just to attach a description. In 3.1, a $ref inside a Schema Object is an ordinary JSON Schema keyword, so sibling keywords apply alongside the referenced schema. Outside schemas, a Reference Object may carry summary and description, which override the referenced component's own text. Other fields on a Reference Object are still ignored."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "code": "customer:\n  allOf:\n    - $ref: \"#/components/schemas/Customer\"\n  description: The customer who placed the order.",
+      "filename": "3.0",
+      "caption": "The allOf wrapper exists only so the description is not ignored."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "code": "customer:\n  $ref: \"#/components/schemas/Customer\"\n  description: The customer who placed the order.",
+      "filename": "3.1"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "File uploads use contentMediaType and contentEncoding",
+      "id": "file-uploads"
+    },
+    {
+      "type": "paragraph",
+      "text": "3.0 described binary data as a string with format: binary, and base64 text as format: byte. 3.1 uses the JSON Schema content keywords. For a raw binary request body, the media type key already says what the bytes are, so the schema can be left out entirely."
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "code": "requestBody:\n  content:\n    application/octet-stream:\n      schema:\n        type: string\n        format: binary\n    multipart/form-data:\n      schema:\n        type: object\n        properties:\n          avatar:\n            type: string\n            format: binary\n          thumbnail:\n            type: string\n            format: byte",
+      "filename": "3.0"
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "code": "requestBody:\n  content:\n    application/octet-stream: {}\n    multipart/form-data:\n      schema:\n        type: object\n        properties:\n          avatar:\n            type: string\n            contentMediaType: image/png\n          thumbnail:\n            type: string\n            contentEncoding: base64",
+      "filename": "3.1",
+      "caption": "An empty Media Type Object accepts any bytes. contentMediaType names the file type of a multipart part."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "New document-level fields",
+      "id": "document-fields"
+    },
+    {
+      "type": "paragraph",
+      "text": "The rest of the changes add fields. None of them force an edit to an existing file, but a few are worth adopting during the upgrade."
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "webhooks is a top-level map of requests your API sends to subscribers. Each entry is a Path Item, so it has operations, a request body and expected responses. In 3.0 the closest option was callbacks, which must hang off an operation that registers the URL.",
+        "paths is optional. A valid 3.1 document needs openapi, info and at least one of paths, components or webhooks. That makes a components-only file, such as a shared schema library, a valid document.",
+        "info.summary is a one-line description of the API, separate from the longer info.description.",
+        "license.identifier takes an SPDX expression such as Apache-2.0. It is mutually exclusive with license.url, so use one or the other.",
+        "components.pathItems stores reusable Path Item Objects that paths and webhooks can reference.",
+        "mutualTLS is a new security scheme type for APIs that authenticate clients with certificates."
+      ]
+    },
+    {
+      "type": "code",
+      "language": "yaml",
+      "code": "openapi: 3.1.1\ninfo:\n  title: Orders API\n  version: 2.0.0\n  summary: Place and track orders.\n  license:\n    name: Apache 2.0\n    identifier: Apache-2.0\nwebhooks:\n  orderShipped:\n    post:\n      summary: Sent when an order leaves the warehouse\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/Order\"\n      responses:\n        \"204\":\n          description: Subscriber accepted the event",
+      "filename": "webhooks.openapi31.yaml",
+      "caption": "A 3.1 document can describe outgoing webhooks with or without any paths."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Should you upgrade from 3.0 to 3.1?",
+      "id": "should-you-upgrade"
+    },
+    {
+      "type": "paragraph",
+      "text": "Tool support decides this one. Most teams run a spec through several programs: a linter, a docs renderer, a client or server code generator, a mock server, a gateway that imports routes. Every one of them has to read 3.1 before the upgrade pays off."
+    },
+    {
+      "type": "decisionTree",
+      "title": "Upgrade 3.0 to 3.1?",
+      "nodes": [
+        {
+          "condition": "Every tool in your pipeline documents 3.1 support",
+          "recommendation": "Upgrade. You get standard JSON Schema, cleaner null handling and webhooks for a few hours of edits.",
+          "alternative": "Upgrade on a branch first and diff the generated client code before merging."
+        },
+        {
+          "condition": "Your code generator or API gateway only reads 3.0",
+          "recommendation": "Stay on 3.0.3 or 3.0.4 and revisit when the tool adds 3.1.",
+          "alternative": "Keep a 3.1 source and down-convert for that one tool, if you can maintain the extra step."
+        },
+        {
+          "condition": "You need to describe outgoing webhooks",
+          "recommendation": "Use 3.1. The webhooks field exists only in 3.1 and later."
+        },
+        {
+          "condition": "You share schemas between OpenAPI and a JSON Schema validator in your backend",
+          "recommendation": "Use 3.1, so both read the same draft 2020-12 schemas without an adapter."
+        },
+        {
+          "condition": "Your framework generates the spec from code",
+          "recommendation": "Use the version it emits. Many frameworks expose a setting for the output version; change that setting and leave the generated file alone."
+        }
+      ]
+    },
+    {
+      "type": "warning",
+      "title": "Tool support for 3.1 is uneven",
+      "text": "Many generators, validators and gateways added 3.1 support after 3.0, and some still read it partly or not at all. Common gaps are type arrays generating odd union types, missing support for if/then/else or unevaluatedProperties, and webhooks that parse but never render. Check each tool's documentation for its supported OpenAPI versions, then run a real 3.1 file through it before committing to the upgrade."
+    },
+    {
+      "type": "paragraph",
+      "text": "After the upgrade, compare generated output before and after. A type array such as [string, \"null\"] should produce the same nullable type your 3.0 nullable: true produced. If the generated code changes shape, the generator's 3.1 support is the cause, and you have found it before your frontend did."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Migration checklist: OpenAPI 3.0 to 3.1",
+      "id": "migration-checklist"
+    },
+    {
+      "type": "checklist",
+      "title": "Upgrade OpenAPI 3.0 to 3.1",
+      "items": [
+        {
+          "text": "Change the version field to openapi: 3.1.1",
+          "detail": "3.1.1 clarifies the 3.1.0 text without changing the format. Use 3.1.0 if a tool rejects 3.1.1."
+        },
+        {
+          "text": "Replace every nullable: true with a type array",
+          "detail": "type: string plus nullable: true becomes type: [string, \"null\"]. Add null to any enum list on the same schema."
+        },
+        {
+          "text": "Rewrite nullable references",
+          "detail": "allOf with one $ref plus nullable: true becomes oneOf with the $ref and type: \"null\"."
+        },
+        {
+          "text": "Convert boolean exclusiveMinimum and exclusiveMaximum",
+          "detail": "Move the value from minimum or maximum into the exclusive keyword and delete the boolean."
+        },
+        {
+          "text": "Change example to examples inside Schema Objects",
+          "detail": "Wrap each value in an array. Leave example on parameters and media types as it is."
+        },
+        {
+          "text": "Replace format: binary and format: byte",
+          "detail": "Use contentMediaType for binary parts, an empty media type for raw bodies, and contentEncoding: base64 for base64 strings."
+        },
+        {
+          "text": "Remove allOf wrappers that only exist to attach a description to a $ref",
+          "detail": "Optional, but 3.1 reads siblings next to $ref directly."
+        },
+        {
+          "text": "Add info.summary and license.identifier",
+          "detail": "Optional. license.identifier replaces license.url; do not set both."
+        },
+        {
+          "text": "Move outgoing events from extensions or prose into webhooks",
+          "detail": "Optional. Useful if you documented events with x- extensions or in descriptions."
+        },
+        {
+          "text": "Validate the result against the 3.1 schema",
+          "detail": "Then load it in each downstream tool and compare generated clients and rendered docs with the 3.0 output."
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "The [spec validation guide](/guides/validate-swagger-openapi-spec) shows how to run that last step in CI so a half-migrated file never merges. If the validator prints errors you do not recognize, [common OpenAPI errors](/guides/common-openapi-errors) explains the usual messages."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "What about OpenAPI 3.2?",
+      "id": "openapi-3-2"
+    },
+    {
+      "type": "paragraph",
+      "text": "The OpenAPI Initiative published OpenAPI 3.2.0 in September 2025. It keeps the 3.1 schema model, JSON Schema 2020-12, and adds features on top, such as hierarchical tags and support for streaming media types. Getting to 3.1 is the large step; moving from 3.1 to 3.2 later is mostly additive. Tool support for 3.2 is newer still, so check your pipeline before targeting it."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Check a 3.0 or 3.1 spec in APIForge",
+      "id": "apiforge"
+    },
+    {
+      "type": "paragraph",
+      "text": "APIForge parses OpenAPI 3.0 and 3.1 documents, as well as Swagger 2.0, from a URL or a file. Load the 3.0 file, then the 3.1 version, in the [OpenAPI validator](/openapi-validator) and confirm both list the same operations, parameters and schemas. When you generate TypeScript types, APIForge maps both nullable: true from 3.0 and a type array that includes \"null\" from 3.1 to a union with null, so the generated types should match across the two files. APIForge does not convert between versions, so make the edits by hand or with a converter, and use APIForge to check that nothing was dropped."
+    },
+    {
+      "type": "tool",
+      "tool": "openapi-validator",
+      "title": "Validate your OpenAPI 3.0 or 3.1 spec",
+      "description": "Paste a URL or file to parse the document, resolve every $ref and list each operation and schema.",
+      "buttonText": "Open the OpenAPI validator",
+      "href": "/openapi-validator"
+    },
+    {
+      "type": "cta",
+      "title": "Load your migrated spec and send a request",
+      "description": "Paste the 3.1 file into APIForge to browse operations, call endpoints and generate TypeScript types. Free, no signup.",
+      "buttonText": "Parse your API",
+      "href": "/#parse-api"
+    },
+    {
+      "type": "relatedContent",
+      "slugs": [
+        "swagger-vs-openapi",
+        "validate-swagger-openapi-spec",
+        "common-openapi-errors",
+        "openapi-response-schema-best-practices"
+      ]
+    },
+    {
+      "type": "externalReference",
+      "title": "OpenAPI Specification 3.1.1",
+      "url": "https://spec.openapis.org/oas/v3.1.1.html",
+      "source": "OpenAPI Initiative"
+    },
+    {
+      "type": "externalReference",
+      "title": "OpenAPI Specification 3.0.4",
+      "url": "https://spec.openapis.org/oas/v3.0.4.html",
+      "source": "OpenAPI Initiative"
+    },
+    {
+      "type": "externalReference",
+      "title": "Upgrading from OpenAPI 3.0 to 3.1",
+      "url": "https://learn.openapis.org/upgrading/v3.0-to-v3.1.html",
+      "source": "OpenAPI Initiative"
+    },
+    {
+      "type": "externalReference",
+      "title": "JSON Schema draft 2020-12",
+      "url": "https://json-schema.org/draft/2020-12",
+      "source": "JSON Schema"
+    },
+    {
+      "type": "externalReference",
+      "title": "OpenAPI Specification 3.2.0",
+      "url": "https://spec.openapis.org/oas/v3.2.0.html",
+      "source": "OpenAPI Initiative"
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Is OpenAPI 3.1 backward compatible with 3.0?",
+      "answer": "No. Boolean exclusiveMinimum and exclusiveMaximum fail 3.1 validation, and nullable is ignored, so fields stop accepting null. The structure of paths, operations and components is the same, so most files need only schema edits plus the new version string."
+    },
+    {
+      "question": "How do I make a field nullable in OpenAPI 3.1?",
+      "answer": "Add \"null\" to the type array, as in type: [string, \"null\"]. For a $ref, use oneOf with the reference and type: \"null\". If the schema has an enum, add null to the enum list too."
+    },
+    {
+      "question": "Is example deprecated in OpenAPI 3.1?",
+      "answer": "Inside a Schema Object, yes: use examples, which takes an array. The example field and examples map on parameters and media types are unchanged."
+    },
+    {
+      "question": "Should a new API start on OpenAPI 3.0 or 3.1?",
+      "answer": "Start on 3.1 if your docs renderer, code generator and gateway support it. If any of them only reads 3.0, write 3.0.3 or 3.0.4 and convert later with the checklist in this guide."
+    }
+  ]
+}

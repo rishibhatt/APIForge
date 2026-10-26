@@ -1,0 +1,482 @@
+{
+  "slug": "test-rest-api-without-postman",
+  "title": "How to Test a REST API in the Browser Without Postman",
+  "description": "How to test an API without Postman: curl, Bruno, Hoppscotch, VS Code clients and browser testers compared, plus CORS, proxies, auth headers and OpenAPI specs.",
+  "excerpt": "Free ways to send API requests without Postman, why browser testers run into CORS, how proxy fallback works, and how to test an endpoint straight from an OpenAPI spec.",
+  "category": "api-testing",
+  "cluster": "api-testing",
+  "primaryKeyword": "test api without postman",
+  "keywords": [
+    "test rest api in browser",
+    "online api tester",
+    "test api endpoint online",
+    "send http request from browser",
+    "test api from openapi spec"
+  ],
+  "tags": [
+    "API Testing",
+    "Postman Alternatives",
+    "CORS",
+    "OpenAPI",
+    "Developer Tools"
+  ],
+  "author": "rishab",
+  "publishedAt": "2026-10-26",
+  "updatedAt": "2026-10-26",
+  "content": [
+    {
+      "type": "paragraph",
+      "text": "You can test an API without Postman using tools you already have. For a single call, curl in a terminal or fetch() in the browser console is enough. If the API has an OpenAPI or Swagger spec, a browser-based tester that reads the spec is faster still, because it builds each request from the documented paths, parameters and auth for you. Browser testers have one catch: CORS can block the call, so the good ones route the request through a server-side proxy when that happens. This guide compares the options, explains the CORS problem and how proxies work around it, and walks through testing one endpoint from a spec."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "When Postman is more than you need",
+      "id": "when-postman-is-overkill"
+    },
+    {
+      "type": "paragraph",
+      "text": "Postman is built for teams that keep shared collections, environments, mock servers and monitors in one workspace. If that describes your week, keep using it. Many API checks are smaller than that:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "You want to see what one endpoint returns before you write the frontend code that calls it.",
+        "A teammate sent a Swagger UI link and you need to confirm the staging API answers with the fields the docs promise.",
+        "You are on a locked-down work laptop where installing a desktop app means a ticket to IT.",
+        "You are reproducing a bug report and need the exact status code and headers, once.",
+        "You would rather not sign in to a cloud account to send a GET request."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "For these jobs the cost of Postman is setup: installing the app, signing in, creating a workspace, and then typing in a URL, headers and body by hand. Recent Postman versions push you toward an account, and the features available while signed out have changed more than once, so check the current terms if that matters to you."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "The options, compared",
+      "id": "options-compared"
+    },
+    {
+      "type": "paragraph",
+      "text": "Each tool below can send an HTTP request and show you the response. They differ in where they run, whether they ask for an account, and whether they can read an OpenAPI spec. Pricing and login rules change often, so treat the account column as a starting point and confirm on each project's site."
+    },
+    {
+      "type": "table",
+      "caption": "Account requirements and plans change. Check each tool's current docs before you standardize on one.",
+      "headers": [
+        "Tool",
+        "Runs in",
+        "Account to start",
+        "Imports OpenAPI",
+        "Good fit"
+      ],
+      "rows": [
+        [
+          "Browser DevTools fetch()",
+          "Any browser console",
+          "None",
+          "No",
+          "A quick call to an API on the same origin as the open page"
+        ],
+        [
+          "curl",
+          "Terminal (ships with macOS, most Linux distros and Windows 10+)",
+          "None",
+          "No",
+          "One-off calls, scripts, sharing an exact repro"
+        ],
+        [
+          "HTTPie",
+          "Terminal (open-source CLI); also desktop and web apps",
+          "None for the CLI",
+          "Varies by app",
+          "Readable command-line requests with JSON shortcuts"
+        ],
+        [
+          "Bruno",
+          "Desktop app (open source)",
+          "None for the core app",
+          "Yes",
+          "Collections stored as plain files in your Git repo"
+        ],
+        [
+          "Hoppscotch",
+          "Browser (hosted or self-hosted), also desktop",
+          "None for basic use",
+          "Yes",
+          "A Postman-style interface in a browser tab"
+        ],
+        [
+          "Insomnia",
+          "Desktop app",
+          "Has varied by version; local-only storage is available",
+          "Yes",
+          "Teams already on Kong tooling"
+        ],
+        [
+          "VS Code REST Client",
+          "VS Code extension",
+          "None",
+          "No",
+          "Requests saved as .http files next to your code"
+        ],
+        [
+          "Thunder Client",
+          "VS Code extension",
+          "Some features are on paid plans",
+          "Yes",
+          "A GUI client without leaving the editor"
+        ],
+        [
+          "APIForge",
+          "Browser",
+          "None",
+          "Yes, it starts from the spec",
+          "Testing endpoints straight from an OpenAPI or Swagger URL, with response validation"
+        ]
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "If you live in a terminal, curl and HTTPie are hard to beat for single calls. If you want saved collections under version control, Bruno and the VS Code REST Client keep requests as files you can commit. Hoppscotch is the closest thing to Postman in a browser tab. APIForge covers a narrower job: you have a spec, and you want to call its endpoints and check the responses against it without building each request yourself."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "The same request in three tools",
+      "id": "same-request-three-tools"
+    },
+    {
+      "type": "code",
+      "language": "bash",
+      "filename": "curl and HTTPie",
+      "code": "# curl\ncurl -i https://api.example.com/v1/users/42 \\\n  -H \"Authorization: Bearer $TOKEN\" \\\n  -H \"Accept: application/json\"\n\n# HTTPie\nhttp GET https://api.example.com/v1/users/42 \\\n  \"Authorization:Bearer $TOKEN\" Accept:application/json"
+    },
+    {
+      "type": "code",
+      "language": "http",
+      "filename": "users.http (VS Code REST Client)",
+      "code": "@token = paste-a-test-token-here\n\nGET https://api.example.com/v1/users/42\nAuthorization: Bearer {{token}}\nAccept: application/json"
+    },
+    {
+      "type": "paragraph",
+      "text": "All three are fine for one endpoint you already know. The work grows with the API: for a spec with 60 operations you still have to read the docs for each path, its parameters and its body shape, then type them in."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Why browser-based testers hit CORS",
+      "id": "cors-in-browser-testers"
+    },
+    {
+      "type": "paragraph",
+      "text": "A request sent from JavaScript on a web page follows the browser's same-origin policy. When a page on one origin calls an API on another, the browser sends the request (or first an OPTIONS preflight) and only hands the response to the page if the API replies with matching Access-Control-Allow-Origin and related headers. curl, HTTPie, Bruno and the VS Code extensions never run into this, because they are not web pages."
+    },
+    {
+      "type": "paragraph",
+      "text": "Many APIs send no CORS headers at all, since their real clients are servers or mobile apps. Others allow only their own frontend's origin. Either way, an online API tester running in your browser gets the same opaque \"Failed to fetch\" error that Swagger UI shows. A request with an Authorization header or a JSON body makes it more likely, because it triggers a preflight that the server must also answer."
+    },
+    {
+      "type": "example",
+      "title": "Using the console without a CORS error",
+      "language": "javascript",
+      "code": "// Open DevTools on a page served from api.example.com itself,\n// for example its /docs or /health page, then run:\nconst res = await fetch(\"/v1/users/42\", {\n  headers: { Authorization: \"Bearer TEST_TOKEN\" },\n});\nconsole.log(res.status, await res.json());",
+      "explanation": "A request from a page to its own origin is same-origin, so CORS does not apply. Running fetch() from a tab on a different site, such as a blank tab or another app, will be blocked unless the API allows that origin."
+    },
+    {
+      "type": "paragraph",
+      "text": "There are three common ways around it. You can fix the API's CORS configuration, which is the right answer for your own frontend but needs server access. You can install a browser extension that sends requests outside the page's sandbox; Hoppscotch offers this as one of its options. Or the tester can send the request from its own server, where the browser's rules do not apply."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "How a proxy gets around CORS, and what it costs",
+      "id": "how-proxies-work"
+    },
+    {
+      "type": "diagram",
+      "title": "Direct browser request vs proxy fallback",
+      "asciiArt": "Direct:   browser page  --->  api.example.com\n                          <---  response without CORS headers\n          browser blocks the response (\"Failed to fetch\")\n\nProxy:    browser page  --->  tester's server  --->  api.example.com\n                                               <---  response\n          browser page  <---  tester's server (same origin, allowed)"
+    },
+    {
+      "type": "paragraph",
+      "text": "Browsers enforce CORS, and a server calling an API skips the check entirely. The page sends the request description (method, URL, headers, body) to the tester's own backend, which is the same origin as the page. That backend calls the API, reads the response and passes it back."
+    },
+    {
+      "type": "paragraph",
+      "text": "In APIForge, the request panel has three modes. Browser sends the request with fetch() straight from your tab. Proxy always sends it from APIForge's server through the /api/test-request endpoint. Auto, the default, tries the browser first and retries through the proxy only when the browser reports a CORS or network error. A timeout does not trigger the fallback."
+    },
+    {
+      "type": "paragraph",
+      "text": "The trade-offs are real, and they apply to any proxy-based tester:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Your headers, including any token, pass through the tester's server. Use a test or staging token, and avoid production credentials.",
+        "A hosted proxy cannot reach an API that only exists on your machine, such as http://localhost:3000. For that, use Browser mode with CORS enabled locally, or a terminal tool.",
+        "Proxies have limits. APIForge's caps each request at a 30-second timeout, a 2 MB request body, a 5 MB response and 3 redirects, with 60 requests per minute per client. It also checks each destination and redirect target before connecting and drops credential headers when a redirect leaves the original origin.",
+        "A proxy only tells you the API works. Your own frontend will still be blocked until the API sends the right CORS headers."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "If Swagger UI shows Failed to fetch and you want to know which header is missing, the [Swagger UI Failed to fetch guide](/guides/swagger-ui-failed-to-fetch) covers each cause and its server fix."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Testing from an OpenAPI spec vs building requests by hand",
+      "id": "spec-vs-hand-built"
+    },
+    {
+      "type": "paragraph",
+      "text": "A spec already describes every operation: the path, the method, which parameters are required, the request body schema, the auth scheme and the response schemas for each status code. A tool that reads it can fill in the request form and then check the response you get back."
+    },
+    {
+      "type": "comparison",
+      "title": "Hand-built requests vs spec-driven requests",
+      "headers": [
+        "Task",
+        "Hand-built (curl, generic client)",
+        "From the spec"
+      ],
+      "rows": [
+        [
+          "Finding the endpoint",
+          "Read the docs, copy the path",
+          "Pick it from a list grouped by tag"
+        ],
+        [
+          "Path and query parameters",
+          "Typed from memory or docs",
+          "Form fields generated from the spec, required ones marked"
+        ],
+        [
+          "Request body",
+          "Written by hand",
+          "Starts from the schema or the documented example"
+        ],
+        [
+          "Auth",
+          "You look up the scheme and header name",
+          "The security scheme tells you bearer, basic or API key"
+        ],
+        [
+          "Checking the response",
+          "You eyeball the JSON",
+          "Compared against the documented schema for that status code"
+        ],
+        [
+          "When the API changes",
+          "Your saved request goes stale",
+          "Reload the spec and the form follows it"
+        ]
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Hand-built requests still win when there is no spec, when you need to send something the spec does not allow (a malformed body, a missing header) to test error handling, or when you want a command to paste into a bug report. For everyday checks against a documented API, starting from the spec removes most of the typing and gives you schema validation in the same step. The [guide to validating API responses against an OpenAPI schema](/guides/validate-api-response-against-openapi-schema) explains what that check catches."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Sending auth headers",
+      "id": "auth-headers"
+    },
+    {
+      "type": "paragraph",
+      "text": "Most failed first requests are auth problems. OpenAPI specs declare the scheme under components.securitySchemes, and the three you will meet most are below."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Scheme in the spec",
+        "What gets sent",
+        "curl example"
+      ],
+      "rows": [
+        [
+          "http, scheme: bearer",
+          "Authorization: Bearer <token>",
+          "-H \"Authorization: Bearer $TOKEN\""
+        ],
+        [
+          "http, scheme: basic",
+          "Authorization: Basic base64(user:password)",
+          "-u user:password"
+        ],
+        [
+          "apiKey, in: header",
+          "A named header, for example X-API-Key: <key>",
+          "-H \"X-API-Key: $KEY\""
+        ],
+        [
+          "apiKey, in: query",
+          "A query parameter, for example ?api_key=<key>",
+          "\"https://api.example.com/v1/items?api_key=$KEY\""
+        ]
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "APIForge has fields for all four. It builds the Basic header from the username and password you enter, and it puts an API key in the header or query string based on the location you choose. If you add your own Authorization header, the auth fields will not overwrite it."
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "title": "Keep keys out of URLs where you can",
+      "text": "API keys in query strings end up in server logs, browser history and proxy logs. Use the header form when the API accepts it, and use short-lived test tokens for any tool that sends requests through a third-party server."
+    },
+    {
+      "type": "paragraph",
+      "text": "A request that adds an Authorization header is no longer a CORS \"simple\" request, so the browser sends a preflight first. This is why a public GET often works in a browser tester while the same endpoint with a token fails. The [Swagger UI bearer token guide](/guides/swagger-ui-authorize-bearer-token-not-working) covers the other common token mistakes."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Step by step: test an endpoint from a spec in the browser",
+      "id": "step-by-step"
+    },
+    {
+      "type": "steps",
+      "title": "Testing one endpoint with APIForge",
+      "steps": [
+        {
+          "title": "Find the spec URL",
+          "description": "Look for /openapi.json, /swagger.json, /v3/api-docs or /swagger/v1/swagger.json on the API's host. If you only have a Swagger UI page, APIForge can usually discover the spec from it, and the guide to getting the OpenAPI JSON from Swagger UI lists the manual routes. A local .json or .yaml file works too."
+        },
+        {
+          "title": "Load it",
+          "description": "Paste the URL or upload the file on the APIForge home page. The endpoints appear grouped by tag, with the method and path for each operation."
+        },
+        {
+          "title": "Pick the server",
+          "description": "Specs often list several servers (production, staging, local). Choose staging or a sandbox for testing, so test writes do not touch real data."
+        },
+        {
+          "title": "Fill in parameters and body",
+          "description": "Required path and query parameters are marked. For POST, PUT and PATCH, start from the generated body and change only the fields you are testing."
+        },
+        {
+          "title": "Add auth",
+          "description": "Choose bearer, basic or API key to match the security scheme in the spec, and paste a test credential."
+        },
+        {
+          "title": "Send in Auto mode",
+          "description": "The request goes from your browser first. If CORS or the network blocks it, APIForge retries through its proxy and shows which mode returned the response."
+        },
+        {
+          "title": "Read the result",
+          "description": "Check the status code, headers, timing and body, then the schema validation result. A missing required field or a wrong type in the response points to drift between the API and its docs."
+        },
+        {
+          "title": "Take it further",
+          "description": "Generate TypeScript types or an AI IDE prompt for the endpoint, or check the spec's quality score before you build against it."
+        }
+      ]
+    },
+    {
+      "type": "decisionTree",
+      "title": "Which tool should you reach for?",
+      "nodes": [
+        {
+          "condition": "You need one quick call and you have a terminal open",
+          "recommendation": "curl or HTTPie",
+          "alternative": "fetch() in the console if you are already on the API's own origin"
+        },
+        {
+          "condition": "The API has an OpenAPI or Swagger spec and you want to try several endpoints",
+          "recommendation": "A spec-driven browser tester such as APIForge",
+          "alternative": "Import the spec into Bruno or Hoppscotch if you want a saved collection"
+        },
+        {
+          "condition": "You want requests versioned in Git alongside the code",
+          "recommendation": "Bruno or VS Code REST Client .http files"
+        },
+        {
+          "condition": "The API runs only on localhost",
+          "recommendation": "A terminal or desktop tool, or a browser tester in direct mode with CORS enabled on your dev server"
+        },
+        {
+          "condition": "Your team shares collections, environments and monitors every day",
+          "recommendation": "Postman or Insomnia are built for that, and the setup pays off"
+        }
+      ]
+    },
+    {
+      "type": "tool",
+      "tool": "api-testing",
+      "title": "Test an endpoint from your spec",
+      "description": "Load an OpenAPI or Swagger spec, send requests from the browser with proxy fallback, and validate each response against its schema.",
+      "buttonText": "Open the testing workbench",
+      "href": "/api-testing"
+    },
+    {
+      "type": "cta",
+      "title": "Paste a spec URL and send your first request",
+      "description": "APIForge runs in the browser and needs no account. Paste an OpenAPI or Swagger URL to list its endpoints.",
+      "buttonText": "Parse an API",
+      "href": "/#parse-api"
+    },
+    {
+      "type": "relatedContent",
+      "slugs": [
+        "swagger-ui-failed-to-fetch",
+        "get-openapi-json-from-swagger-ui",
+        "validate-api-response-against-openapi-schema",
+        "api-testing-best-practices"
+      ]
+    },
+    {
+      "type": "externalReference",
+      "title": "Cross-Origin Resource Sharing (CORS)",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS",
+      "source": "MDN"
+    },
+    {
+      "type": "externalReference",
+      "title": "OpenAPI Specification: Security Scheme Object",
+      "url": "https://spec.openapis.org/oas/v3.1.0#security-scheme-object",
+      "source": "OpenAPI Initiative"
+    },
+    {
+      "type": "externalReference",
+      "title": "curl man page",
+      "url": "https://curl.se/docs/manpage.html",
+      "source": "curl.se"
+    },
+    {
+      "type": "externalReference",
+      "title": "Bruno documentation",
+      "url": "https://docs.usebruno.com/",
+      "source": "usebruno.com"
+    },
+    {
+      "type": "externalReference",
+      "title": "Hoppscotch documentation",
+      "url": "https://docs.hoppscotch.io/",
+      "source": "hoppscotch.io"
+    }
+  ],
+  "faqs": [
+    {
+      "question": "What is the best free Postman alternative with no login?",
+      "answer": "For terminal work, curl and the HTTPie CLI need no account. For a desktop app, Bruno's core app runs without one and stores collections as files. In the browser, Hoppscotch can be used without signing in for basic requests, and APIForge needs no account at all when you are testing from an OpenAPI spec. Login rules change, so confirm on each tool's site."
+    },
+    {
+      "question": "Can I test a REST API in the browser without installing anything?",
+      "answer": "Yes. Use fetch() in the DevTools console for an API on the same origin as the page, or an online API tester. For APIs on other origins, the tester needs a proxy or browser extension to get past CORS, or the API must send CORS headers that allow the tester's origin."
+    },
+    {
+      "question": "Is it safe to send my API token through an online tester's proxy?",
+      "answer": "The token travels through the tester's server, so treat it like sharing it with that service. Use a test or staging token with limited scope, and avoid production credentials. If the API allows your browser's origin, a tester in direct browser mode sends the token from your machine only."
+    },
+    {
+      "question": "Why does my request work in curl but fail in a browser tester?",
+      "answer": "curl is not subject to CORS. A browser tester runs as a web page, so the browser blocks the response unless the API sends matching Access-Control-Allow-Origin headers and answers the preflight for requests with auth headers or JSON bodies. Switch the tester to proxy mode to confirm the API works, then fix the CORS headers for your own frontend."
+    }
+  ]
+}

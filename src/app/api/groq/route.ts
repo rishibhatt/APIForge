@@ -5,9 +5,9 @@ import type {
   IdePromptScope,
 } from "@/types/api";
 import {
+  assembleIdePrompt,
   buildGroqPrompt,
   buildGroqSystem,
-  buildPromptOverrides,
   type PromptApiMeta,
 } from "@/lib/groq-prompts";
 import {
@@ -17,7 +17,7 @@ import {
   applyAiUsageHeaders,
   consumeAiQuota,
 } from "@/lib/ai/quota";
-import { extractTypeScriptBlock, normalizePromptMarkdown } from "@/lib/ai/output";
+import { extractTypeScriptBlock } from "@/lib/ai/output";
 import { sanitizeUserText } from "@/lib/ai/guardrails";
 import { ai } from "@/lib/ai/service";
 import { applyAIResponseHeaders } from "@/lib/groq-token-usage";
@@ -132,19 +132,17 @@ export async function POST(req: Request) {
       capability: "general",
       system: buildGroqSystem(raw.type),
       prompt,
-      temperature: raw.type === "prompt" ? 0.3 : 0.1,
-      maxOutputTokens: raw.type === "prompt" ? 3072 : 4096,
+      temperature: 0.1,
+      maxOutputTokens: raw.type === "prompt" ? 2560 : 4096,
       maxRetries: 1,
       signal: req.signal,
     });
 
+    const typescript = extractTypeScriptBlock(res.text);
     const text =
       raw.type === "typescript"
-        ? extractTypeScriptBlock(res.text)
-        : normalizePromptMarkdown(
-            res.text,
-            buildPromptOverrides(ide?.operations?.length ? ide.operations : scopedList, meta),
-          );
+        ? typescript
+        : assembleIdePrompt(ide?.operations?.length ? ide.operations : scopedList, typescript, meta);
 
     const headers = new Headers({
       "Content-Type": "text/plain; charset=utf-8",

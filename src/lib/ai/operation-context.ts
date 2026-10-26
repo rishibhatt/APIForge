@@ -347,3 +347,88 @@ export function operationForModel(ep: Endpoint, maxChars = 7_000): string {
     maxChars,
   );
 }
+
+/* -------------------------------------------------------------------------------------------- */
+/* Paste-into-IDE prompt: crisp, deterministic facts. The model only writes the Types block.    */
+/* -------------------------------------------------------------------------------------------- */
+
+const isSuccess = (status: string) => /^2\d\d$|^2XX$/i.test(status);
+
+function preferJson<T extends { contentType: string }>(items: T[]): T | undefined {
+  return items.find((i) => /json/i.test(i.contentType)) ?? items[0];
+}
+
+/** Names the model is told to use, so the facts and the Types block line up. */
+export function operationTypeNames(ep: Endpoint): {
+  request?: string;
+  response: string;
+  error?: string;
+} {
+  const base = operationTypeBase(ep);
+  const hasRequest = collectParams(ep).length > 0 || collectRequestBodies(ep).length > 0;
+  const hasErrorBody = collectResponses(ep).some((r) => !isSuccess(r.status) && r.schemas.length > 0);
+  return {
+    request: hasRequest ? `${base}Request` : undefined,
+    response: `${base}Response`,
+    error: hasErrorBody ? `${base}ErrorResponse` : undefined,
+  };
+}
+
+/** Auth line for one operation, or null when the spec says nothing about it. */
+function authLine(ep: Endpoint, meta?: ApiMeta): string | null {
+  const auth = describeAuth(ep, meta?.securitySchemes);
+  return auth === NOT_SPECIFIED ? null : auth;
+}
+
+/** Shared auth when every operation uses the same scheme (shown once instead of per endpoint). */
+export function sharedAuth(ops: Endpoint[], meta?: ApiMeta): string | null | undefined {
+  const all = ops.map((ep) => authLine(ep, meta));
+  return all.every((a) => a === all[0]) ? all[0] : undefined;
+}
+
+/**
+ * One endpoint as a short block: params, body, success and error responses. Shapes are referenced
+ * by type name (the Types block holds them), so no raw schema JSON is repeated here.
+ */
+export function buildCrispOperation(
+  ep: Endpoint,
+  meta?: ApiMeta,
+  opts: { includeAuth?: boolean } = {},
+): string {
+  const names = operationTypeNames(ep);
+  const summary = oneLine(ep.summary, 120) || oneLine(ep.description, 120);
+  const lines = [`### ${ep.method.toUpperCase()} \`${ep.path}\`${summary ? `: ${summary}` : ""}`];
+
+  if (opts.includeAuth) {
+    const auth = authLine(ep, meta);
+    if (auth) lines.push(`- Auth: ${auth}`);
+  }
+
+  const params = collectParams(ep);
+  if (params.length > 0) {
+    lines.push("- Params:");
+    for (const p of params) {
+      const desc = p.description ? `. ${p.description}` : "";
+      lines.push(`  - \`${p.name}\` (${p.in}, ${p.type}, ${p.required ? "required" : "optional"})${desc}`);
+    }
+  }
+
+  const body = preferJson(collectRequestBodies(ep));
+  if (body) {
+    const ct = /json/i.test(body.contentType) ? "" : ` as \`${body.contentType}\``;
+    lines.push(`- Body (${body.required ? "required" : "optional"})${ct}: shape in \`${names.request}.body\``);
+  }
+
+  const responses = collectResponses(ep);
+  const ok = responses.filter((r) => isSuccess(r.status));
+  const errors = responses.filter((r) => !isSuccess(r.status));
+  if (ok.length > 0) {
+    const parts = ok.map((r) => `\`${r.status}\` ${r.schemas.length > 0 ? `\`${names.response}\`` : "no body"}`);
+    lines.push(`- Success: ${parts.join(", ")}`);
+  }
+  if (errors.length > 0) {
+    const parts = errors.map((r) => `\`${r.status}\`${r.description ? ` ${r.description}` : ""}`);
+    lines.push(`- Errors: ${parts.join("; ")}`);
+  }
+  return lines.join("\n");
+}

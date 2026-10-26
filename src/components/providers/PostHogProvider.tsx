@@ -2,12 +2,14 @@
 
 import React, { Suspense, useEffect } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
+import { whenHuman } from "@/lib/analytics/human-gate";
 
 type PostHogClient = { capture: (event: string, props?: Record<string, unknown>) => unknown };
 
 /**
- * PostHog loads after the page is idle (dynamic import), so analytics never competes
- * with first paint or input. Page views fired before it loads are queued.
+ * PostHog loads after the visitor passes the human gate and the page is idle (dynamic
+ * import), so bots never reach it and analytics never competes with first paint or input.
+ * Page views fired before it loads are queued.
  */
 let client: PostHogClient | null = null;
 let loading = false;
@@ -25,7 +27,7 @@ function loadPostHog() {
   const key = process.env.NEXT_PUBLIC_POSTHOG_KEY;
   if (!key || loading) return;
   loading = true;
-  whenIdle(() => {
+  void whenHuman().then(() => whenIdle(() => {
     void import("posthog-js").then(({ default: posthog }) => {
       posthog.init(key, {
         api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com",
@@ -39,7 +41,7 @@ function loadPostHog() {
         },
       });
     });
-  });
+  }));
 }
 
 function PageViews() {
